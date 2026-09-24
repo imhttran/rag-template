@@ -1,0 +1,62 @@
+#!/bin/sh
+# Pre-commit checks for this repo.
+#
+# Enabled with:  git config core.hooksPath .githooks
+# Bypass once:   git commit --no-verify
+#
+# Requires staticcheck on PATH:  brew install staticcheck
+# Requires jq on PATH for the json check:  brew install jq
+#
+# Each step runs in order and the commit is aborted if any of them fails.
+set -e
+
+echo "pre-commit: go mod tidy"
+go mod tidy
+
+echo "pre-commit: go fmt ./..."
+go fmt ./...
+
+# `go mod tidy` and `go fmt` rewrite files in place. If they modified a file
+# that is part of this commit, the commit would silently miss the fix, so stop
+# and ask for the files to be staged.
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.go' 'go.mod' 'go.sum')
+if [ -n "$staged" ] && ! git diff --quiet -- $staged; then
+	echo "pre-commit: go mod tidy / go fmt changed files in this commit."
+	echo "Stage them and commit again:"
+	git --no-pager diff --name-only -- $staged
+	exit 1
+fi
+
+# Every tracked JSON file is validated here rather than at push time: a broken
+# evals/retrieval.json or .zed/settings.json still compiles and only fails when
+# the command that reads it runs.
+#
+# `jq empty` rather than `jq -e .`: -e counts a document that is legitimately null
+# or false as a failure. empty exits 0 for any valid JSON and 5 for invalid.
+if command -v jq >/dev/null 2>&1; then
+	echo "pre-commit: jq (json syntax)"
+
+	for file in $(git ls-files -- '*.json'); do
+		if ! jq empty "$file"; then
+			echo "pre-commit: $file is not valid json"
+
+			exit 1
+		fi
+	done
+else
+	echo "pre-commit: jq not found, skipping json syntax check (brew install jq)"
+fi
+
+echo "pre-commit: go vet ./..."
+go vet ./...
+
+echo "pre-commit: staticcheck ./..."
+staticcheck ./...
+
+echo "pre-commit: go test ./..."
+go test ./...
+
+echo "pre-commit: go build ./..."
+go build ./...
+
+echo "pre-commit: ok"

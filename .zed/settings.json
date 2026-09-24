@@ -1,0 +1,14 @@
+{
+  "agent": {
+    "tool_permissions": {
+      "tools": {
+        "edit_file": {
+          "always_allow": [{ "pattern": "AUDIT\\.md" }]
+        },
+        "write_file": {
+          "always_allow": [{ "pattern": "AUDIT\\.md" }]
+        }
+      }
+    }
+  }
+}

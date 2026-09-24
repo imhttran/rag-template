@@ -1,0 +1,167 @@
+[
+  {
+    "question": "How long is the grace period?",
+    "expected_facts": [
+      "loan-policy.md has a 10-day grace period",
+      "large-loan-policy.md has a 15-day grace period",
+      "the sources disagree"
+    ],
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["10-day grace period"]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["grace period lasts fifteen days"]
+      }
+    ]
+  },
+  {
+    "question": "When can a late fee be assessed?",
+    "expected": [{ "source": "loan-policy.md", "section": "Late Fees" }]
+  },
+  {
+    "question": "How are payments applied to a loan?",
+    "expected_facts": [
+      "payments are applied to interest before principal",
+      "both sources agree on the payment application order"
+    ],
+    "expected": [
+      { "source": "loan-policy.md", "section": "Payments" },
+      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+    ]
+  },
+  {
+    "question": "What happens if I don't send the money I owe on time?",
+    "expected": [
+      { "source": "loan-policy.md", "section": "Missed Payments" },
+      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+    ]
+  },
+  {
+    "question": "What does LP-4827 refer to?",
+    "expected_facts": ["LP-4827 is the payment code for online payments"],
+    "expected": [{ "source": "loan-policy.md", "section": "Payment Codes" }]
+  },
+  {
+    "question": "After the allowed waiting period expires, what happens to an unpaid account?",
+    "expected": [
+      { "source": "loan-policy.md", "section": "Missed Payments" },
+      { "source": "loan-policy.md", "section": "Late Fees" },
+      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+    ]
+  },
+
+  {
+    "question": "What happens after a borrower misses a scheduled payment?",
+    "expected": [
+      { "source": "loan-policy.md", "section": "Missed Payments" },
+      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+    ]
+  },
+  {
+    "question": "When does a loan become delinquent?",
+    "expected_facts": [
+      "loan-policy.md says the loan becomes delinquent after the 10-day grace period",
+      "large-loan-policy.md says the loan becomes delinquent after the 15-day grace period",
+      "the sources disagree"
+    ],
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["10-day grace period"]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["grace period lasts fifteen days"]
+      }
+    ]
+  },
+  {
+    "question": "Can a borrower make a payment during the grace period without being marked delinquent?",
+    "expected": [
+      { "source": "loan-policy.md", "section": "Missed Payments" },
+      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+    ]
+  },
+  {
+    "question": "What happens if payments remain unpaid for a long time?",
+    "expected": [
+      { "source": "loan-policy.md", "section": "Collections" },
+      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+    ]
+  },
+  {
+    "question": "What may happen before collection activity begins?",
+    "expected": [
+      { "source": "loan-policy.md", "section": "Collections" },
+      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+    ]
+  },
+  {
+    "question": "Can a delinquent borrower be offered a payment arrangement?",
+    "expected": [
+      { "source": "loan-policy.md", "section": "Collections" },
+      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+    ]
+  },
+  {
+    "question": "Does a partial payment always satisfy the required monthly payment?",
+    "expected": [{ "source": "loan-policy.md", "section": "Partial Payments" }]
+  },
+  {
+    "question": "How may a partial payment be applied?",
+    "expected": [{ "source": "loan-policy.md", "section": "Partial Payments" }]
+  },
+  {
+    "question": "What information is recorded with a payment?",
+    "expected": [
+      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+    ]
+  },
+  {
+    "question": "How are duplicate payments detected?",
+    "expected_facts": ["duplicate payments are detected using the payment ID"],
+    "expected": [
+      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+    ]
+  },
+  {
+    "question": "Should a duplicate payment be applied twice?",
+    "expected": [
+      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+    ]
+  },
+  {
+    "question": "When are normal loan payments due?",
+    "expected": [{ "source": "loan-policy.md", "section": "Payments" }]
+  },
+  {
+    "question": "What order are interest and principal paid in?",
+    "expected": [
+      { "source": "loan-policy.md", "section": "Payments" },
+      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+    ]
+  },
+  {
+    "question": "What identifier should a borrower provide when asking support about an online payment?",
+    "expected": [{ "source": "loan-policy.md", "section": "Payment Codes" }]
+  },
+  {
+    "question": "What is the interest rate on these loans?",
+    "expected": []
+  },
+  {
+    "question": "What is the borrower's credit score?",
+    "expected": []
+  },
+  {
+    "question": "What is the loan origination fee?",
+    "expected": []
+  }
+]

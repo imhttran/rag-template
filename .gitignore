@@ -1,0 +1,23 @@
+# Compiled binaries from cmd/rag and cmd/ingest
+/rag
+/ingest
+
+# Go build and test artifacts
+*.exe
+*.test
+*.out
+/dist/
+
+# Local environment overrides (config is read from env vars)
+.env
+.env.*
+!.env.example
+
+# Editor and OS files
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Over-engineering audit report, written by .agents/scripts/audit-agent.sh
+AUDIT.md*
