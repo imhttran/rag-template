@@ -2,7 +2,7 @@ package retrieval
 
 import "testing"
 
-func TestFuse(t *testing.T) {
+func TestFuseRankings(t *testing.T) {
 	vector := []Document{
 		{ID: 1, Section: "Payments"},
 		{ID: 2, Section: "Payment Codes"},
@@ -13,7 +13,7 @@ func TestFuse(t *testing.T) {
 		{ID: 2, Section: "Payment Codes"},
 	}
 
-	got := Fuse(vector, keyword, 3)
+	got := FuseRankings([][]Document{vector, keyword}, 3)
 
 	if len(got) != 3 {
 		t.Fatalf("expected 3 documents, got %d", len(got))

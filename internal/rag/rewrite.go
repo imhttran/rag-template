@@ -1,4 +1,4 @@
-package querytransform
+package rag
 
 import (
 	"context"

@@ -154,7 +154,7 @@ chunks (`EXPAND_LIMIT` cap) before the context is sent to the model.
 Vector-only candidates below `MIN_SIMILARITY` are marked `FILTERED` and left out.
 
 When `QUERY_REWRITE` is set, `cmd/rag` first rewrites the question into a search
-query with the chat model (`internal/querytransform`), then retrieves over both
+query with the chat model (`internal/rag`), then retrieves over both
 the original question and the rewritten query. Each query runs a vector search
 and a PostgreSQL full-text search, and the four rankings are fused with
 reciprocal rank fusion before section deduplication and expansion. Otherwise it
@@ -199,7 +199,7 @@ drops all but the top-ranked chunk per source/section before reranking. It is a
 teaching baseline, not a semantic reranker.
 
 Both rerankers are off by default. Set `EVAL_LEXICAL_RERANK=true` for the lexical
-one and/or `EVAL_LLM_RERANK=true` for the chat model (`LLMReranker` in the same
+one and/or `EVAL_LLM_RERANK=true` for the chat model (`RerankLLM` in the same
 package), which asks the model to order the candidates by semantic relevance.
 They use the same candidate set, so their results are reported side by side.
 
@@ -214,7 +214,7 @@ supported across cases. Add an `expected_facts` array to a case in
 `evals/retrieval.json` to opt in.
 
 An optional query rewrite (`QUERY_REWRITE=true`) rewrites each question into a
-search query with the chat model (`internal/querytransform`), then reports
+search query with the chat model (`internal/rag`), then reports
 multi-query retrieval — a vector and a full-text search for both the original
 and the rewritten query, four rankings fused with RRF. This is what `cmd/rag`
 does with `QUERY_REWRITE` set.
@@ -286,8 +286,7 @@ rag-template/
 │   ├── generation/        # prompt -> answer (Ollama /api/generate)
 │   ├── ingestion/         # replace a source's chunks + embeddings atomically
 │   ├── ollama/            # shared JSON client for the Ollama server
-│   ├── querytransform/     # rewrite a question into a search query (chat model)
-│   ├── rag/               # build the answer prompt from retrieved chunks
+│   ├── rag/               # rewrite the question, build the answer prompt
 │   ├── reranking/         # lexical + LLM rerankers
 │   └── retrieval/         # pgvector search, RRF fusion, section expansion
 ├── migrations/
