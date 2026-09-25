@@ -44,6 +44,10 @@ type stats struct {
 	unanswerable          int
 	correctRejections     int
 
+	evidenceBefore float64
+	evidenceAfter  float64
+	evidenceCases  int
+
 	gateCorrectAccepts int
 	gateFalseRejects   int
 	gateCorrectRejects int
@@ -447,6 +451,10 @@ func (e evaluator) reportEvidenceAndJudge(
 	afterExpansion := evidenceRecall(evalCase.Expected, expanded)
 
 	if hasExpectedEvidence(evalCase.Expected) {
+		stats.evidenceBefore += beforeExpansion
+		stats.evidenceAfter += afterExpansion
+		stats.evidenceCases++
+
 		fmt.Printf(
 			"Evidence Recall: before expansion=%.2f  after expansion=%.2f\n",
 			beforeExpansion,
@@ -736,6 +744,14 @@ func printOverall(e evaluator, stats stats) {
 			average(stats.hybridRecallTotals[k], stats.answerable),
 			k,
 			average(stats.hybridPrecisionTotals[k], stats.answerable),
+		)
+	}
+
+	if stats.evidenceCases > 0 {
+		fmt.Printf(
+			"Evidence Recall: before expansion=%.2f  after expansion=%.2f\n",
+			average(stats.evidenceBefore, stats.evidenceCases),
+			average(stats.evidenceAfter, stats.evidenceCases),
 		)
 	}
 

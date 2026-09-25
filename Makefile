@@ -8,6 +8,7 @@
 #   make ingest       load examples/loan-policy.md
 #   make ask Q="…"    ask a question (omit Q to be prompted)
 #   make eval         score retrieval against evals/retrieval.json
+#   make sweep        compare eval metrics across settings
 #
 # Override inputs on the command line, e.g.
 #   make ingest FILE=examples/other.md
@@ -16,8 +17,9 @@
 DATABASE_URL ?= postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable
 FILE ?= examples/loan-policy.md
 Q ?=
+AXIS ?= all
 
-.PHONY: db-up db-down db-schema test fmt-json integration ingest ask eval
+.PHONY: db-up db-down db-schema test fmt-json integration ingest ask eval sweep
 
 # Start the database and make sure the schema is applied.
 db-up:
@@ -66,3 +68,7 @@ ask:
 # Score retrieval against evals/retrieval.json.
 eval:
 	go run ./cmd/eval
+
+# Compare cmd/eval metrics across a matrix of settings (see scripts/sweep.sh).
+sweep:
+	./scripts/sweep.sh $(AXIS)

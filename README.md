@@ -241,6 +241,23 @@ Rewriting alone loses recall (0.67 → 0.59 at K=1, 1.00 → 0.88 at K=4), while
 fusing it with the original recovers the loss and matches original-only
 retrieval. That is why the original question is never replaced by its rewrite.
 
+### Comparing settings
+
+`scripts/sweep.sh` (or `make sweep`) runs `cmd/eval` once per configuration and
+prints the Overall averages as one row per configuration, so a change is judged
+by the numbers instead of by a couple of answers:
+
+```bash
+make sweep              # every axis
+make sweep AXIS=chunk   # or topk | finalk | rewrite | rerank
+```
+
+Each row shows hybrid retrieval's per-K recall and precision plus whichever
+optional metrics that configuration produced. The `chunk` axis re-ingests
+examples/*.md before each step (cmd/ingest replaces a file's chunks, so
+repeating is safe); the `chunk`, `rewrite`, and `rerank` axes call Ollama, and
+every axis needs the database up and the corpora ingested.
+
 ## Configuration
 
 All three commands read the same settings from the environment. The defaults
