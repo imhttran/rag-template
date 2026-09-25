@@ -749,7 +749,7 @@ func printOverall(e evaluator, stats stats) {
 
 	if stats.evidenceCases > 0 {
 		fmt.Printf(
-			"Evidence Recall: before expansion=%.2f  after expansion=%.2f\n",
+			"Avg Evidence Recall: before expansion=%.2f  after expansion=%.2f\n",
 			average(stats.evidenceBefore, stats.evidenceCases),
 			average(stats.evidenceAfter, stats.evidenceCases),
 		)

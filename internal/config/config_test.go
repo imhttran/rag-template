@@ -94,7 +94,13 @@ func TestLoadOverrides(t *testing.T) {
 		{"unparseable int", "CHUNK_SIZE", "nope", func(c Config) bool {
 			return c.ChunkSize == DefaultChunkSize
 		}},
-		{"non-positive int", "CHUNK_OVERLAP", "0", func(c Config) bool {
+		{"zero chunk size", "CHUNK_SIZE", "0", func(c Config) bool {
+			return c.ChunkSize == DefaultChunkSize
+		}},
+		{"zero overlap is kept", "CHUNK_OVERLAP", "0", func(c Config) bool {
+			return c.ChunkOverlap == 0
+		}},
+		{"negative overlap", "CHUNK_OVERLAP", "-1", func(c Config) bool {
 			return c.ChunkOverlap == DefaultChunkOverlap
 		}},
 		{"unparseable float", "MIN_SIMILARITY", "x", func(c Config) bool {

@@ -32,7 +32,7 @@ report() {
 	fi
 
 	hybrid=$(grep -A 100 '^Hybrid retrieval:' "$out" | grep '^K=' | tr '\n' ' ' | tr -s ' ' || true)
-	extra=$(grep -E '^(Rerank |LLM Rerank |Answerability gate:|Evidence Recall:|Generated Fact Recall:|Similarity-only rejection=|Groundedness:|Citation Validity:|Citation Entailment:)' "$out" | tr '\n' ' ' | tr -s ' ' || true)
+	extra=$(grep -E '^(Rerank |LLM Rerank |Answerability gate:|Avg Evidence Recall:|Generated Fact Recall:|Similarity-only rejection=|Groundedness:|Citation Validity:|Citation Entailment:)' "$out" | tr '\n' ' ' | tr -s ' ' || true)
 
 	printf '%-28s %s%s\n' "$1" "$hybrid" "$extra"
 }

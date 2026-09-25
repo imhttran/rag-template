@@ -106,7 +106,7 @@ func Load() Config {
 		// Question has no default: the rag command requires one.
 		Question:             envOrDefault("QUESTION", ""),
 		ChunkSize:            envIntOrDefault("CHUNK_SIZE", DefaultChunkSize),
-		ChunkOverlap:         envIntOrDefault("CHUNK_OVERLAP", DefaultChunkOverlap),
+		ChunkOverlap:         envNonNegativeIntOrDefault("CHUNK_OVERLAP", DefaultChunkOverlap),
 		TopK:                 envIntOrDefault("TOP_K", DefaultTopK),
 		FinalK:               envIntOrDefault("FINAL_K", DefaultFinalK),
 		ExpandLimit:          envIntOrDefault("EXPAND_LIMIT", DefaultExpandLimit),
@@ -149,6 +149,17 @@ func envOrDefault(key, fallback string) string {
 func envIntOrDefault(key string, fallback int) int {
 	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
 	if err != nil || value <= 0 {
+		return fallback
+	}
+
+	return value
+}
+
+// envNonNegativeIntOrDefault is envIntOrDefault but accepts zero, for settings
+// where zero is a valid value rather than an absent one (chunk overlap).
+func envNonNegativeIntOrDefault(key string, fallback int) int {
+	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
+	if err != nil || value < 0 {
 		return fallback
 	}
 
