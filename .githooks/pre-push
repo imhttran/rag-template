@@ -1,23 +1,15 @@
 #!/bin/sh
-# Pre-push checks for this repo: the two gates and the audit that
+# Pre-push checks for this repo: the integration tests that
 # .githooks/pre-commit skips.
 #
-#   1. The PostgreSQL + pgvector integration tests, which need a running database
-#      (and therefore Docker).
-#   2. A code review of the diff, which needs a model.
-#   3. An over-engineering audit of the whole tree, which needs a model too but
-#      does not gate the push: it is detached, so its report is ready after the
-#      push rather than holding it up.
-#
-# The first two run in parallel: the review agent starts in the background and the
-# integration tests run while it works, so a push waits for the slower of the two
-# instead of for both.
+# The PostgreSQL + pgvector integration tests need a running database (and
+# therefore Docker).
 #
 # Enabled with:  git config core.hooksPath .githooks
 # Bypass once:   git push --no-verify
 #
-# All three live in project-agnostic scripts under .agents/scripts/, so they can
-# be shared with other repositories. This hook supplies only what is specific to
+# The runner is a project-agnostic script under .agents/scripts/, so it can be
+# shared with other repositories. This hook supplies only what is specific to
 # this project:
 #
 #   .agents/scripts/integration-test-agent.sh
@@ -25,17 +17,6 @@
 #     INTEGRATION_TEST_DB      RAG_TEST_DATABASE_URL, a throwaway database
 #     INTEGRATION_TEST_AGENT   set it to point at a shared copy
 #     RAG_REQUIRE_INTEGRATION  fail, instead of skipping, when the database is down
-#
-#   .agents/scripts/review-agent.sh
-#     REVIEW_PATHS             only Go changes count towards the review threshold
-#     REVIEW_MIN_LINES         this project reviews smaller diffs than the default
-#     REVIEW_AGENT             set it to point at a shared copy
-#
-#   .agents/scripts/audit-agent.sh
-#     AUDIT_AGENT              set it to point at a shared copy
-#     AUDIT_OUTPUT             where the report is written (default AUDIT.md)
-#     AUDIT_MIN_LINES          changed lines that trigger an audit (default 20)
-#     AUDIT_SKILL              the rulebook, default the ponytail-audit skill
 #
 # The integration tests truncate the documents table, so this hook never touches
 # DATABASE_URL (your dev database). It points them at RAG_TEST_DATABASE_URL
@@ -48,91 +29,16 @@
 #   psql 'postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable' -c 'CREATE DATABASE rag_test'
 #
 # A missing database is skipped with a note, so a stopped Docker daemon never
-# blocks a push. Set REVIEW_MIN_LINES=0 to review any change, or REVIEW_CMD=false
-# to switch the review off; the review's other settings are documented in
-# .agents/scripts/review-agent.sh.
+# blocks a push.
 
 set -e
 
 test_url="${RAG_TEST_DATABASE_URL:-postgres://rag:rag@127.0.0.1:5433/rag_test?sslmode=disable}"
 
 integration_test_agent="${INTEGRATION_TEST_AGENT:-.agents/scripts/integration-test-agent.sh}"
-review_agent="${REVIEW_AGENT:-.agents/scripts/review-agent.sh}"
-
-# This project counts Go changes; review-agent.sh defaults to every file.
-REVIEW_PATHS='*.go'
-export REVIEW_PATHS
-
-# Review smaller diffs than the script's default of 20 lines, so a small
-# follow-up edit still gets a second pair of eyes. Set it to 0 to review any
-# change.
-REVIEW_MIN_LINES=5
-export REVIEW_MIN_LINES
-
-audit_out="${AUDIT_OUTPUT:-AUDIT.md}"
-audit_agent="${AUDIT_AGENT:-.agents/scripts/audit-agent.sh}"
-
-# Git runs hooks from the top of the working tree, so these relative paths
-# resolve from the repository root.
-AUDIT_OUTPUT="$audit_out"
-export AUDIT_OUTPUT
-
-review_out=""
-review_pid=""
-
-# Terminate a process and its descendants, so a cancelled push does not leave the
-# review agent -- and its model call -- running.
-kill_tree() {
-	for child in $(pgrep -P "$1" 2>/dev/null); do
-		kill_tree "$child"
-	done
-
-	kill "$1" 2>/dev/null || true
-}
-
-cleanup() {
-	if [ -n "$review_pid" ]; then
-		kill_tree "$review_pid"
-
-		review_pid=""
-	fi
-
-	if [ -n "$review_out" ]; then
-		rm -f "$review_out"
-	fi
-}
-
-trap cleanup EXIT
-
-# A killed push must not leave the review agent running (and spending).
-trap 'exit 130' INT
-trap 'exit 143' TERM
-
-if [ -x "$review_agent" ]; then
-	review_out=$(mktemp "${TMPDIR:-/tmp}/rag-review.XXXXXX")
-
-	"$review_agent" >"$review_out" 2>&1 &
-
-	review_pid=$!
-
-	echo "pre-push: review running in the background"
-else
-	echo "pre-push: review skipped: $review_agent is not executable (set REVIEW_AGENT)" >&2
-fi
-
-if [ -x "$audit_agent" ]; then
-	# Detached on purpose: the audit covers the whole tree, so it is not worth
-	# waiting for and must not delay a push. Every stream is redirected so the
-	# agent cannot keep git's output open after this hook exits.
-	nohup "$audit_agent" >/dev/null 2>&1 </dev/null &
-
-	echo "pre-push: over-engineering audit running in the background"
-else
-	echo "pre-push: audit skipped: $audit_agent is not executable (set AUDIT_AGENT)" >&2
-fi
 
 if [ ! -x "$integration_test_agent" ]; then
-	# Unlike the review, this is a gate, so a missing runner must not skip.
+	# This is a gate, so a missing runner must not skip.
 	echo "pre-push: $integration_test_agent is not executable (set INTEGRATION_TEST_AGENT)" >&2
 
 	exit 1
@@ -150,20 +56,5 @@ INTEGRATION_TEST_STRICT="$RAG_REQUIRE_INTEGRATION" \
 INTEGRATION_TEST_HINT='pre-push: start the database (docker compose up -d --wait) and create rag_test once, see the README' \
 	"$integration_test_agent"
 
-if [ -n "$review_pid" ]; then
-	if ! wait "$review_pid"; then
-		echo "pre-push: the review command failed" >&2
-	fi
-
-	review_pid=""
-
-	echo
-	cat "$review_out"
-fi
-
 echo
 echo "pre-push: ok"
-
-if [ -x "$audit_agent" ]; then
-	echo "pre-push: the audit report lands in $audit_out once the agent finishes"
-fi

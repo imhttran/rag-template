@@ -23,6 +23,13 @@ type fakeSearcher struct {
 	keywordTopK  int
 	expandKeys   []SectionKey
 	expandLimit  int
+
+	vectors  [][]Document
+	keywords [][]Document
+
+	searchCalls    int
+	keywordCalls   int
+	keywordQueries []string
 }
 
 func (f *fakeSearcher) Search(
@@ -36,6 +43,12 @@ func (f *fakeSearcher) Search(
 		return nil, f.searchErr
 	}
 
+	if len(f.vectors) > 0 {
+		result := f.vectors[f.searchCalls]
+		f.searchCalls++
+		return result, nil
+	}
+
 	return f.vector, nil
 }
 
@@ -46,9 +59,16 @@ func (f *fakeSearcher) KeywordSearch(
 ) ([]Document, error) {
 	f.keywordQuery = query
 	f.keywordTopK = topK
+	f.keywordQueries = append(f.keywordQueries, query)
 
 	if f.keywordErr != nil {
 		return nil, f.keywordErr
+	}
+
+	if len(f.keywords) > 0 {
+		result := f.keywords[f.keywordCalls]
+		f.keywordCalls++
+		return result, nil
 	}
 
 	return f.keyword, nil
@@ -259,6 +279,172 @@ func TestHybridRetrieveReturnsStageErrors(t *testing.T) {
 				t.Fatalf("expected %v, got %v", test.want, err)
 			}
 		})
+	}
+}
+
+func TestMultiQueryRetrieveWiresAllRankings(t *testing.T) {
+	originalVectorHit := Document{
+		ID:         1,
+		Source:     "loan-policy.md",
+		Section:    "Payments",
+		Similarity: 0.9,
+	}
+
+	// This should be removed by the similarity threshold.
+	belowFloor := Document{
+		ID:         2,
+		Source:     "loan-policy.md",
+		Section:    "Fees",
+		Similarity: 0.2,
+	}
+
+	originalKeywordHit := Document{
+		ID:           3,
+		Source:       "loan-policy.md",
+		Section:      "Duplicate Payments",
+		KeywordScore: 0.8,
+	}
+
+	// Same document as the original vector hit. Because it appears in
+	// multiple rankings, RRF should give it multiple contributions.
+	rewrittenVectorHit := Document{
+		ID:         1,
+		Source:     "loan-policy.md",
+		Section:    "Payments",
+		Similarity: 0.85,
+	}
+
+	rewrittenKeywordHit := Document{
+		ID:           4,
+		Source:       "large-loan-policy.md",
+		Section:      "Payment Processing",
+		KeywordScore: 0.7,
+	}
+
+	expanded := []Document{
+		originalVectorHit,
+		rewrittenKeywordHit,
+	}
+
+	searcher := &fakeSearcher{
+		vectors: [][]Document{
+			{originalVectorHit, belowFloor},
+			{rewrittenVectorHit},
+		},
+		keywords: [][]Document{
+			{originalKeywordHit},
+			{rewrittenKeywordHit},
+		},
+		expanded: expanded,
+	}
+
+	result, err := MultiQueryRetrieve(
+		context.Background(),
+		searcher,
+		"what happens if I pay twice?",
+		"duplicate payment handling",
+		[]float64{0.1, 0.2},
+		[]float64{0.3, 0.4},
+		PipelineOptions{
+			CandidateK:    4,
+			FinalK:        4,
+			ExpandLimit:   20,
+			MinSimilarity: 0.6,
+		},
+	)
+	if err != nil {
+		t.Fatalf("multi query retrieve: %v", err)
+	}
+
+	if searcher.searchCalls != 2 {
+		t.Fatalf(
+			"expected 2 vector searches, got %d",
+			searcher.searchCalls,
+		)
+	}
+
+	if searcher.keywordCalls != 2 {
+		t.Fatalf(
+			"expected 2 keyword searches, got %d",
+			searcher.keywordCalls,
+		)
+	}
+
+	wantQueries := []string{
+		"what happens if I pay twice?",
+		"duplicate payment handling",
+	}
+
+	if !slices.Equal(searcher.keywordQueries, wantQueries) {
+		t.Fatalf(
+			"expected keyword queries %v, got %v",
+			wantQueries,
+			searcher.keywordQueries,
+		)
+	}
+
+	// Similarity filtering should remove document 2.
+	wantOriginalVector := []int64{1}
+
+	if got := ids(result.OriginalVector); !slices.Equal(got, wantOriginalVector) {
+		t.Fatalf(
+			"expected original vector documents %v, got %v",
+			wantOriginalVector,
+			got,
+		)
+	}
+
+	wantRewrittenVector := []int64{1}
+
+	if got := ids(result.RewrittenVector); !slices.Equal(got, wantRewrittenVector) {
+		t.Fatalf(
+			"expected rewritten vector documents %v, got %v",
+			wantRewrittenVector,
+			got,
+		)
+	}
+
+	wantOriginalKeyword := []int64{3}
+
+	if got := ids(result.OriginalKeyword); !slices.Equal(got, wantOriginalKeyword) {
+		t.Fatalf(
+			"expected original keyword documents %v, got %v",
+			wantOriginalKeyword,
+			got,
+		)
+	}
+
+	wantRewrittenKeyword := []int64{4}
+
+	if got := ids(result.RewrittenKeyword); !slices.Equal(got, wantRewrittenKeyword) {
+		t.Fatalf(
+			"expected rewritten keyword documents %v, got %v",
+			wantRewrittenKeyword,
+			got,
+		)
+	}
+
+	// Document 1 appears in both vector rankings, so it should win the RRF
+	// fusion over documents that appear in only one ranking.
+	if len(result.Fused) == 0 || result.Fused[0].ID != 1 {
+		t.Fatalf(
+			"expected document 1 to win fusion, got %v",
+			ids(result.Fused),
+		)
+	}
+
+	if result.Fused[0].FusionScore == 0 {
+		t.Fatal("fused document should carry an RRF score")
+	}
+
+	wantExpanded := []int64{1, 4}
+
+	if got := ids(result.Expanded); !slices.Equal(got, wantExpanded) {
+		t.Fatalf(
+			"expected expanded documents %v, got %v",
+			wantExpanded,
+			got,
+		)
 	}
 }
 

@@ -153,6 +153,19 @@ top `FINAL_K` fused chunks, and each matched section is then expanded to its
 chunks (`EXPAND_LIMIT` cap) before the context is sent to the model.
 Vector-only candidates below `MIN_SIMILARITY` are marked `FILTERED` and left out.
 
+When `QUERY_REWRITE` is set, `cmd/rag` first rewrites the question into a search
+query with the chat model (`internal/querytransform`), then retrieves over both
+the original question and the rewritten query. Each query runs a vector search
+and a PostgreSQL full-text search, and the four rankings are fused with
+reciprocal rank fusion before section deduplication and expansion. Otherwise it
+retrieves over the original question only. Either way the model answers the
+original question.
+
+The original query is kept alongside the rewrite rather than replaced: the
+rewrite is lossy, and retrieving over it alone finds fewer of the expected
+documents (see the evaluation below). Fusing both matches the original query's
+retrieval while hedging against a bad rewrite.
+
 Before answering, `cmd/rag` asks the chat model whether the kept documents can
 actually answer the question (`RAG_ANSWERABILITY_GATE`, on by default). If they
 cannot, it replies "I do not have enough information." instead of answering.
@@ -200,6 +213,26 @@ case's `expected_facts` the expanded evidence supports, and reports the total
 supported across cases. Add an `expected_facts` array to a case in
 `evals/retrieval.json` to opt in.
 
+An optional query rewrite (`QUERY_REWRITE=true`) rewrites each question into a
+search query with the chat model (`internal/querytransform`), then reports
+multi-query retrieval — a vector and a full-text search for both the original
+and the rewritten query, four rankings fused with RRF. This is what `cmd/rag`
+does with `QUERY_REWRITE` set.
+
+Adding `EVAL_REWRITE_ONLY=true` instead retrieves over the rewritten query alone
+— the experiment that justifies keeping the original. Averaged over the
+two-document example corpus, hybrid retrieval scores:
+
+| Mode                 | Recall@1 | Precision@1 | Recall@4 | Precision@4 |
+| -------------------- | -------- | ----------- | -------- | ----------- |
+| original only        | 0.67     | 0.95        | 1.00     | 0.67        |
+| rewritten only       | 0.59     | 0.80        | 0.88     | 0.64        |
+| original + rewritten | 0.67     | 0.95        | 1.00     | 0.67        |
+
+Rewriting alone loses recall (0.67 → 0.59 at K=1, 1.00 → 0.88 at K=4), while
+fusing it with the original recovers the loss and matches original-only
+retrieval. That is why the original question is never replaced by its rewrite.
+
 ## Configuration
 
 All three commands read the same settings from the environment. The defaults
@@ -227,6 +260,8 @@ set -a; source .env; set +a
 | `EVAL_LLM_RERANK`         | `false`                                                 | eval      |
 | `EVAL_ANSWERABILITY_GATE` | `false`                                                 | eval      |
 | `EVAL_FACT_JUDGE`         | `false`                                                 | eval      |
+| `QUERY_REWRITE`           | `false`                                                 | rag, eval |
+| `EVAL_REWRITE_ONLY`       | `false`                                                 | eval      |
 | `RAG_ANSWERABILITY_GATE`  | `true`                                                  | rag       |
 | `REQUEST_TIMEOUT`         | `5m`                                                    | all       |
 | `QUESTION`                | _(none — pass it as an argument, or type it)_           | rag       |
@@ -251,6 +286,7 @@ rag-template/
 │   ├── generation/        # prompt -> answer (Ollama /api/generate)
 │   ├── ingestion/         # replace a source's chunks + embeddings atomically
 │   ├── ollama/            # shared JSON client for the Ollama server
+│   ├── querytransform/     # rewrite a question into a search query (chat model)
 │   ├── rag/               # build the answer prompt from retrieved chunks
 │   ├── reranking/         # lexical + LLM rerankers
 │   └── retrieval/         # pgvector search, RRF fusion, section expansion
@@ -262,13 +298,13 @@ rag-template/
 │   ├── loan-policy.md       # sample corpus for cmd/ingest
 │   └── large-loan-policy.md # longer corpus; sections split into several chunks
 ├── .agents/
-│   └── scripts/                   # hooks call these; project-agnostic
+│   └── scripts/                   # agent scripts; project-agnostic
 │       ├── audit-agent.sh             # over-engineering audit, writes AUDIT.md
 │       ├── integration-test-agent.sh  # run the integration tests
 │       └── review-agent.sh            # code review agent
 ├── .githooks/
 │   ├── pre-commit         # tidy / fmt / jq / vet / staticcheck / test / build
-│   └── pre-push           # integration tests + review in parallel, audit detached
+│   └── pre-push           # integration tests
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
@@ -296,9 +332,9 @@ rather than just a syntax check.
 `staticcheck` must be on `PATH` (`brew install staticcheck` on macOS). It catches
 unused code — functions, methods, and types — which `go vet` does not.
 
-`.githooks/pre-push` runs what the pre-commit hook skips, using three
-project-agnostic scripts in `.agents/scripts/`. The hook supplies only what is
-specific to this project, and the two gates run in parallel with each other.
+`.githooks/pre-push` runs what the pre-commit hook skips, using one
+project-agnostic script in `.agents/scripts/`. The hook supplies only what is
+specific to this project.
 
 `.agents/scripts/integration-test-agent.sh` runs the database tests
 (`internal/retrieval`, `internal/ingestion`) given by `INTEGRATION_TEST_CMD`. It
@@ -310,35 +346,34 @@ blocks a push; `INTEGRATION_TEST_STRICT` (`RAG_REQUIRE_INTEGRATION=1`) fails
 instead. It also fails when the command passes but no test ran, so a `-run` filter
 that matches nothing cannot turn the gate green.
 
-`.agents/scripts/review-agent.sh` is advisory — a finding never fails the push —
-read-only (`--tools ""`), budget-capped (`REVIEW_BUDGET`, default `0.25` USD), and
-only runs for a diff that changes at least `REVIEW_MIN_LINES` lines of what
-`REVIEW_PATHS` matches (this hook sets `REVIEW_MIN_LINES=5` and
-`REVIEW_PATHS='*.go'`, so docs and shell changes do not trigger it). Findings
-print after the tests finish.
+`.agents/scripts/review-agent.sh` reviews the diff against `origin/main` and is
+advisory — a finding never fails anything. It is not wired into the hook either,
+so run it by hand when you want a second pair of eyes: it is read-only
+(`--tools ""`), budget-capped (`REVIEW_BUDGET`, default `0.25` USD), and skips
+itself unless at least `REVIEW_MIN_LINES` lines of what `REVIEW_PATHS` matches
+changed.
 
 `.agents/scripts/audit-agent.sh` hunts over-engineering — dependencies the
 standard library already ships, single-implementation interfaces, dead flags — and
-writes its report to `AUDIT.md` at the root of the repository (gitignored). Unlike
-the review it is **detached**: the hook starts it, does not wait, and the report is
-there shortly after the push finishes. It gets read-only tools (`AUDIT_TOOLS`,
-default `Read,Grep,Glob`), so it can walk the tree but cannot change it, and it is
-budget-capped (`AUDIT_BUDGET`, default `0.50` USD). Like the review it only runs
-when at least `AUDIT_MIN_LINES` lines changed against `AUDIT_BASE`.
+writes its report to `AUDIT.md` at the root of the repository (gitignored). It is
+not wired into the hook, so it never delays a push: run it by hand. It gets
+read-only tools (`AUDIT_TOOLS`, default `Read,Grep,Glob`), so it can walk the tree
+but cannot change it, and it is budget-capped (`AUDIT_BUDGET`, default `0.50` USD).
+It skips itself unless at least `AUDIT_MIN_LINES` lines changed against
+`AUDIT_BASE`.
 
-The audit's rulebook is a skill file, `AUDIT_SKILL`, so the same file drives this
-hook and an editor session that invokes the skill. It defaults to the global
+The audit's rulebook is a skill file, `AUDIT_SKILL`, so one file drives the
+script and an editor session that invokes the skill. It defaults to the global
 ponytail-audit skill at `~/.agents/skills/ponytail-audit/SKILL.md`; point it
-somewhere else to audit by different rules. Run it by hand, which is also how you
-refresh the report without pushing:
+somewhere else to audit by different rules. Run it whenever you want a report:
 
 ```sh
 AUDIT_MIN_LINES=0 sh .agents/scripts/audit-agent.sh
 ```
 
-The three scripts read their settings from environment variables, so another
-repository can reuse them by copying the folder somewhere shared and pointing a
-hook at them:
+The scripts read their settings from environment variables, so another repository
+can reuse them by copying the folder somewhere shared and pointing a hook (or a
+manual run) at them:
 
 ```sh
 AUDIT_AGENT=/path/to/shared/audit-agent.sh

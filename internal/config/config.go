@@ -46,6 +46,12 @@ const (
 	// chat-model call per case that lists facts.
 	DefaultFactJudge = false
 
+	// DefaultRewriteOnly is whether cmd/eval retrieves with the rewritten query
+	// alone, instead of the original plus the rewritten query. Off by default:
+	// it is an experiment comparing replacing the original query against
+	// keeping it alongside the rewrite.
+	DefaultRewriteOnly = false
+
 	// DefaultRagAnswerabilityGate is whether cmd/rag checks answerability with
 	// the chat model before answering. On by default.
 	DefaultRagAnswerabilityGate = true
@@ -76,8 +82,10 @@ type Config struct {
 	LLMRerank            bool
 	AnswerabilityGate    bool
 	FactJudge            bool
+	RewriteOnly          bool
 	RagAnswerabilityGate bool
 	RequestTimeout       time.Duration
+	QueryRewrite         bool
 }
 
 // Load reads the settings from the environment, falling back to the defaults.
@@ -97,8 +105,10 @@ func Load() Config {
 		LLMRerank:            envBoolOrDefault("EVAL_LLM_RERANK", DefaultLLMRerank),
 		AnswerabilityGate:    envBoolOrDefault("EVAL_ANSWERABILITY_GATE", DefaultAnswerabilityGate),
 		FactJudge:            envBoolOrDefault("EVAL_FACT_JUDGE", DefaultFactJudge),
+		RewriteOnly:          envBoolOrDefault("EVAL_REWRITE_ONLY", DefaultRewriteOnly),
 		RagAnswerabilityGate: envBoolOrDefault("RAG_ANSWERABILITY_GATE", DefaultRagAnswerabilityGate),
 		RequestTimeout:       envDurationOrDefault("REQUEST_TIMEOUT", DefaultRequestTimeout),
+		QueryRewrite:         envBoolOrDefault("QUERY_REWRITE", false),
 	}
 }
 

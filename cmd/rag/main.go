@@ -22,6 +22,7 @@ import (
 	"rag-template/internal/config"
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
+	"rag-template/internal/querytransform"
 	"rag-template/internal/rag"
 	"rag-template/internal/retrieval"
 )
@@ -57,9 +58,41 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	embedder := embedding.New(client, cfg.EmbedModel)
 	generator := generation.New(client, cfg.ChatModel)
 
-	queryEmbedding, err := embedQuestion(ctx, embedder, question)
+	originalEmbedding, err := embedQuestion(
+		ctx,
+		embedder,
+		question,
+	)
 	if err != nil {
 		return err
+	}
+
+	retrievalQuery := question
+
+	var rewrittenEmbedding []float64
+
+	if cfg.QueryRewrite {
+		retrievalQuery, err = querytransform.Rewrite(
+			ctx,
+			generator,
+			question,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println()
+		fmt.Println("Retrieval query:")
+		fmt.Println(retrievalQuery)
+
+		rewrittenEmbedding, err = embedQuestion(
+			ctx,
+			embedder,
+			retrievalQuery,
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	conn, err := cfg.Connect(ctx)
@@ -72,7 +105,9 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 		ctx,
 		conn,
 		question,
-		queryEmbedding,
+		retrievalQuery,
+		originalEmbedding,
+		rewrittenEmbedding,
 		cfg,
 	)
 	if err != nil {
@@ -212,56 +247,119 @@ func embedQuestion(
 func retrieveDocuments(
 	ctx context.Context,
 	conn *pgx.Conn,
-	question string,
-	vector []float64,
+	originalQuery string,
+	rewrittenQuery string,
+	originalVector []float64,
+	rewrittenVector []float64,
 	cfg config.Config,
 ) ([]retrieval.Document, error) {
 	retriever := retrieval.New(conn)
 
+	options := retrieval.PipelineOptions{
+		CandidateK:    cfg.TopK,
+		FinalK:        cfg.FinalK,
+		ExpandLimit:   cfg.ExpandLimit,
+		MinSimilarity: cfg.MinSimilarity,
+	}
+
+	if cfg.QueryRewrite {
+		result, err := retrieval.MultiQueryRetrieve(
+			ctx,
+			retriever,
+			originalQuery,
+			rewrittenQuery,
+			originalVector,
+			rewrittenVector,
+			options,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		printMultiQueryStages(result, cfg.MinSimilarity)
+
+		return result.Expanded, nil
+	}
+
 	result, err := retrieval.HybridRetrieve(
 		ctx,
 		retriever,
-		question,
-		vector,
-		retrieval.PipelineOptions{
-			CandidateK:    cfg.TopK,
-			FinalK:        cfg.FinalK,
-			ExpandLimit:   cfg.ExpandLimit,
-			MinSimilarity: cfg.MinSimilarity,
-		},
+		originalQuery,
+		originalVector,
+		options,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	printRetrievalStages(
-		result.Vector,
-		result.Fused,
-		result.Expanded,
-		cfg.MinSimilarity,
-	)
+	printSingleQueryStages(result, cfg.MinSimilarity)
 
 	return result.Expanded, nil
 }
 
-// printRetrievalStages reports each stage of hybrid retrieval.
-func printRetrievalStages(
-	vectorDocuments []retrieval.Document,
-	fused []retrieval.Document,
-	expanded []retrieval.Document,
+// printMultiQueryStages reports each stage of multi-query retrieval.
+func printMultiQueryStages(
+	result retrieval.MultiQueryResult,
+	minSimilarity float64,
+) {
+	fmt.Println()
+	fmt.Println("Original vector retrieval:")
+	printRetrieved(result.OriginalVector, minSimilarity)
+
+	fmt.Println()
+	fmt.Println("Original keyword retrieval:")
+	printKeywordRetrieved(result.OriginalKeyword)
+
+	fmt.Println()
+	fmt.Println("Rewritten vector retrieval:")
+	printRetrieved(result.RewrittenVector, minSimilarity)
+
+	fmt.Println()
+	fmt.Println("Rewritten keyword retrieval:")
+	printKeywordRetrieved(result.RewrittenKeyword)
+
+	fmt.Println()
+	fmt.Println("Fused retrieval:")
+	printHybridRetrieved(result.Fused)
+
+	fmt.Println()
+	fmt.Println("Expanded context:")
+	printExpandedDocuments(result.Expanded)
+}
+
+// printSingleQueryStages reports each stage of single-query retrieval.
+func printSingleQueryStages(
+	result retrieval.PipelineResult,
 	minSimilarity float64,
 ) {
 	fmt.Println()
 	fmt.Println("Vector retrieval:")
-	printRetrieved(vectorDocuments, minSimilarity)
+	printRetrieved(result.Vector, minSimilarity)
+
+	fmt.Println()
+	fmt.Println("Keyword retrieval:")
+	printKeywordRetrieved(result.Keyword)
 
 	fmt.Println()
 	fmt.Println("Hybrid retrieval:")
-	printHybridRetrieved(fused)
+	printHybridRetrieved(result.Fused)
 
 	fmt.Println()
 	fmt.Println("Expanded context:")
-	printExpandedDocuments(expanded)
+	printExpandedDocuments(result.Expanded)
+}
+
+func printKeywordRetrieved(documents []retrieval.Document) {
+	for _, doc := range documents {
+		fmt.Printf(
+			"%.4f  [%s - %s - chunk %d] %s\n",
+			doc.KeywordScore,
+			doc.Source,
+			doc.Section,
+			doc.ChunkIndex,
+			doc.Content,
+		)
+	}
 }
 
 func printHybridRetrieved(documents []retrieval.Document) {

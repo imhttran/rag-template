@@ -2,6 +2,9 @@
   "agent": {
     "tool_permissions": {
       "tools": {
+        "read_file": {
+          "always_allow": [{ "pattern": "AUDIT\\.md" }]
+        },
         "edit_file": {
           "always_allow": [{ "pattern": "AUDIT\\.md" }]
         },

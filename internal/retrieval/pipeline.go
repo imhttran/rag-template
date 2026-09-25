@@ -42,6 +42,17 @@ type PipelineResult struct {
 	Expanded []Document
 }
 
+// MultiQueryResult exposes the single-query stages plus the rewritten-query
+// stages, so callers can inspect each before the fused and expanded results.
+type MultiQueryResult struct {
+	OriginalVector   []Document
+	OriginalKeyword  []Document
+	RewrittenVector  []Document
+	RewrittenKeyword []Document
+	Fused            []Document
+	Expanded         []Document
+}
+
 // HybridRetrieve runs the production retrieval pipeline:
 //
 //	vector search
@@ -106,5 +117,91 @@ func HybridRetrieve(
 		Keyword:  keywordDocuments,
 		Fused:    fused,
 		Expanded: expanded,
+	}, nil
+}
+
+func MultiQueryRetrieve(
+	ctx context.Context,
+	searcher Searcher,
+	originalQuery string,
+	rewrittenQuery string,
+	originalVector []float64,
+	rewrittenVector []float64,
+	options PipelineOptions,
+) (MultiQueryResult, error) {
+	originalVectorDocuments, err := searcher.Search(
+		ctx,
+		originalVector,
+		options.CandidateK,
+	)
+	if err != nil {
+		return MultiQueryResult{}, err
+	}
+
+	originalVectorDocuments = KeepSimilar(
+		originalVectorDocuments,
+		options.MinSimilarity,
+	)
+
+	originalKeywordDocuments, err := searcher.KeywordSearch(
+		ctx,
+		originalQuery,
+		options.CandidateK,
+	)
+	if err != nil {
+		return MultiQueryResult{}, err
+	}
+
+	rewrittenVectorDocuments, err := searcher.Search(
+		ctx,
+		rewrittenVector,
+		options.CandidateK,
+	)
+	if err != nil {
+		return MultiQueryResult{}, err
+	}
+
+	rewrittenVectorDocuments = KeepSimilar(
+		rewrittenVectorDocuments,
+		options.MinSimilarity,
+	)
+
+	rewrittenKeywordDocuments, err := searcher.KeywordSearch(
+		ctx,
+		rewrittenQuery,
+		options.CandidateK,
+	)
+	if err != nil {
+		return MultiQueryResult{}, err
+	}
+
+	fused := FuseRankings(
+		[][]Document{
+			originalVectorDocuments,
+			originalKeywordDocuments,
+			rewrittenVectorDocuments,
+			rewrittenKeywordDocuments,
+		},
+		options.FinalK,
+	)
+
+	fused = DeduplicateSections(fused)
+
+	expanded, err := searcher.SectionChunks(
+		ctx,
+		SectionKeys(fused),
+		options.ExpandLimit,
+	)
+	if err != nil {
+		return MultiQueryResult{}, err
+	}
+
+	return MultiQueryResult{
+		OriginalVector:   originalVectorDocuments,
+		OriginalKeyword:  originalKeywordDocuments,
+		RewrittenVector:  rewrittenVectorDocuments,
+		RewrittenKeyword: rewrittenKeywordDocuments,
+		Fused:            fused,
+		Expanded:         expanded,
 	}, nil
 }
