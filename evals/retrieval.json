@@ -153,6 +153,49 @@
     "expected": [{ "source": "loan-policy.md", "section": "Payment Codes" }]
   },
   {
+    "question": "Can I get more time before my payment is late?",
+    "expected_facts": ["a grace period extension may be requested"],
+    "expected": [
+      {
+        "source": "member-services-guide.md",
+        "section": "Grace Period Requests"
+      }
+    ]
+  },
+  {
+    "question": "Can a late fee be removed?",
+    "expected": [
+      { "source": "member-services-guide.md", "section": "Fee Waivers" }
+    ]
+  },
+  {
+    "question": "What happens to a partial payment while I wait to pay the rest?",
+    "expected": [
+      {
+        "source": "member-services-guide.md",
+        "section": "Partial Payment Handling"
+      }
+    ]
+  },
+  {
+    "question": "How much do I owe to pay off the loan today?",
+    "expected": [
+      { "source": "member-services-guide.md", "section": "Payoff Requests" }
+    ]
+  },
+  {
+    "question": "How can I change how I receive my statements?",
+    "expected": [
+      { "source": "member-services-guide.md", "section": "Statement Delivery" }
+    ]
+  },
+  {
+    "question": "What happens if I think a payment was applied to the wrong loan?",
+    "expected": [
+      { "source": "member-services-guide.md", "section": "Dispute Resolution" }
+    ]
+  },
+  {
     "question": "What is the interest rate on these loans?",
     "expected": []
   },
