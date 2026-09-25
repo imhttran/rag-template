@@ -133,8 +133,20 @@ answerability gate is for; the threshold stays at `0.6`.
 
 ## Generation judge
 
-`EVAL_FACT_JUDGE` axis has not been run. The fact judge, groundedness, and
-citation metrics are implemented but no numbers have been recorded yet.
+Baseline: `QUERY_REWRITE=true`, `FINAL_K=3`, cloud chat model. With
+`EVAL_FACT_JUDGE=true` the generation metrics are reported for every answerable
+case (the K columns differ from the `false` row only because the rewrite is
+nondeterministic, not because of the judge):
+
+| Metric                | Score        |
+| --------------------- | ------------ |
+| Generated fact recall | 50/55 (0.91) |
+| Groundedness          | 35/37 (0.95) |
+| Citation validity     | 89/89 (1.00) |
+| Citation entailment   | 78/88 (0.89) |
+
+Every citation pointed at retrieved material, but one cited claim in nine was
+not supported by the section it cited.
 
 ## Bugs the sweep surfaced
 
@@ -145,15 +157,56 @@ citation metrics are implemented but no numbers have been recorded yet.
 - `TOP_K=2` double-counted: `ks` held `2` twice, so K=2 averaged to `1.72` and
   rejections to `4/6`. Fixed by sorting and deduplicating `ks`.
 
+## Re-baseline under the shipped defaults
+
+`QUERY_REWRITE=true`, `FINAL_K=3`, cloud chat model. The axes above were
+measured with `QUERY_REWRITE=false`; these are the same knobs re-measured on the
+configuration that now ships.
+
+TOP_K — same conclusion (4 best at K=1/K=2; 8 buys R@8 at a precision cost):
+
+| TOP_K | R@1  | R@2  | R@8  | P@8  | Evidence (bef → aft) |
+| ----- | ---- | ---- | ---- | ---- | -------------------- |
+| 2     | 0.69 | 0.83 | —    | —    | 0.77 → 0.89          |
+| 4     | 0.73 | 0.86 | —    | —    | 0.81 → 0.93          |
+| 8     | 0.70 | 0.82 | 0.99 | 0.40 | 0.81 → 0.94          |
+
+FINAL_K — same conclusion, evidence recall rises with it:
+
+| FINAL_K | Evidence (bef → aft) |
+| ------- | -------------------- |
+| 1       | 0.64 → 0.73          |
+| 2       | 0.75 → 0.86          |
+| 3       | 0.78 → 0.90          |
+
+LLM rerank (4→3): R@1 0.70 → 0.73, precision and evidence unchanged.
+
+Chunk size — the conclusion flips:
+
+| size/overlap    | R@1  | R@2  | R@4  | P@4  | Evidence (bef → aft) |
+| --------------- | ---- | ---- | ---- | ---- | -------------------- |
+| 50/20 (default) | 0.70 | 0.86 | 0.95 | 0.52 | 0.81 → 0.93          |
+| 100/20          | 0.70 | 0.87 | 0.98 | 0.52 | 0.90 → 0.96          |
+| 200/20          | 0.72 | 0.83 | 0.98 | 0.51 | 0.92 → 0.92          |
+
+With the rewrite on, `100/20` matches or beats `50/20` on every column and is
+clearly better on R@4 (0.98 vs 0.95) and evidence recall (0.96 vs 0.93). Larger
+sections also raise evidence recall _before_ expansion, because a section is
+fewer chunks so the retrieved chunk is more likely to carry the evidence. The
+`50/20` default was promoted from the `QUERY_REWRITE=false` table above; on the
+shipped configuration it is not the best choice.
+
 ## Still open
 
-- The chunk/TOP_K/FINAL_K/rerank rows were measured with `QUERY_REWRITE=false`.
-  Re-baselining them under the current default (`QUERY_REWRITE=true`) is
-  pending; a full pass is slow because every run rewrites all 43 questions.
-- With `QUERY_REWRITE=true` a single eval run takes roughly 12–15 minutes on the
-  local chat model, so one axis is ~40 minutes. Run axes with
-  `QUERY_REWRITE=false` while comparing one variable; keep the default on for
-  headline numbers.
-- `EVAL_FACT_JUDGE` still has no recorded numbers (see above).
+- **The chunk default needs re-deciding.** `50/20` was promoted from the
+  `QUERY_REWRITE=false` table; under the shipped defaults `100/20` looks at least
+  as good. These are single runs, so change the default only after re-measuring
+  the same configuration a few times.
+- Sweep rows come from different chat-model and rewrite combinations (local or
+  cloud model, rewrite on or off); only rows sharing a combination are directly
+  comparable.
+- The local chat model makes one eval run ~12–15 minutes, so an axis is ~40
+  minutes. `OLLAMA_CHAT_MODEL=deepseek-v4.1-flash:cloud make sweep AXIS=…` is
+  roughly 10× faster and was used for the re-baseline.
 - Rewrite output is nondeterministic: one configuration measured R@1 0.70 and
   then 0.74 on two runs, so small differences between rows are noise.
