@@ -21,7 +21,18 @@
   },
   {
     "question": "When can a late fee be assessed?",
-    "expected": [{ "source": "loan-policy.md", "section": "Late Fees" }]
+    "expected_facts": [
+      "a late fee can be assessed once the grace period expires"
+    ],
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Late Fees",
+        "evidence": [
+          "A late fee may be assessed after the grace period has expired"
+        ]
+      }
+    ]
   },
   {
     "question": "How are payments applied to a loan?",
@@ -30,36 +41,93 @@
       "both sources agree on the payment application order"
     ],
     "expected": [
-      { "source": "loan-policy.md", "section": "Payments" },
-      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+      {
+        "source": "loan-policy.md",
+        "section": "Payments",
+        "evidence": ["applied first to outstanding interest, then to principal"]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Payment Processing",
+        "evidence": [
+          "applied first to outstanding interest and then to principal"
+        ]
+      }
     ]
   },
   {
     "question": "What happens if I don't send the money I owe on time?",
+    "expected_facts": [
+      "a missed payment starts a grace period",
+      "the sources disagree on how long the grace period is"
+    ],
     "expected": [
-      { "source": "loan-policy.md", "section": "Missed Payments" },
-      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+      {
+        "source": "loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["10-day grace period"]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["grace period lasts fifteen days"]
+      }
     ]
   },
   {
     "question": "What does LP-4827 refer to?",
     "expected_facts": ["LP-4827 is the payment code for online payments"],
-    "expected": [{ "source": "loan-policy.md", "section": "Payment Codes" }]
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Payment Codes",
+        "evidence": ["transaction code LP-4827"]
+      }
+    ]
   },
   {
     "question": "After the allowed waiting period expires, what happens to an unpaid account?",
+    "expected_facts": [
+      "the loan becomes delinquent once the grace period expires",
+      "a late fee may be assessed after the grace period"
+    ],
     "expected": [
-      { "source": "loan-policy.md", "section": "Missed Payments" },
-      { "source": "loan-policy.md", "section": "Late Fees" },
-      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+      {
+        "source": "loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["the loan becomes delinquent"]
+      },
+      {
+        "source": "loan-policy.md",
+        "section": "Late Fees",
+        "evidence": [
+          "A late fee may be assessed after the grace period has expired"
+        ]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["the account becomes delinquent"]
+      }
     ]
   },
 
   {
     "question": "What happens after a borrower misses a scheduled payment?",
+    "expected_facts": [
+      "a missed payment starts a grace period before the loan becomes delinquent"
+    ],
     "expected": [
-      { "source": "loan-policy.md", "section": "Missed Payments" },
-      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+      {
+        "source": "loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["the loan enters a 10-day grace period"]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["the account enters a grace period"]
+      }
     ]
   },
   {
@@ -84,73 +152,202 @@
   },
   {
     "question": "Can a borrower make a payment during the grace period without being marked delinquent?",
+    "expected_facts": [
+      "a borrower may pay during the grace period without being marked delinquent"
+    ],
     "expected": [
-      { "source": "loan-policy.md", "section": "Missed Payments" },
-      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+      {
+        "source": "loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["without the loan being marked delinquent"]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": [
+          "without the account immediately being classified as delinquent"
+        ]
+      }
     ]
   },
   {
     "question": "What happens if payments remain unpaid for a long time?",
+    "expected_facts": [
+      "a loan unpaid for a long time may become eligible for collection activity"
+    ],
     "expected": [
-      { "source": "loan-policy.md", "section": "Collections" },
-      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+      {
+        "source": "loan-policy.md",
+        "section": "Collections",
+        "evidence": ["referred to collections"]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["eligible for collection activity"]
+      }
     ]
   },
   {
     "question": "What may happen before collection activity begins?",
+    "expected_facts": [
+      "before collection begins the borrower may receive notices or a chance to set up a payment arrangement"
+    ],
     "expected": [
-      { "source": "loan-policy.md", "section": "Collections" },
-      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+      {
+        "source": "loan-policy.md",
+        "section": "Collections",
+        "evidence": [
+          "receive notices or opportunities to establish a payment arrangement"
+        ]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": ["additional notices may be sent to the borrower"]
+      }
     ]
   },
   {
     "question": "Can a delinquent borrower be offered a payment arrangement?",
+    "expected_facts": [
+      "a delinquent borrower may be offered a payment arrangement"
+    ],
     "expected": [
-      { "source": "loan-policy.md", "section": "Collections" },
-      { "source": "large-loan-policy.md", "section": "Missed Payments" }
+      {
+        "source": "loan-policy.md",
+        "section": "Collections",
+        "evidence": ["opportunities to establish a payment arrangement"]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": [
+          "offered an opportunity to establish a payment arrangement"
+        ]
+      }
     ]
   },
   {
     "question": "Does a partial payment always satisfy the required monthly payment?",
-    "expected": [{ "source": "loan-policy.md", "section": "Partial Payments" }]
+    "expected_facts": [
+      "a partial payment does not necessarily satisfy the required monthly payment"
+    ],
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Partial Payments",
+        "evidence": [
+          "does not necessarily satisfy the required monthly payment"
+        ]
+      }
+    ]
   },
   {
     "question": "How may a partial payment be applied?",
-    "expected": [{ "source": "loan-policy.md", "section": "Partial Payments" }]
+    "expected_facts": [
+      "a partial payment may be applied to interest and principal per the loan agreement"
+    ],
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Partial Payments",
+        "evidence": [
+          "may be applied to outstanding interest and principal according to the loan agreement"
+        ]
+      }
+    ]
   },
   {
     "question": "What information is recorded with a payment?",
+    "expected_facts": [
+      "each payment records an amount, date, method, and a unique identifier"
+    ],
     "expected": [
-      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+      {
+        "source": "large-loan-policy.md",
+        "section": "Payment Processing",
+        "evidence": [
+          "Each payment includes an amount, payment date, payment method, and unique payment identifier"
+        ]
+      }
     ]
   },
   {
     "question": "How are duplicate payments detected?",
     "expected_facts": ["duplicate payments are detected using the payment ID"],
     "expected": [
-      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+      {
+        "source": "large-loan-policy.md",
+        "section": "Payment Processing",
+        "evidence": [
+          "Duplicate payments should be detected using the payment identifier"
+        ]
+      }
     ]
   },
   {
     "question": "Should a duplicate payment be applied twice?",
+    "expected_facts": [
+      "a duplicate payment should not be applied to the same obligation twice"
+    ],
     "expected": [
-      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+      {
+        "source": "large-loan-policy.md",
+        "section": "Payment Processing",
+        "evidence": [
+          "should not automatically be applied to the same obligation twice"
+        ]
+      }
     ]
   },
   {
     "question": "When are normal loan payments due?",
-    "expected": [{ "source": "loan-policy.md", "section": "Payments" }]
+    "expected_facts": [
+      "loan payments are due on the scheduled due date in the borrower agreement"
+    ],
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Payments",
+        "evidence": [
+          "due on the scheduled due date listed in the borrower agreement"
+        ]
+      }
+    ]
   },
   {
     "question": "What order are interest and principal paid in?",
+    "expected_facts": ["interest is applied before principal"],
     "expected": [
-      { "source": "loan-policy.md", "section": "Payments" },
-      { "source": "large-loan-policy.md", "section": "Payment Processing" }
+      {
+        "source": "loan-policy.md",
+        "section": "Payments",
+        "evidence": ["applied first to outstanding interest, then to principal"]
+      },
+      {
+        "source": "large-loan-policy.md",
+        "section": "Payment Processing",
+        "evidence": [
+          "applied first to outstanding interest and then to principal"
+        ]
+      }
     ]
   },
   {
     "question": "What identifier should a borrower provide when asking support about an online payment?",
-    "expected": [{ "source": "loan-policy.md", "section": "Payment Codes" }]
+    "expected_facts": [
+      "a borrower should provide LP-4827 when asking about an online payment"
+    ],
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Payment Codes",
+        "evidence": [
+          "include LP-4827 when contacting support about an online payment"
+        ]
+      }
+    ]
   },
   {
     "question": "Can I get more time before my payment is late?",
@@ -165,6 +362,10 @@
   },
   {
     "question": "Can a late fee be removed?",
+    "expected_facts": [
+      "a late fee may be waived at the servicer's discretion",
+      "a waiver must be requested before the fee is assessed"
+    ],
     "expected": [
       {
         "source": "member-services-guide.md",
@@ -175,6 +376,10 @@
   },
   {
     "question": "What happens to a partial payment while I wait to pay the rest?",
+    "expected_facts": [
+      "a partial payment is held until the full scheduled amount is received",
+      "interest continues to accrue while a partial payment is held"
+    ],
     "expected": [
       {
         "source": "member-services-guide.md",
@@ -185,6 +390,10 @@
   },
   {
     "question": "How much do I owe to pay off the loan today?",
+    "expected_facts": [
+      "a payoff quote is valid for ten days",
+      "interest continues to accrue"
+    ],
     "expected": [
       {
         "source": "member-services-guide.md",
@@ -195,6 +404,10 @@
   },
   {
     "question": "How can I change how I receive my statements?",
+    "expected_facts": [
+      "statements are issued monthly",
+      "a change to the delivery method takes effect with the next billing cycle"
+    ],
     "expected": [
       {
         "source": "member-services-guide.md",
@@ -205,6 +418,10 @@
   },
   {
     "question": "What happens if I think a payment was applied to the wrong loan?",
+    "expected_facts": [
+      "the servicer responds within thirty days",
+      "a disputed amount is not reported as delinquent while the review is open"
+    ],
     "expected": [
       {
         "source": "member-services-guide.md",
@@ -223,6 +440,106 @@
   },
   {
     "question": "What is the loan origination fee?",
+    "expected": []
+  },
+  {
+    "question": "Is a partial payment applied right away, or held until the full amount is paid?",
+    "expected_facts": [
+      "the sources describe partial-payment handling differently",
+      "member-services-guide.md holds a partial payment until the full scheduled amount is received"
+    ],
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Partial Payments",
+        "evidence": [
+          "Partial payments may be applied to outstanding interest and principal according to the loan agreement"
+        ]
+      },
+      {
+        "source": "member-services-guide.md",
+        "section": "Partial Payment Handling",
+        "evidence": [
+          "held and applied once the full scheduled amount is received"
+        ]
+      }
+    ]
+  },
+  {
+    "question": "I was charged twice for the same bill. What should happen?",
+    "expected_facts": [
+      "a duplicate payment is detected using the payment identifier",
+      "a duplicate payment is not applied to the same obligation twice"
+    ],
+    "expected": [
+      {
+        "source": "large-loan-policy.md",
+        "section": "Payment Processing",
+        "evidence": [
+          "Duplicate payments should be detected using the payment identifier"
+        ]
+      }
+    ]
+  },
+  {
+    "question": "When can a late fee be charged, and can it be waived?",
+    "expected_facts": [
+      "a late fee can be assessed after the grace period expires",
+      "a waiver must be requested before the fee is assessed",
+      "an already-charged fee is not removed automatically"
+    ],
+    "expected": [
+      {
+        "source": "loan-policy.md",
+        "section": "Late Fees",
+        "evidence": [
+          "A late fee may be assessed after the grace period has expired"
+        ]
+      },
+      {
+        "source": "member-services-guide.md",
+        "section": "Fee Waivers",
+        "evidence": ["must be submitted before the fee is assessed"]
+      }
+    ]
+  },
+  {
+    "question": "How long is a payoff quote valid, and why?",
+    "expected_facts": [
+      "a payoff quote is valid for ten days",
+      "because interest continues to accrue"
+    ],
+    "expected": [
+      {
+        "source": "member-services-guide.md",
+        "section": "Payoff Requests",
+        "evidence": ["valid for ten days", "interest continues to accrue"]
+      }
+    ]
+  },
+  {
+    "question": "How long does a dispute review take, and is the disputed amount reported delinquent?",
+    "expected_facts": [
+      "the servicer responds within thirty days",
+      "a disputed amount is not reported as delinquent while the review is open"
+    ],
+    "expected": [
+      {
+        "source": "member-services-guide.md",
+        "section": "Dispute Resolution",
+        "evidence": [
+          "responds within thirty days",
+          "not reported as delinquent while the review is open"
+        ]
+      }
+    ]
+  },
+  {
+    "question": "How do I reset my online portal password?",
+    "expected": []
+  },
+  {
+    "question": "What is the fee for a paper statement?",
     "expected": []
   }
 ]
