@@ -58,13 +58,18 @@ const (
 	// keeping it alongside the rewrite.
 	DefaultRewriteOnly = false
 
+	// DefaultQueryRewrite is whether the question is rewritten into a search
+	// query with the chat model before retrieval. On by default: it improves
+	// recall on the example corpus, at the cost of one chat-model call per query.
+	DefaultQueryRewrite = true
+
 	// DefaultRagAnswerabilityGate is whether cmd/rag checks answerability with
 	// the chat model before answering. On by default.
 	DefaultRagAnswerabilityGate = true
 
 	// DefaultFinalK is how many fused candidates cmd/rag keeps after hybrid
 	// retrieval, before the matched sections are expanded.
-	DefaultFinalK = 2
+	DefaultFinalK = 3
 
 	// DefaultExpandLimit caps how many section chunks cmd/rag sends as context.
 	DefaultExpandLimit = 20
@@ -120,7 +125,7 @@ func Load() Config {
 		RewriteOnly:          envBoolOrDefault("EVAL_REWRITE_ONLY", DefaultRewriteOnly),
 		RagAnswerabilityGate: envBoolOrDefault("RAG_ANSWERABILITY_GATE", DefaultRagAnswerabilityGate),
 		RequestTimeout:       envDurationOrDefault("REQUEST_TIMEOUT", DefaultRequestTimeout),
-		QueryRewrite:         envBoolOrDefault("QUERY_REWRITE", false),
+		QueryRewrite:         envBoolOrDefault("QUERY_REWRITE", DefaultQueryRewrite),
 	}
 }
 

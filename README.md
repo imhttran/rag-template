@@ -153,13 +153,12 @@ top `FINAL_K` fused chunks, and each matched section is then expanded to its
 chunks (`EXPAND_LIMIT` cap) before the context is sent to the model.
 Vector-only candidates below `MIN_SIMILARITY` are marked `FILTERED` and left out.
 
-When `QUERY_REWRITE` is set, `cmd/rag` first rewrites the question into a search
-query with the chat model (`internal/rag`), then retrieves over both
-the original question and the rewritten query. Each query runs a vector search
-and a PostgreSQL full-text search, and the four rankings are fused with
-reciprocal rank fusion before section deduplication and expansion. Otherwise it
-retrieves over the original question only. Either way the model answers the
-original question.
+By default `cmd/rag` rewrites the question into a search query with the chat
+model (`internal/rag`), then retrieves over both the original question and the
+rewritten query. Each query runs a vector search and a PostgreSQL full-text
+search, and the four rankings are fused with reciprocal rank fusion before
+section deduplication and expansion. Set `QUERY_REWRITE=false` to retrieve over
+the original question only. Either way the model answers the original question.
 
 The original query is kept alongside the rewrite rather than replaced: the
 rewrite is lossy, and retrieving over it alone finds fewer of the expected
@@ -221,11 +220,10 @@ case's `expected_facts` the expanded evidence supports, and reports the total
 supported across cases. Add an `expected_facts` array to a case in
 `evals/retrieval.json` to opt in.
 
-An optional query rewrite (`QUERY_REWRITE=true`) rewrites each question into a
-search query with the chat model (`internal/rag`), then reports
-multi-query retrieval — a vector and a full-text search for both the original
-and the rewritten query, four rankings fused with RRF. This is what `cmd/rag`
-does with `QUERY_REWRITE` set.
+Query rewriting (`QUERY_REWRITE`, on by default) rewrites each question into a
+search query with the chat model (`internal/rag`), then reports multi-query
+retrieval — a vector and a full-text search for both the original and the
+rewritten query, four rankings fused with RRF. This is what `cmd/rag` does.
 
 Adding `EVAL_REWRITE_ONLY=true` instead retrieves over the rewritten query alone
 — the experiment that justifies keeping the original. Averaged over the
@@ -280,7 +278,7 @@ set -a; source .env; set +a
 | `CHUNK_SIZE`              | `50`                                                    | ingest    |
 | `CHUNK_OVERLAP`           | `20`                                                    | ingest    |
 | `TOP_K`                   | `4`                                                     | rag, eval |
-| `FINAL_K`                 | `2`                                                     | rag, eval |
+| `FINAL_K`                 | `3`                                                     | rag, eval |
 | `EXPAND_LIMIT`            | `20`                                                    | rag, eval |
 | `MIN_SIMILARITY`          | `0.6`                                                   | rag, eval |
 | `EVAL_LEXICAL_RERANK`     | `false`                                                 | eval      |
@@ -288,7 +286,7 @@ set -a; source .env; set +a
 | `RAG_LLM_RERANK`          | `false`                                                 | rag       |
 | `EVAL_ANSWERABILITY_GATE` | `false`                                                 | eval      |
 | `EVAL_FACT_JUDGE`         | `false`                                                 | eval      |
-| `QUERY_REWRITE`           | `false`                                                 | rag, eval |
+| `QUERY_REWRITE`           | `true`                                                  | rag, eval |
 | `EVAL_REWRITE_ONLY`       | `false`                                                 | eval      |
 | `RAG_ANSWERABILITY_GATE`  | `true`                                                  | rag       |
 | `REQUEST_TIMEOUT`         | `5m`                                                    | all       |

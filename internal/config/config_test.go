@@ -59,6 +59,7 @@ func TestLoadDefaults(t *testing.T) {
 		RewriteOnly:          DefaultRewriteOnly,
 		RagAnswerabilityGate: DefaultRagAnswerabilityGate,
 		RequestTimeout:       DefaultRequestTimeout,
+		QueryRewrite:         DefaultQueryRewrite,
 	}
 
 	if got := Load(); got != want {
