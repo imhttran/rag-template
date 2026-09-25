@@ -235,33 +235,29 @@ func (e evaluator) evaluate(
 
 	switch {
 	case !e.queryRewrite:
-		candidates, expanded, err = e.hybridBaselines(
+		candidates, expanded, err = e.reportBaselines(
 			ctx,
-			evalCase.Question,
-			vector,
 			evalCase,
 			answerable,
 			stats,
+			queryVector{query: evalCase.Question, vector: vector},
 		)
 	case e.rewriteOnly:
-		candidates, expanded, err = e.hybridBaselines(
+		candidates, expanded, err = e.reportBaselines(
 			ctx,
-			rewrittenQuery,
-			rewrittenVector,
 			evalCase,
 			answerable,
 			stats,
+			queryVector{query: rewrittenQuery, vector: rewrittenVector},
 		)
 	default:
-		candidates, expanded, err = e.multiQueryBaselines(
+		candidates, expanded, err = e.reportBaselines(
 			ctx,
-			evalCase.Question,
-			rewrittenQuery,
-			vector,
-			rewrittenVector,
 			evalCase,
 			answerable,
 			stats,
+			queryVector{query: evalCase.Question, vector: vector},
+			queryVector{query: rewrittenQuery, vector: rewrittenVector},
 		)
 	}
 
@@ -292,49 +288,98 @@ func (e evaluator) evaluate(
 	return e.rerank(ctx, evalCase, candidates, stats)
 }
 
-func (e evaluator) hybridBaselines(
+// queryVector pairs a retrieval query with its embedding.
+type queryVector struct {
+	query  string
+	vector []float64
+}
+
+// pipelineOptions builds the retrieval options every baseline uses.
+func (e evaluator) pipelineOptions() retrieval.PipelineOptions {
+	return retrieval.PipelineOptions{
+		CandidateK:    e.candidateK,
+		FinalK:        e.finalK,
+		ExpandLimit:   e.expandLimit,
+		MinSimilarity: e.minSimilarity,
+	}
+}
+
+// reportBaselines runs the retrieval pipeline for one query (single-query
+// retrieval) or two (the original plus the rewritten query), reports its stages,
+// and returns the rerank candidates.
+func (e evaluator) reportBaselines(
 	ctx context.Context,
-	retrievalQuery string,
-	vector []float64,
 	evalCase EvalCase,
 	answerable bool,
 	stats *stats,
+	queries ...queryVector,
 ) ([]retrieval.Document, []retrieval.Document, error) {
-	result, err := retrieval.HybridRetrieve(
-		ctx,
-		e.retriever,
-		retrievalQuery,
-		vector,
-		retrieval.PipelineOptions{
-			CandidateK:    e.candidateK,
-			FinalK:        e.finalK,
-			ExpandLimit:   e.expandLimit,
-			MinSimilarity: e.minSimilarity,
-		},
+	var (
+		rankings   [][]retrieval.Document
+		fused      []retrieval.Document
+		expanded   []retrieval.Document
+		candidates []retrieval.Document
 	)
-	if err != nil {
-		return nil, nil, err
+
+	switch len(queries) {
+	case 1:
+		result, err := retrieval.HybridRetrieve(
+			ctx,
+			e.retriever,
+			queries[0].query,
+			queries[0].vector,
+			e.pipelineOptions(),
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		rankings = [][]retrieval.Document{result.Vector, result.Keyword}
+		fused, expanded, candidates = result.Fused, result.Expanded, result.Candidates
+
+	case 2:
+		result, err := retrieval.MultiQueryRetrieve(
+			ctx,
+			e.retriever,
+			queries[0].query,
+			queries[1].query,
+			queries[0].vector,
+			queries[1].vector,
+			e.pipelineOptions(),
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		rankings = [][]retrieval.Document{
+			result.OriginalVector,
+			result.OriginalKeyword,
+			result.RewrittenVector,
+			result.RewrittenKeyword,
+		}
+		fused, expanded, candidates = result.Fused, result.Expanded, result.Candidates
+
+	default:
+		return nil, nil, fmt.Errorf(
+			"retrieval needs one or two queries, got %d",
+			len(queries),
+		)
 	}
 
-	e.reportFusedBaselines(
-		[][]retrieval.Document{result.Vector, result.Keyword},
-		evalCase,
-		answerable,
-		stats,
-	)
+	e.reportFusedBaselines(rankings, evalCase, answerable, stats)
 
 	if err := e.reportEvidenceAndJudge(
 		ctx,
 		evalCase,
-		result.Fused,
-		result.Expanded,
+		fused,
+		expanded,
 		answerable,
 		stats,
 	); err != nil {
 		return nil, nil, err
 	}
 
-	return result.Candidates, result.Expanded, nil
+	return candidates, expanded, nil
 }
 
 func hasExpectedEvidence(expected []ExpectedDocument) bool {
@@ -476,20 +521,17 @@ func (e evaluator) reportEvidenceAndJudge(
 			)
 		}
 
-		beforeJudged := stats.judgedCitations
-		beforeEntailed := stats.entailedCitations
-
-		if err := e.checkCitationEntailment(
+		entailed, judged, err := e.checkCitationEntailment(
 			ctx,
 			answer,
 			expanded,
-			stats,
-		); err != nil {
+		)
+		if err != nil {
 			return err
 		}
 
-		judged := stats.judgedCitations - beforeJudged
-		entailed := stats.entailedCitations - beforeEntailed
+		stats.entailedCitations += entailed
+		stats.judgedCitations += judged
 
 		if judged > 0 {
 			fmt.Printf(
@@ -1041,13 +1083,16 @@ func extractCitedClaims(answer string) []citedClaim {
 	return claims
 }
 
+// checkCitationEntailment returns how many cited claims were judged and how many
+// the judge found entailed by the cited section.
 func (e evaluator) checkCitationEntailment(
 	ctx context.Context,
 	answer string,
 	documents []retrieval.Document,
-	stats *stats,
-) error {
+) (int, int, error) {
 	claims := extractCitedClaims(answer)
+
+	var judged, entailed int
 
 	for _, claim := range claims {
 		var evidence strings.Builder
@@ -1065,23 +1110,23 @@ func (e evaluator) checkCitationEntailment(
 			continue
 		}
 
-		entailed, err := e.judge.IsEntailed(
+		isEntailed, err := e.judge.IsEntailed(
 			ctx,
 			claim.Claim,
 			evidence.String(),
 		)
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 
-		stats.judgedCitations++
+		judged++
 
-		if entailed {
-			stats.entailedCitations++
+		if isEntailed {
+			entailed++
 		}
 	}
 
-	return nil
+	return entailed, judged, nil
 }
 
 func normalizeCitation(citation string) string {
@@ -1096,58 +1141,4 @@ func normalizeCitation(citation string) string {
 // changes which document a citation points at.
 func normalizeSource(source string) string {
 	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(source)), ".md")
-}
-
-func (e evaluator) multiQueryBaselines(
-	ctx context.Context,
-	originalQuery string,
-	rewrittenQuery string,
-	originalVector []float64,
-	rewrittenVector []float64,
-	evalCase EvalCase,
-	answerable bool,
-	stats *stats,
-) ([]retrieval.Document, []retrieval.Document, error) {
-	result, err := retrieval.MultiQueryRetrieve(
-		ctx,
-		e.retriever,
-		originalQuery,
-		rewrittenQuery,
-		originalVector,
-		rewrittenVector,
-		retrieval.PipelineOptions{
-			CandidateK:    e.candidateK,
-			FinalK:        e.finalK,
-			ExpandLimit:   e.expandLimit,
-			MinSimilarity: e.minSimilarity,
-		},
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	e.reportFusedBaselines(
-		[][]retrieval.Document{
-			result.OriginalVector,
-			result.OriginalKeyword,
-			result.RewrittenVector,
-			result.RewrittenKeyword,
-		},
-		evalCase,
-		answerable,
-		stats,
-	)
-
-	if err := e.reportEvidenceAndJudge(
-		ctx,
-		evalCase,
-		result.Fused,
-		result.Expanded,
-		answerable,
-		stats,
-	); err != nil {
-		return nil, nil, err
-	}
-
-	return result.Candidates, result.Expanded, nil
 }

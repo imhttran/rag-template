@@ -243,8 +243,7 @@ func embedQuestion(
 }
 
 // retrieveDocuments searches for the closest documents, reports which were
-// kept or filtered out, and returns the documents that passed the similarity
-// threshold.
+// kept or filtered out, and returns the context the model will answer from.
 func retrieveDocuments(
 	ctx context.Context,
 	conn *pgx.Conn,
@@ -264,11 +263,6 @@ func retrieveDocuments(
 		MinSimilarity: cfg.MinSimilarity,
 	}
 
-	var (
-		candidates []retrieval.Document
-		expanded   []retrieval.Document
-	)
-
 	if cfg.QueryRewrite {
 		result, err := retrieval.MultiQueryRetrieve(
 			ctx,
@@ -285,52 +279,39 @@ func retrieveDocuments(
 
 		printMultiQueryStages(result, cfg.MinSimilarity)
 
-		candidates = result.Candidates
-		expanded = result.Expanded
-	} else {
-		result, err := retrieval.HybridRetrieve(
+		return rerankAndExpand(
 			ctx,
 			retriever,
+			generator,
 			originalQuery,
-			originalVector,
-			options,
+			cfg,
+			result.Candidates,
+			result.Expanded,
 		)
-		if err != nil {
-			return nil, err
-		}
-
-		printSingleQueryStages(result, cfg.MinSimilarity)
-
-		candidates = result.Candidates
-		expanded = result.Expanded
 	}
 
-	if !cfg.RagLLMRerank {
-		return expanded, nil
-	}
-
-	reranked, rerankedExpanded, err := rerankAndExpand(
+	result, err := retrieval.HybridRetrieve(
 		ctx,
 		retriever,
-		generator,
 		originalQuery,
-		candidates,
-		cfg.FinalK,
-		cfg.ExpandLimit,
+		originalVector,
+		options,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println()
-	fmt.Println("Semantic reranking:")
-	printHybridRetrieved(reranked)
+	printSingleQueryStages(result, cfg.MinSimilarity)
 
-	fmt.Println()
-	fmt.Println("Reranked expanded context:")
-	printExpandedDocuments(rerankedExpanded)
-
-	return rerankedExpanded, nil
+	return rerankAndExpand(
+		ctx,
+		retriever,
+		generator,
+		originalQuery,
+		cfg,
+		result.Candidates,
+		result.Expanded,
+	)
 }
 
 // printMultiQueryStages reports each stage of multi-query retrieval.
@@ -338,21 +319,10 @@ func printMultiQueryStages(
 	result retrieval.MultiQueryResult,
 	minSimilarity float64,
 ) {
-	fmt.Println()
-	fmt.Println("Original vector retrieval:")
-	printRetrieved(result.OriginalVector, minSimilarity)
-
-	fmt.Println()
-	fmt.Println("Original keyword retrieval:")
-	printKeywordRetrieved(result.OriginalKeyword)
-
-	fmt.Println()
-	fmt.Println("Rewritten vector retrieval:")
-	printRetrieved(result.RewrittenVector, minSimilarity)
-
-	fmt.Println()
-	fmt.Println("Rewritten keyword retrieval:")
-	printKeywordRetrieved(result.RewrittenKeyword)
+	printVectorStage("Original vector retrieval:", result.OriginalVector, minSimilarity)
+	printKeywordStage("Original keyword retrieval:", result.OriginalKeyword)
+	printVectorStage("Rewritten vector retrieval:", result.RewrittenVector, minSimilarity)
+	printKeywordStage("Rewritten keyword retrieval:", result.RewrittenKeyword)
 
 	printFusedAndExpanded(result.Fused, result.Expanded)
 }
@@ -362,15 +332,26 @@ func printSingleQueryStages(
 	result retrieval.PipelineResult,
 	minSimilarity float64,
 ) {
-	fmt.Println()
-	fmt.Println("Vector retrieval:")
-	printRetrieved(result.Vector, minSimilarity)
-
-	fmt.Println()
-	fmt.Println("Keyword retrieval:")
-	printKeywordRetrieved(result.Keyword)
+	printVectorStage("Vector retrieval:", result.Vector, minSimilarity)
+	printKeywordStage("Keyword retrieval:", result.Keyword)
 
 	printFusedAndExpanded(result.Fused, result.Expanded)
+}
+
+func printVectorStage(
+	label string,
+	documents []retrieval.Document,
+	minSimilarity float64,
+) {
+	fmt.Println()
+	fmt.Println(label)
+	printRetrieved(documents, minSimilarity)
+}
+
+func printKeywordStage(label string, documents []retrieval.Document) {
+	fmt.Println()
+	fmt.Println(label)
+	printKeywordRetrieved(documents)
 }
 
 func printKeywordRetrieved(documents []retrieval.Document) {
@@ -443,15 +424,21 @@ func printFusedAndExpanded(fused []retrieval.Document, expanded []retrieval.Docu
 	printExpandedDocuments(expanded)
 }
 
+// rerankAndExpand optionally reranks the candidates with the model, then expands
+// the surviving sections. With reranking off it returns expanded unchanged.
 func rerankAndExpand(
 	ctx context.Context,
 	retriever *retrieval.Retriever,
 	generator *generation.Generator,
 	question string,
+	cfg config.Config,
 	candidates []retrieval.Document,
-	finalK int,
-	expandLimit int,
-) ([]retrieval.Document, []retrieval.Document, error) {
+	expanded []retrieval.Document,
+) ([]retrieval.Document, error) {
+	if !cfg.RagLLMRerank {
+		return expanded, nil
+	}
+
 	reranked, err := reranking.RerankLLM(
 		ctx,
 		generator,
@@ -459,19 +446,27 @@ func rerankAndExpand(
 		candidates,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	reranked = reranked[:min(len(reranked), finalK)]
+	reranked = reranked[:min(len(reranked), cfg.FinalK)]
 
-	expanded, err := retriever.SectionChunks(
+	rerankedExpanded, err := retriever.SectionChunks(
 		ctx,
 		retrieval.SectionKeys(reranked),
-		expandLimit,
+		cfg.ExpandLimit,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return reranked, expanded, nil
+	fmt.Println()
+	fmt.Println("Semantic reranking:")
+	printHybridRetrieved(reranked)
+
+	fmt.Println()
+	fmt.Println("Reranked expanded context:")
+	printExpandedDocuments(rerankedExpanded)
+
+	return rerankedExpanded, nil
 }
