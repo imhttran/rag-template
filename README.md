@@ -166,6 +166,12 @@ rewrite is lossy, and retrieving over it alone finds fewer of the expected
 documents (see the evaluation below). Fusing both matches the original query's
 retrieval while hedging against a bad rewrite.
 
+When `RAG_LLM_RERANK` is set, `cmd/rag` asks the chat model to reorder the fused
+candidates by relevance (`reranking.RerankLLM`), keeps the top `FINAL_K`, and
+expands those sections before answering — the same reranker the evaluation
+compares under `EVAL_LLM_RERANK`. Otherwise it expands the fused sections
+directly.
+
 Before answering, `cmd/rag` asks the chat model whether the kept documents can
 actually answer the question (`RAG_ANSWERABILITY_GATE`, on by default). If they
 cannot, it replies "I do not have enough information." instead of answering.
@@ -258,6 +264,7 @@ set -a; source .env; set +a
 | `MIN_SIMILARITY`          | `0.6`                                                   | rag, eval |
 | `EVAL_LEXICAL_RERANK`     | `false`                                                 | eval      |
 | `EVAL_LLM_RERANK`         | `false`                                                 | eval      |
+| `RAG_LLM_RERANK`          | `false`                                                 | rag       |
 | `EVAL_ANSWERABILITY_GATE` | `false`                                                 | eval      |
 | `EVAL_FACT_JUDGE`         | `false`                                                 | eval      |
 | `QUERY_REWRITE`           | `false`                                                 | rag, eval |
