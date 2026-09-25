@@ -6,11 +6,12 @@
 #
 #   make sweep              every axis
 #   make sweep AXIS=chunk   one axis: chunk | topk | finalk | rewrite | rerank
+#                           | minsim | judge
 #
 # Every axis needs the database up with the schema applied. The chunk axis
 # re-ingests examples/*.md before each step (cmd/ingest replaces a file's
-# chunks, so repeating is safe); the chunk, rewrite, and rerank axes call
-# Ollama, so allow time.
+# chunks, so repeating is safe). QUERY_REWRITE is on by default, so every axis
+# calls the chat model; run with QUERY_REWRITE=false to sweep without it.
 
 set -eu
 
@@ -113,4 +114,28 @@ if [ "$AXIS" = all ] || [ "$AXIS" = rerank ]; then
 	done
 
 	unset EVAL_LLM_RERANK
+fi
+
+if [ "$AXIS" = all ] || [ "$AXIS" = minsim ]; then
+	echo
+	echo "== MIN_SIMILARITY =="
+
+	for value in 0.4 0.6 0.8; do
+		export MIN_SIMILARITY=$value
+		report "min_similarity=$value"
+	done
+
+	unset MIN_SIMILARITY
+fi
+
+if [ "$AXIS" = all ] || [ "$AXIS" = judge ]; then
+	echo
+	echo "== generation judge (eval) =="
+
+	for value in false true; do
+		export EVAL_FACT_JUDGE=$value
+		report "fact_judge=$value"
+	done
+
+	unset EVAL_FACT_JUDGE
 fi

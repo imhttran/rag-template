@@ -225,19 +225,20 @@ search query with the chat model (`internal/rag`), then reports multi-query
 retrieval — a vector and a full-text search for both the original and the
 rewritten query, four rankings fused with RRF. This is what `cmd/rag` does.
 
-Adding `EVAL_REWRITE_ONLY=true` instead retrieves over the rewritten query alone
-— the experiment that justifies keeping the original. Averaged over the
-two-document example corpus, hybrid retrieval scores:
+Setting `EVAL_REWRITE_ONLY=true` retrieves over the rewritten query alone
+instead of fusing it with the original — the experiment behind keeping both.
+Averaged over the four-document example corpus, hybrid retrieval scores:
 
 | Mode                 | Recall@1 | Precision@1 | Recall@4 | Precision@4 |
 | -------------------- | -------- | ----------- | -------- | ----------- |
-| original only        | 0.67     | 0.95        | 1.00     | 0.67        |
-| rewritten only       | 0.59     | 0.80        | 0.88     | 0.64        |
-| original + rewritten | 0.67     | 0.95        | 1.00     | 0.67        |
+| original only        | 0.68     | 0.81        | 0.94     | 0.55        |
+| rewritten only       | 0.69     | 0.78        | 0.91     | 0.61        |
+| original + rewritten | 0.73     | 0.86        | 0.93     | 0.52        |
 
-Rewriting alone loses recall (0.67 → 0.59 at K=1, 1.00 → 0.88 at K=4), while
-fusing it with the original recovers the loss and matches original-only
-retrieval. That is why the original question is never replaced by its rewrite.
+Replacing the original with its rewrite holds K=1 recall but loses recall at
+K=4 (0.94 → 0.91); keeping both is the best at K=1 (0.73) and still competitive
+at K=4. The rewrite comes from the chat model, so its wording — and these
+averages — vary a little from run to run.
 
 ### Comparing settings
 
@@ -247,14 +248,16 @@ by the numbers instead of by a couple of answers:
 
 ```bash
 make sweep              # every axis
-make sweep AXIS=chunk   # or topk | finalk | rewrite | rerank
+make sweep AXIS=chunk   # or topk | finalk | rewrite | rerank | minsim | judge
 ```
 
 Each row shows hybrid retrieval's per-K recall and precision plus whichever
 optional metrics that configuration produced. The `chunk` axis re-ingests
 examples/*.md before each step (cmd/ingest replaces a file's chunks, so
-repeating is safe); the `chunk`, `rewrite`, and `rerank` axes call Ollama, and
-every axis needs the database up and the corpora ingested.
+repeating is safe). `QUERY_REWRITE` is on by default, so every axis calls the
+chat model; run `QUERY_REWRITE=false make sweep AXIS=…` to sweep without it, and
+every axis still needs the database up and the corpora ingested. Recorded
+results live in `docs/experiments.md`.
 
 ## Configuration
 
@@ -319,6 +322,8 @@ rag-template/
 │   └── 001_init.sql       # pgvector extension + documents table + index
 ├── evals/
 │   └── retrieval.json     # questions + expected source/section
+├── docs/
+│   └── experiments.md     # sweep results and the decisions they drove
 ├── examples/
 │   ├── loan-policy.md                  # sample corpus for cmd/ingest
 │   ├── large-loan-policy.md            # longer corpus; several chunks per section
@@ -464,10 +469,13 @@ make integration DATABASE_URL='postgres://rag:rag@127.0.0.1:5433/rag_test?sslmod
 1. Generate embeddings with Ollama
 2. Measure cosine similarity
 3. Read raw embedding vectors from the Ollama `/api/embed` response
-4. Add document chunking
+4. Add document chunking (now tunable: `CHUNK_SIZE` / `CHUNK_OVERLAP`)
 5. Store embeddings in PostgreSQL + pgvector
 6. Retrieve top-k chunks
 7. Send retrieved context to a local Qwen model
 8. Add metadata and citations
-9. Add hybrid search and reranking (`cmd/eval` compares a lexical reranker)
+9. Add hybrid search and reranking (`cmd/eval` compares a lexical and an LLM reranker)
 10. Add evaluation (`cmd/eval` reports recall and precision)
+11. Add query transformation and multi-query retrieval (`QUERY_REWRITE`)
+12. Gate answers on answerability, and judge facts, groundedness, and citations
+13. Measure changes instead of guessing (`scripts/sweep.sh`)
