@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	DefaultChunkSize = 100
-	DefaultOverlap   = 20
+	defaultChunkSize = 100
+	defaultOverlap   = 20
 )
 
 type Chunk struct {
@@ -29,8 +29,8 @@ func FromSections(sections []document.Section) []Chunk {
 
 		parts := splitWords(
 			content,
-			DefaultChunkSize,
-			DefaultOverlap,
+			defaultChunkSize,
+			defaultOverlap,
 		)
 
 		for index, part := range parts {

@@ -36,10 +36,11 @@ type PipelineOptions struct {
 // PipelineResult exposes the major retrieval stages so callers can inspect
 // or evaluate them without reimplementing the pipeline.
 type PipelineResult struct {
-	Vector   []Document
-	Keyword  []Document
-	Fused    []Document
-	Expanded []Document
+	Vector     []Document
+	Keyword    []Document
+	Candidates []Document
+	Fused      []Document
+	Expanded   []Document
 }
 
 // MultiQueryResult exposes the single-query stages plus the rewritten-query
@@ -49,8 +50,72 @@ type MultiQueryResult struct {
 	OriginalKeyword  []Document
 	RewrittenVector  []Document
 	RewrittenKeyword []Document
+	Candidates       []Document
 	Fused            []Document
 	Expanded         []Document
+}
+
+// searchOne runs the vector and keyword search for one query, applying the
+// similarity floor to the vector results.
+func searchOne(
+	ctx context.Context,
+	searcher Searcher,
+	query string,
+	vector []float64,
+	options PipelineOptions,
+) ([]Document, []Document, error) {
+	vectorDocuments, err := searcher.Search(
+		ctx,
+		vector,
+		options.CandidateK,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// The similarity floor is a vector-search concept: full-text rank is not
+	// comparable to cosine similarity, so keyword results are left unfiltered.
+	vectorDocuments = KeepSimilar(
+		vectorDocuments,
+		options.MinSimilarity,
+	)
+
+	keywordDocuments, err := searcher.KeywordSearch(
+		ctx,
+		query,
+		options.CandidateK,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return vectorDocuments, keywordDocuments, nil
+}
+
+// fuseAndExpand fuses rankings at CandidateK and FinalK, deduplicates sections,
+// and expands the final fused sections.
+func fuseAndExpand(
+	ctx context.Context,
+	searcher Searcher,
+	rankings [][]Document,
+	options PipelineOptions,
+) ([]Document, []Document, []Document, error) {
+	fused := FuseRankings(rankings, options.FinalK)
+	fused = DeduplicateSections(fused)
+
+	candidates := FuseRankings(rankings, options.CandidateK)
+	candidates = DeduplicateSections(candidates)
+
+	expanded, err := searcher.SectionChunks(
+		ctx,
+		SectionKeys(fused),
+		options.ExpandLimit,
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return candidates, fused, expanded, nil
 }
 
 // HybridRetrieve runs the production retrieval pipeline:
@@ -70,56 +135,38 @@ func HybridRetrieve(
 	vector []float64,
 	options PipelineOptions,
 ) (PipelineResult, error) {
-	vectorDocuments, err := searcher.Search(
+	vectorDocuments, keywordDocuments, err := searchOne(
 		ctx,
-		vector,
-		options.CandidateK,
-	)
-	if err != nil {
-		return PipelineResult{}, err
-	}
-
-	// The similarity floor is a vector-search concept: full-text rank is not
-	// comparable to cosine similarity, so keyword results are left unfiltered.
-	vectorDocuments = KeepSimilar(
-		vectorDocuments,
-		options.MinSimilarity,
-	)
-
-	keywordDocuments, err := searcher.KeywordSearch(
-		ctx,
+		searcher,
 		question,
-		options.CandidateK,
+		vector,
+		options,
 	)
 	if err != nil {
 		return PipelineResult{}, err
 	}
 
-	fused := Fuse(
-		vectorDocuments,
-		keywordDocuments,
-		options.FinalK,
-	)
-
-	fused = DeduplicateSections(fused)
-
-	expanded, err := searcher.SectionChunks(
+	candidates, fused, expanded, err := fuseAndExpand(
 		ctx,
-		SectionKeys(fused),
-		options.ExpandLimit,
+		searcher,
+		[][]Document{vectorDocuments, keywordDocuments},
+		options,
 	)
 	if err != nil {
 		return PipelineResult{}, err
 	}
 
 	return PipelineResult{
-		Vector:   vectorDocuments,
-		Keyword:  keywordDocuments,
-		Fused:    fused,
-		Expanded: expanded,
+		Vector:     vectorDocuments,
+		Keyword:    keywordDocuments,
+		Candidates: candidates,
+		Fused:      fused,
+		Expanded:   expanded,
 	}, nil
 }
 
+// MultiQueryRetrieve runs the pipeline over the original and the rewritten
+// query, fusing all four rankings.
 func MultiQueryRetrieve(
 	ctx context.Context,
 	searcher Searcher,
@@ -129,68 +176,38 @@ func MultiQueryRetrieve(
 	rewrittenVector []float64,
 	options PipelineOptions,
 ) (MultiQueryResult, error) {
-	originalVectorDocuments, err := searcher.Search(
+	originalVectorDocuments, originalKeywordDocuments, err := searchOne(
 		ctx,
-		originalVector,
-		options.CandidateK,
-	)
-	if err != nil {
-		return MultiQueryResult{}, err
-	}
-
-	originalVectorDocuments = KeepSimilar(
-		originalVectorDocuments,
-		options.MinSimilarity,
-	)
-
-	originalKeywordDocuments, err := searcher.KeywordSearch(
-		ctx,
+		searcher,
 		originalQuery,
-		options.CandidateK,
+		originalVector,
+		options,
 	)
 	if err != nil {
 		return MultiQueryResult{}, err
 	}
 
-	rewrittenVectorDocuments, err := searcher.Search(
+	rewrittenVectorDocuments, rewrittenKeywordDocuments, err := searchOne(
 		ctx,
-		rewrittenVector,
-		options.CandidateK,
-	)
-	if err != nil {
-		return MultiQueryResult{}, err
-	}
-
-	rewrittenVectorDocuments = KeepSimilar(
-		rewrittenVectorDocuments,
-		options.MinSimilarity,
-	)
-
-	rewrittenKeywordDocuments, err := searcher.KeywordSearch(
-		ctx,
+		searcher,
 		rewrittenQuery,
-		options.CandidateK,
+		rewrittenVector,
+		options,
 	)
 	if err != nil {
 		return MultiQueryResult{}, err
 	}
 
-	fused := FuseRankings(
+	candidates, fused, expanded, err := fuseAndExpand(
+		ctx,
+		searcher,
 		[][]Document{
 			originalVectorDocuments,
 			originalKeywordDocuments,
 			rewrittenVectorDocuments,
 			rewrittenKeywordDocuments,
 		},
-		options.FinalK,
-	)
-
-	fused = DeduplicateSections(fused)
-
-	expanded, err := searcher.SectionChunks(
-		ctx,
-		SectionKeys(fused),
-		options.ExpandLimit,
+		options,
 	)
 	if err != nil {
 		return MultiQueryResult{}, err
@@ -201,6 +218,7 @@ func MultiQueryRetrieve(
 		OriginalKeyword:  originalKeywordDocuments,
 		RewrittenVector:  rewrittenVectorDocuments,
 		RewrittenKeyword: rewrittenKeywordDocuments,
+		Candidates:       candidates,
 		Fused:            fused,
 		Expanded:         expanded,
 	}, nil

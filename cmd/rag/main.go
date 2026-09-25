@@ -22,8 +22,8 @@ import (
 	"rag-template/internal/config"
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
-	"rag-template/internal/querytransform"
 	"rag-template/internal/rag"
+	"rag-template/internal/reranking"
 	"rag-template/internal/retrieval"
 )
 
@@ -72,7 +72,7 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	var rewrittenEmbedding []float64
 
 	if cfg.QueryRewrite {
-		retrievalQuery, err = querytransform.Rewrite(
+		retrievalQuery, err = rag.Rewrite(
 			ctx,
 			generator,
 			question,
@@ -104,6 +104,7 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	documents, err := retrieveDocuments(
 		ctx,
 		conn,
+		generator,
 		question,
 		retrievalQuery,
 		originalEmbedding,
@@ -247,6 +248,7 @@ func embedQuestion(
 func retrieveDocuments(
 	ctx context.Context,
 	conn *pgx.Conn,
+	generator *generation.Generator,
 	originalQuery string,
 	rewrittenQuery string,
 	originalVector []float64,
@@ -261,6 +263,11 @@ func retrieveDocuments(
 		ExpandLimit:   cfg.ExpandLimit,
 		MinSimilarity: cfg.MinSimilarity,
 	}
+
+	var (
+		candidates []retrieval.Document
+		expanded   []retrieval.Document
+	)
 
 	if cfg.QueryRewrite {
 		result, err := retrieval.MultiQueryRetrieve(
@@ -278,23 +285,52 @@ func retrieveDocuments(
 
 		printMultiQueryStages(result, cfg.MinSimilarity)
 
-		return result.Expanded, nil
+		candidates = result.Candidates
+		expanded = result.Expanded
+	} else {
+		result, err := retrieval.HybridRetrieve(
+			ctx,
+			retriever,
+			originalQuery,
+			originalVector,
+			options,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		printSingleQueryStages(result, cfg.MinSimilarity)
+
+		candidates = result.Candidates
+		expanded = result.Expanded
 	}
 
-	result, err := retrieval.HybridRetrieve(
+	if !cfg.RagLLMRerank {
+		return expanded, nil
+	}
+
+	reranked, rerankedExpanded, err := rerankAndExpand(
 		ctx,
 		retriever,
+		generator,
 		originalQuery,
-		originalVector,
-		options,
+		candidates,
+		cfg.FinalK,
+		cfg.ExpandLimit,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	printSingleQueryStages(result, cfg.MinSimilarity)
+	fmt.Println()
+	fmt.Println("Semantic reranking:")
+	printHybridRetrieved(reranked)
 
-	return result.Expanded, nil
+	fmt.Println()
+	fmt.Println("Reranked expanded context:")
+	printExpandedDocuments(rerankedExpanded)
+
+	return rerankedExpanded, nil
 }
 
 // printMultiQueryStages reports each stage of multi-query retrieval.
@@ -318,13 +354,7 @@ func printMultiQueryStages(
 	fmt.Println("Rewritten keyword retrieval:")
 	printKeywordRetrieved(result.RewrittenKeyword)
 
-	fmt.Println()
-	fmt.Println("Fused retrieval:")
-	printHybridRetrieved(result.Fused)
-
-	fmt.Println()
-	fmt.Println("Expanded context:")
-	printExpandedDocuments(result.Expanded)
+	printFusedAndExpanded(result.Fused, result.Expanded)
 }
 
 // printSingleQueryStages reports each stage of single-query retrieval.
@@ -340,13 +370,7 @@ func printSingleQueryStages(
 	fmt.Println("Keyword retrieval:")
 	printKeywordRetrieved(result.Keyword)
 
-	fmt.Println()
-	fmt.Println("Hybrid retrieval:")
-	printHybridRetrieved(result.Fused)
-
-	fmt.Println()
-	fmt.Println("Expanded context:")
-	printExpandedDocuments(result.Expanded)
+	printFusedAndExpanded(result.Fused, result.Expanded)
 }
 
 func printKeywordRetrieved(documents []retrieval.Document) {
@@ -407,4 +431,47 @@ func printExpandedDocuments(documents []retrieval.Document) {
 			doc.Content,
 		)
 	}
+}
+
+func printFusedAndExpanded(fused []retrieval.Document, expanded []retrieval.Document) {
+	fmt.Println()
+	fmt.Println("Fused retrieval:")
+	printHybridRetrieved(fused)
+
+	fmt.Println()
+	fmt.Println("Expanded context:")
+	printExpandedDocuments(expanded)
+}
+
+func rerankAndExpand(
+	ctx context.Context,
+	retriever *retrieval.Retriever,
+	generator *generation.Generator,
+	question string,
+	candidates []retrieval.Document,
+	finalK int,
+	expandLimit int,
+) ([]retrieval.Document, []retrieval.Document, error) {
+	reranked, err := reranking.RerankLLM(
+		ctx,
+		generator,
+		question,
+		candidates,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	reranked = reranked[:min(len(reranked), finalK)]
+
+	expanded, err := retriever.SectionChunks(
+		ctx,
+		retrieval.SectionKeys(reranked),
+		expandLimit,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return reranked, expanded, nil
 }

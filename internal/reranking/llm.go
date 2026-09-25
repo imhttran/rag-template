@@ -32,21 +32,10 @@ Example:
 
 RANKING:`
 
-// LLMReranker ranks retrieved documents using a language model.
-type LLMReranker struct {
-	generator *generation.Generator
-}
-
-func NewLLM(
-	generator *generation.Generator,
-) *LLMReranker {
-	return &LLMReranker{
-		generator: generator,
-	}
-}
-
-func (r *LLMReranker) Rerank(
+// RerankLLM ranks retrieved documents using a language model.
+func RerankLLM(
 	ctx context.Context,
+	generator *generation.Generator,
 	question string,
 	documents []retrieval.Document,
 ) ([]retrieval.Document, error) {
@@ -62,7 +51,7 @@ func (r *LLMReranker) Rerank(
 		candidates,
 	)
 
-	response, err := r.generator.Generate(ctx, prompt)
+	response, err := generator.Generate(ctx, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("generate reranking: %w", err)
 	}

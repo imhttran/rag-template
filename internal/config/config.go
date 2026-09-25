@@ -80,6 +80,7 @@ type Config struct {
 	MinSimilarity        float64
 	LexicalRerank        bool
 	LLMRerank            bool
+	RagLLMRerank         bool
 	AnswerabilityGate    bool
 	FactJudge            bool
 	RewriteOnly          bool
@@ -103,6 +104,7 @@ func Load() Config {
 		MinSimilarity:        envFloatOrDefault("MIN_SIMILARITY", DefaultMinSimilarity),
 		LexicalRerank:        envBoolOrDefault("EVAL_LEXICAL_RERANK", DefaultLexicalRerank),
 		LLMRerank:            envBoolOrDefault("EVAL_LLM_RERANK", DefaultLLMRerank),
+		RagLLMRerank:         envBoolOrDefault("RAG_LLM_RERANK", false),
 		AnswerabilityGate:    envBoolOrDefault("EVAL_ANSWERABILITY_GATE", DefaultAnswerabilityGate),
 		FactJudge:            envBoolOrDefault("EVAL_FACT_JUDGE", DefaultFactJudge),
 		RewriteOnly:          envBoolOrDefault("EVAL_REWRITE_ONLY", DefaultRewriteOnly),

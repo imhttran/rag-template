@@ -13,7 +13,6 @@ import (
 	"rag-template/internal/config"
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
-	"rag-template/internal/querytransform"
 	"rag-template/internal/rag"
 	"rag-template/internal/reranking"
 	"rag-template/internal/retrieval"
@@ -73,8 +72,8 @@ type evaluator struct {
 	retriever         *retrieval.Retriever
 	generator         *generation.Generator
 	judge             *answerability.Judge
-	llmReranker       *reranking.LLMReranker
 	lexicalRerank     bool
+	llmRerank         bool
 	queryRewrite      bool
 	rewriteOnly       bool
 	answerabilityGate bool
@@ -112,6 +111,7 @@ func run(ctx context.Context) error {
 		embedder:          embedding.New(client, cfg.EmbedModel),
 		retriever:         retrieval.New(conn),
 		lexicalRerank:     cfg.LexicalRerank,
+		llmRerank:         cfg.LLMRerank,
 		queryRewrite:      cfg.QueryRewrite,
 		rewriteOnly:       cfg.RewriteOnly,
 		answerabilityGate: cfg.AnswerabilityGate,
@@ -132,10 +132,6 @@ func run(ctx context.Context) error {
 
 		if cfg.AnswerabilityGate || cfg.FactJudge {
 			eval.judge = answerability.New(eval.generator)
-		}
-
-		if cfg.LLMRerank {
-			eval.llmReranker = reranking.NewLLM(eval.generator)
 		}
 	}
 
@@ -188,7 +184,7 @@ func (e evaluator) evaluate(
 	var rewrittenVector []float64
 
 	if e.queryRewrite {
-		rewritten, err := querytransform.Rewrite(
+		rewritten, err := rag.Rewrite(
 			ctx,
 			e.generator,
 			evalCase.Question,
@@ -228,16 +224,18 @@ func (e evaluator) evaluate(
 		stats.unanswerable++
 	}
 
-	candidates, err := e.baselines(ctx, vector, evalCase, answerable, stats)
-	if err != nil {
+	if _, err := e.baselines(ctx, vector, evalCase, answerable, stats); err != nil {
 		return err
 	}
 
-	var expanded []retrieval.Document
+	var (
+		candidates []retrieval.Document
+		expanded   []retrieval.Document
+	)
 
 	switch {
 	case !e.queryRewrite:
-		expanded, err = e.hybridBaselines(
+		candidates, expanded, err = e.hybridBaselines(
 			ctx,
 			evalCase.Question,
 			vector,
@@ -246,7 +244,7 @@ func (e evaluator) evaluate(
 			stats,
 		)
 	case e.rewriteOnly:
-		expanded, err = e.hybridBaselines(
+		candidates, expanded, err = e.hybridBaselines(
 			ctx,
 			rewrittenQuery,
 			rewrittenVector,
@@ -255,7 +253,7 @@ func (e evaluator) evaluate(
 			stats,
 		)
 	default:
-		expanded, err = e.multiQueryBaselines(
+		candidates, expanded, err = e.multiQueryBaselines(
 			ctx,
 			evalCase.Question,
 			rewrittenQuery,
@@ -270,8 +268,6 @@ func (e evaluator) evaluate(
 	if err != nil {
 		return err
 	}
-
-	candidates = retrieval.DeduplicateSections(candidates)
 
 	if e.answerabilityGate {
 		if err := e.checkAnswerability(
@@ -289,7 +285,7 @@ func (e evaluator) evaluate(
 		return nil
 	}
 
-	if !e.lexicalRerank && e.llmReranker == nil {
+	if !e.lexicalRerank && !e.llmRerank {
 		return nil
 	}
 
@@ -303,7 +299,7 @@ func (e evaluator) hybridBaselines(
 	evalCase EvalCase,
 	answerable bool,
 	stats *stats,
-) ([]retrieval.Document, error) {
+) ([]retrieval.Document, []retrieval.Document, error) {
 	result, err := retrieval.HybridRetrieve(
 		ctx,
 		e.retriever,
@@ -317,7 +313,7 @@ func (e evaluator) hybridBaselines(
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	e.reportFusedBaselines(
@@ -335,10 +331,10 @@ func (e evaluator) hybridBaselines(
 		answerable,
 		stats,
 	); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return result.Expanded, nil
+	return result.Candidates, result.Expanded, nil
 }
 
 func hasExpectedEvidence(expected []ExpectedDocument) bool {
@@ -642,12 +638,13 @@ func (e evaluator) rerank(
 		stats.rerankPrecision += precision
 	}
 
-	if e.llmReranker == nil {
+	if !e.llmRerank {
 		return nil
 	}
 
-	llmReranked, err := e.llmReranker.Rerank(
+	llmReranked, err := reranking.RerankLLM(
 		ctx,
+		e.generator,
 		evalCase.Question,
 		diverse,
 	)
@@ -710,7 +707,7 @@ func printOverall(e evaluator, stats stats) {
 		)
 	}
 
-	if e.llmReranker != nil {
+	if e.llmRerank {
 		fmt.Printf(
 			"LLM Rerank %d→%d  Avg Recall=%.2f  Avg Precision=%.2f\n",
 			e.candidateK,
@@ -1110,7 +1107,7 @@ func (e evaluator) multiQueryBaselines(
 	evalCase EvalCase,
 	answerable bool,
 	stats *stats,
-) ([]retrieval.Document, error) {
+) ([]retrieval.Document, []retrieval.Document, error) {
 	result, err := retrieval.MultiQueryRetrieve(
 		ctx,
 		e.retriever,
@@ -1126,7 +1123,7 @@ func (e evaluator) multiQueryBaselines(
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	e.reportFusedBaselines(
@@ -1149,8 +1146,8 @@ func (e evaluator) multiQueryBaselines(
 		answerable,
 		stats,
 	); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return result.Expanded, nil
+	return result.Candidates, result.Expanded, nil
 }

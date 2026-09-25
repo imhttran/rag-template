@@ -10,20 +10,6 @@ type fusedDocument struct {
 	bestRank int
 }
 
-func Fuse(
-	vectorDocuments []Document,
-	keywordDocuments []Document,
-	topK int,
-) []Document {
-	return FuseRankings(
-		[][]Document{
-			vectorDocuments,
-			keywordDocuments,
-		},
-		topK,
-	)
-}
-
 func FuseRankings(
 	rankings [][]Document,
 	topK int,
