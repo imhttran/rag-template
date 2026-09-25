@@ -158,14 +158,19 @@
     "expected": [
       {
         "source": "member-services-guide.md",
-        "section": "Grace Period Requests"
+        "section": "Grace Period Requests",
+        "evidence": ["request an extended grace period"]
       }
     ]
   },
   {
     "question": "Can a late fee be removed?",
     "expected": [
-      { "source": "member-services-guide.md", "section": "Fee Waivers" }
+      {
+        "source": "member-services-guide.md",
+        "section": "Fee Waivers",
+        "evidence": ["may be waived"]
+      }
     ]
   },
   {
@@ -173,26 +178,39 @@
     "expected": [
       {
         "source": "member-services-guide.md",
-        "section": "Partial Payment Handling"
+        "section": "Partial Payment Handling",
+        "evidence": ["held and applied once the full scheduled amount"]
       }
     ]
   },
   {
     "question": "How much do I owe to pay off the loan today?",
     "expected": [
-      { "source": "member-services-guide.md", "section": "Payoff Requests" }
+      {
+        "source": "member-services-guide.md",
+        "section": "Payoff Requests",
+        "evidence": ["request a payoff quote"]
+      }
     ]
   },
   {
     "question": "How can I change how I receive my statements?",
     "expected": [
-      { "source": "member-services-guide.md", "section": "Statement Delivery" }
+      {
+        "source": "member-services-guide.md",
+        "section": "Statement Delivery",
+        "evidence": ["choose paper or electronic delivery"]
+      }
     ]
   },
   {
     "question": "What happens if I think a payment was applied to the wrong loan?",
     "expected": [
-      { "source": "member-services-guide.md", "section": "Dispute Resolution" }
+      {
+        "source": "member-services-guide.md",
+        "section": "Dispute Resolution",
+        "evidence": ["believes a payment was misapplied"]
+      }
     ]
   },
   {

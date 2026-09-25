@@ -238,8 +238,9 @@ func SectionKeys(documents []Document) []SectionKey {
 	return keys
 }
 
-// SectionChunks returns every chunk of the given sections in source, section,
-// and chunk order, limited to limit rows.
+// SectionChunks returns chunks of the given sections in source, section, and
+// chunk order. The limit is split across the sections, so one long section
+// cannot starve the others.
 func (r *Retriever) SectionChunks(
 	ctx context.Context,
 	keys []SectionKey,
@@ -249,6 +250,8 @@ func (r *Retriever) SectionChunks(
 		return nil, nil
 	}
 
+	perSection := max(1, limit/len(keys))
+
 	placeholders := make([]string, len(keys))
 	args := make([]any, 0, len(keys)*2+1)
 
@@ -257,21 +260,33 @@ func (r *Retriever) SectionChunks(
 		args = append(args, key.Source, key.Section)
 	}
 
-	args = append(args, limit)
+	args = append(args, perSection)
 
 	rows, err := r.conn.Query(
 		ctx,
 		`
 		SELECT
 			id,
-			COALESCE(source, ''),
-			COALESCE(section, ''),
+			COALESCE(source, '') AS source,
+			COALESCE(section, '') AS section,
 			chunk_index,
 			content
-		FROM documents
-		WHERE (source, section) IN (`+strings.Join(placeholders, ", ")+`)
+		FROM (
+			SELECT
+				id,
+				source,
+				section,
+				chunk_index,
+				content,
+				ROW_NUMBER() OVER (
+					PARTITION BY source, section
+					ORDER BY chunk_index
+				) AS rank
+			FROM documents
+			WHERE (source, section) IN (`+strings.Join(placeholders, ", ")+`)
+		) AS ranked
+		WHERE rank <= $`+strconv.Itoa(len(args))+`
 		ORDER BY source, section, chunk_index
-		LIMIT $`+strconv.Itoa(len(args))+`
 		`,
 		args...,
 	)

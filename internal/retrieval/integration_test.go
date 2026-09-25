@@ -403,7 +403,8 @@ func TestSectionChunksIntegrationReturnsOrderedChunks(t *testing.T) {
 		t.Fatalf("expected %v, got %v", want, got)
 	}
 
-	// The limit applies to the combined result.
+	// The limit is split across sections: with two keys and a limit of 2, each
+	// section contributes one chunk instead of the first section taking both.
 	documents, err = retriever.SectionChunks(ctx, []SectionKey{
 		{Source: "a.md", Section: "Missed Payments"},
 		{Source: "b.md", Section: "Fees"},
@@ -412,8 +413,9 @@ func TestSectionChunksIntegrationReturnsOrderedChunks(t *testing.T) {
 		t.Fatalf("section chunks with limit: %v", err)
 	}
 
-	if got := ids(documents); !slices.Equal(got, missed[:2]) {
-		t.Fatalf("expected the first two chunks %v, got %v", missed[:2], got)
+	want = []int64{missed[0], otherFees[0]}
+	if got := ids(documents); !slices.Equal(got, want) {
+		t.Fatalf("expected one chunk per section %v, got %v", want, got)
 	}
 
 	// A single-chunk section still matches.
@@ -448,6 +450,36 @@ func TestSectionChunksIntegrationReturnsOrderedChunks(t *testing.T) {
 
 	if documents != nil {
 		t.Fatalf("expected nil for no keys, got %v", documents)
+	}
+}
+
+// A long section must not spend the whole budget and starve a later section.
+func TestSectionChunksIntegrationDoesNotStarveSections(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	embedding := unitVector(0)
+
+	large := insertChunks(t, ctx, conn, "a.md", "Large", 30, embedding)
+	small := insertChunks(t, ctx, conn, "b.md", "Small", 2, embedding)
+
+	retriever := New(conn)
+
+	documents, err := retriever.SectionChunks(ctx, []SectionKey{
+		{Source: "a.md", Section: "Large"},
+		{Source: "b.md", Section: "Small"},
+	}, 20)
+	if err != nil {
+		t.Fatalf("section chunks: %v", err)
+	}
+
+	// Each section is capped at half the budget, so the small section survives
+	// instead of being cut off by the large one.
+	want := append(slices.Clone(large[:10]), small...)
+	if got := ids(documents); !slices.Equal(got, want) {
+		t.Fatalf("expected %v, got %v", want, got)
 	}
 }
 
