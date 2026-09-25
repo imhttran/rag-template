@@ -541,5 +541,98 @@
   {
     "question": "What is the fee for a paper statement?",
     "expected": []
+  },
+  {
+    "question": "How is an escrow shortage resolved?",
+    "expected_facts": [
+      "a shortage may be repaid in equal monthly installments over at least twelve months"
+    ],
+    "expected": [
+      {
+        "source": "commercial-servicing-manual.md",
+        "section": "Escrow Administration",
+        "evidence": [
+          "repay the shortage in equal monthly installments over at least twelve months"
+        ]
+      }
+    ]
+  },
+  {
+    "question": "When may the servicer force-place insurance?",
+    "expected_facts": [
+      "the servicer may force-place insurance if the borrower does not provide evidence of coverage"
+    ],
+    "expected": [
+      {
+        "source": "commercial-servicing-manual.md",
+        "section": "Insurance Requirements",
+        "evidence": [
+          "obtain force-placed insurance and charge the borrower for its cost"
+        ]
+      }
+    ]
+  },
+  {
+    "question": "What happens if a property tax becomes delinquent?",
+    "expected_facts": [
+      "the servicer may advance the amount needed to cure the tax delinquency"
+    ],
+    "expected": [
+      {
+        "source": "commercial-servicing-manual.md",
+        "section": "Property Taxes",
+        "evidence": [
+          "advance the amount necessary to cure the delinquency to protect the lien"
+        ]
+      }
+    ]
+  },
+  {
+    "question": "When is retainage released on a construction loan?",
+    "expected_facts": [
+      "retainage is released only when the servicer confirms the work is complete"
+    ],
+    "expected": [
+      {
+        "source": "commercial-servicing-manual.md",
+        "section": "Construction Draw Administration",
+        "evidence": [
+          "released only when the servicer confirms the work is complete"
+        ]
+      }
+    ]
+  },
+  {
+    "question": "When must a UCC financing statement be continued?",
+    "expected_facts": [
+      "a continuation must be filed within the six months before the financing statement expires"
+    ],
+    "expected": [
+      {
+        "source": "commercial-servicing-manual.md",
+        "section": "Collateral and Lien Documentation",
+        "evidence": ["within the six months before its expiration"]
+      }
+    ]
+  },
+  {
+    "question": "What notice does a borrower receive when servicing is transferred?",
+    "expected_facts": [
+      "the borrower receives a notice of transfer identifying the transferee and the transfer effective date"
+    ],
+    "expected": [
+      {
+        "source": "commercial-servicing-manual.md",
+        "section": "Servicing Transfer Procedures",
+        "evidence": [
+          "notice of transfer that identifies the transferee",
+          "address and contact information for payments and inquiries after the transfer"
+        ]
+      }
+    ]
+  },
+  {
+    "question": "How much does force-placed insurance cost?",
+    "expected": []
   }
 ]

@@ -186,6 +186,7 @@ example corpora first, then run it:
 go run ./cmd/ingest examples/loan-policy.md
 go run ./cmd/ingest examples/large-loan-policy.md
 go run ./cmd/ingest examples/member-services-guide.md
+go run ./cmd/ingest examples/commercial-servicing-manual.md
 go run ./cmd/eval
 ```
 
@@ -304,9 +305,10 @@ rag-template/
 ├── evals/
 │   └── retrieval.json     # questions + expected source/section
 ├── examples/
-│   ├── loan-policy.md           # sample corpus for cmd/ingest
-│   ├── large-loan-policy.md     # longer corpus; several chunks per section
-│   └── member-services-guide.md # distractor corpus for the evaluation
+│   ├── loan-policy.md                  # sample corpus for cmd/ingest
+│   ├── large-loan-policy.md            # longer corpus; several chunks per section
+│   ├── member-services-guide.md        # distractor corpus for the evaluation
+│   └── commercial-servicing-manual.md  # long sections; exercises CHUNK_SIZE / CHUNK_OVERLAP
 ├── .agents/
 │   └── scripts/                   # agent scripts; project-agnostic
 │       ├── audit-agent.sh             # over-engineering audit, writes AUDIT.md
