@@ -25,8 +25,9 @@ const (
 	DefaultTopK        = 4
 
 	// DefaultChunkSize and DefaultChunkOverlap are the word counts chunking
-	// splits a section into, used by cmd/ingest.
-	DefaultChunkSize    = 100
+	// splits a section into, used by cmd/ingest. 50/20 measured best on the
+	// example corpus (see scripts/sweep.sh).
+	DefaultChunkSize    = 50
 	DefaultChunkOverlap = 20
 
 	// DefaultMinSimilarity is the lowest cosine similarity a retrieved
