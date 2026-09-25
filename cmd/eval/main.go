@@ -13,6 +13,7 @@ import (
 	"rag-template/internal/config"
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
+	"rag-template/internal/querytransform"
 	"rag-template/internal/rag"
 	"rag-template/internal/reranking"
 	"rag-template/internal/retrieval"
@@ -74,6 +75,8 @@ type evaluator struct {
 	judge             *answerability.Judge
 	llmReranker       *reranking.LLMReranker
 	lexicalRerank     bool
+	queryRewrite      bool
+	rewriteOnly       bool
 	answerabilityGate bool
 	factJudge         bool
 	minSimilarity     float64
@@ -109,6 +112,8 @@ func run(ctx context.Context) error {
 		embedder:          embedding.New(client, cfg.EmbedModel),
 		retriever:         retrieval.New(conn),
 		lexicalRerank:     cfg.LexicalRerank,
+		queryRewrite:      cfg.QueryRewrite,
+		rewriteOnly:       cfg.RewriteOnly,
 		answerabilityGate: cfg.AnswerabilityGate,
 		factJudge:         cfg.FactJudge,
 		minSimilarity:     cfg.MinSimilarity,
@@ -118,7 +123,11 @@ func run(ctx context.Context) error {
 		ks:                []int{1, 2, cfg.TopK},
 	}
 
-	if cfg.AnswerabilityGate || cfg.FactJudge || cfg.LLMRerank {
+	if cfg.AnswerabilityGate ||
+		cfg.FactJudge ||
+		cfg.LLMRerank ||
+		cfg.QueryRewrite {
+
 		eval.generator = generation.New(client, cfg.ChatModel)
 
 		if cfg.AnswerabilityGate || cfg.FactJudge {
@@ -175,9 +184,40 @@ func (e evaluator) evaluate(
 	fmt.Println()
 	fmt.Printf("Question: %s\n", evalCase.Question)
 
-	vector, err := e.embedder.Embed(ctx, evalCase.Question)
+	var rewrittenQuery string
+	var rewrittenVector []float64
+
+	if e.queryRewrite {
+		rewritten, err := querytransform.Rewrite(
+			ctx,
+			e.generator,
+			evalCase.Question,
+		)
+		if err != nil {
+			return err
+		}
+
+		rewrittenQuery = rewritten
+
+		fmt.Printf("Retrieval query: %s\n", rewrittenQuery)
+	}
+
+	vector, err := e.embedder.Embed(
+		ctx,
+		evalCase.Question,
+	)
 	if err != nil {
 		return err
+	}
+
+	if e.queryRewrite {
+		rewrittenVector, err = e.embedder.Embed(
+			ctx,
+			rewrittenQuery,
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	answerable := len(evalCase.Expected) > 0
@@ -193,13 +233,40 @@ func (e evaluator) evaluate(
 		return err
 	}
 
-	expanded, err := e.hybridBaselines(
-		ctx,
-		vector,
-		evalCase,
-		answerable,
-		stats,
-	)
+	var expanded []retrieval.Document
+
+	switch {
+	case !e.queryRewrite:
+		expanded, err = e.hybridBaselines(
+			ctx,
+			evalCase.Question,
+			vector,
+			evalCase,
+			answerable,
+			stats,
+		)
+	case e.rewriteOnly:
+		expanded, err = e.hybridBaselines(
+			ctx,
+			rewrittenQuery,
+			rewrittenVector,
+			evalCase,
+			answerable,
+			stats,
+		)
+	default:
+		expanded, err = e.multiQueryBaselines(
+			ctx,
+			evalCase.Question,
+			rewrittenQuery,
+			vector,
+			rewrittenVector,
+			evalCase,
+			answerable,
+			stats,
+		)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -231,6 +298,7 @@ func (e evaluator) evaluate(
 
 func (e evaluator) hybridBaselines(
 	ctx context.Context,
+	retrievalQuery string,
 	vector []float64,
 	evalCase EvalCase,
 	answerable bool,
@@ -239,7 +307,7 @@ func (e evaluator) hybridBaselines(
 	result, err := retrieval.HybridRetrieve(
 		ctx,
 		e.retriever,
-		evalCase.Question,
+		retrievalQuery,
 		vector,
 		retrieval.PipelineOptions{
 			CandidateK:    e.candidateK,
@@ -252,12 +320,43 @@ func (e evaluator) hybridBaselines(
 		return nil, err
 	}
 
+	e.reportFusedBaselines(
+		[][]retrieval.Document{result.Vector, result.Keyword},
+		evalCase,
+		answerable,
+		stats,
+	)
+
+	if err := e.reportEvidenceAndJudge(
+		ctx,
+		evalCase,
+		result.Fused,
+		result.Expanded,
+		answerable,
+		stats,
+	); err != nil {
+		return nil, err
+	}
+
+	return result.Expanded, nil
+}
+
+func hasExpectedEvidence(expected []ExpectedDocument) bool {
+	return slices.ContainsFunc(expected, func(doc ExpectedDocument) bool {
+		return len(doc.Evidence) > 0
+	})
+}
+
+// reportFusedBaselines reports recall and precision at every k for rankings,
+// fused with RRF, and folds the results into stats.
+func (e evaluator) reportFusedBaselines(
+	rankings [][]retrieval.Document,
+	evalCase EvalCase,
+	answerable bool,
+	stats *stats,
+) {
 	for _, k := range e.ks {
-		documents := retrieval.Fuse(
-			result.Vector,
-			result.Keyword,
-			k,
-		)
+		documents := retrieval.FuseRankings(rankings, k)
 
 		if !answerable {
 			fmt.Printf("Hybrid K=%d", k)
@@ -287,124 +386,126 @@ func (e evaluator) hybridBaselines(
 			precision,
 		)
 	}
+}
 
-	// The pipeline already fused at finalK, deduplicated sections, and expanded
-	// them, so evidence recall can be compared across those two stages.
-	if answerable {
-		beforeExpansion := evidenceRecall(evalCase.Expected, result.Fused)
-		afterExpansion := evidenceRecall(evalCase.Expected, result.Expanded)
+// reportEvidenceAndJudge reports evidence recall before and after expansion and,
+// when the fact judge is on, the generated-answer metrics for one case.
+func (e evaluator) reportEvidenceAndJudge(
+	ctx context.Context,
+	evalCase EvalCase,
+	fused []retrieval.Document,
+	expanded []retrieval.Document,
+	answerable bool,
+	stats *stats,
+) error {
+	if !answerable {
+		return nil
+	}
 
-		if hasExpectedEvidence(evalCase.Expected) {
+	beforeExpansion := evidenceRecall(evalCase.Expected, fused)
+	afterExpansion := evidenceRecall(evalCase.Expected, expanded)
+
+	if hasExpectedEvidence(evalCase.Expected) {
+		fmt.Printf(
+			"Evidence Recall: before expansion=%.2f  after expansion=%.2f\n",
+			beforeExpansion,
+			afterExpansion,
+		)
+	}
+
+	if e.factJudge && len(evalCase.ExpectedFacts) > 0 {
+		answer, err := rag.Answer(
+			ctx,
+			e.generator,
+			evalCase.Question,
+			expanded,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("Generated answer:")
+		fmt.Printf("  %s\n", answer)
+
+		supported, err := e.judge.SupportedAnswerFacts(
+			ctx,
+			evalCase.Question,
+			answer,
+			evalCase.ExpectedFacts,
+		)
+		if err != nil {
+			return err
+		}
+
+		stats.factsSupported += supported
+		stats.factsTotal += len(evalCase.ExpectedFacts)
+
+		fmt.Printf(
+			"Generated Fact Recall: %d/%d (%.2f)\n",
+			supported,
+			len(evalCase.ExpectedFacts),
+			float64(supported)/float64(len(evalCase.ExpectedFacts)),
+		)
+
+		grounded, err := e.judge.IsGrounded(
+			ctx,
+			evalCase.Question,
+			answer,
+			expanded,
+		)
+		if err != nil {
+			return err
+		}
+
+		stats.answersJudged++
+
+		if grounded {
+			stats.groundedAnswers++
+			fmt.Println("Grounded: YES")
+		} else {
+			fmt.Println("Grounded: NO")
+		}
+
+		valid, total := citationValidity(answer, expanded)
+
+		stats.validCitations += valid
+		stats.totalCitations += total
+
+		if total > 0 {
 			fmt.Printf(
-				"Evidence Recall: before expansion=%.2f  after expansion=%.2f\n",
-				beforeExpansion,
-				afterExpansion,
+				"Citation Validity: %d/%d (%.2f)\n",
+				valid,
+				total,
+				float64(valid)/float64(total),
 			)
 		}
 
-		if e.factJudge && len(evalCase.ExpectedFacts) > 0 {
-			answer, err := rag.Answer(
-				ctx,
-				e.generator,
-				evalCase.Question,
-				result.Expanded,
-			)
-			if err != nil {
-				return nil, err
-			}
+		beforeJudged := stats.judgedCitations
+		beforeEntailed := stats.entailedCitations
 
-			fmt.Println("Generated answer:")
-			fmt.Printf("  %s\n", answer)
+		if err := e.checkCitationEntailment(
+			ctx,
+			answer,
+			expanded,
+			stats,
+		); err != nil {
+			return err
+		}
 
-			supported, err := e.judge.SupportedAnswerFacts(
-				ctx,
-				evalCase.Question,
-				answer,
-				evalCase.ExpectedFacts,
-			)
-			if err != nil {
-				return nil, err
-			}
+		judged := stats.judgedCitations - beforeJudged
+		entailed := stats.entailedCitations - beforeEntailed
 
-			stats.factsSupported += supported
-			stats.factsTotal += len(evalCase.ExpectedFacts)
-
+		if judged > 0 {
 			fmt.Printf(
-				"Generated Fact Recall: %d/%d (%.2f)\n",
-				supported,
-				len(evalCase.ExpectedFacts),
-				float64(supported)/float64(len(evalCase.ExpectedFacts)),
+				"Citation Entailment: %d/%d (%.2f)\n",
+				entailed,
+				judged,
+				float64(entailed)/float64(judged),
 			)
-
-			grounded, err := e.judge.IsGrounded(
-				ctx,
-				evalCase.Question,
-				answer,
-				result.Expanded,
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			stats.answersJudged++
-
-			if grounded {
-				stats.groundedAnswers++
-				fmt.Println("Grounded: YES")
-			} else {
-				fmt.Println("Grounded: NO")
-			}
-
-			valid, total := citationValidity(
-				answer,
-				result.Expanded,
-			)
-
-			stats.validCitations += valid
-			stats.totalCitations += total
-
-			if total > 0 {
-				fmt.Printf(
-					"Citation Validity: %d/%d (%.2f)\n",
-					valid,
-					total,
-					float64(valid)/float64(total),
-				)
-			}
-
-			beforeJudged := stats.judgedCitations
-			beforeEntailed := stats.entailedCitations
-
-			if err := e.checkCitationEntailment(
-				ctx,
-				answer,
-				result.Expanded,
-				stats,
-			); err != nil {
-				return nil, err
-			}
-
-			judged := stats.judgedCitations - beforeJudged
-			entailed := stats.entailedCitations - beforeEntailed
-
-			if judged > 0 {
-				fmt.Printf(
-					"Citation Entailment: %d/%d (%.2f)\n",
-					entailed,
-					judged,
-					float64(entailed)/float64(judged),
-				)
-			}
 		}
 	}
 
-	return result.Expanded, nil
-}
-
-func hasExpectedEvidence(expected []ExpectedDocument) bool {
-	return slices.ContainsFunc(expected, func(doc ExpectedDocument) bool {
-		return len(doc.Evidence) > 0
-	})
+	return nil
 }
 
 // checkAnswerability records whether the judge agrees with the case's expected
@@ -998,4 +1099,58 @@ func normalizeCitation(citation string) string {
 // changes which document a citation points at.
 func normalizeSource(source string) string {
 	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(source)), ".md")
+}
+
+func (e evaluator) multiQueryBaselines(
+	ctx context.Context,
+	originalQuery string,
+	rewrittenQuery string,
+	originalVector []float64,
+	rewrittenVector []float64,
+	evalCase EvalCase,
+	answerable bool,
+	stats *stats,
+) ([]retrieval.Document, error) {
+	result, err := retrieval.MultiQueryRetrieve(
+		ctx,
+		e.retriever,
+		originalQuery,
+		rewrittenQuery,
+		originalVector,
+		rewrittenVector,
+		retrieval.PipelineOptions{
+			CandidateK:    e.candidateK,
+			FinalK:        e.finalK,
+			ExpandLimit:   e.expandLimit,
+			MinSimilarity: e.minSimilarity,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	e.reportFusedBaselines(
+		[][]retrieval.Document{
+			result.OriginalVector,
+			result.OriginalKeyword,
+			result.RewrittenVector,
+			result.RewrittenKeyword,
+		},
+		evalCase,
+		answerable,
+		stats,
+	)
+
+	if err := e.reportEvidenceAndJudge(
+		ctx,
+		evalCase,
+		result.Fused,
+		result.Expanded,
+		answerable,
+		stats,
+	); err != nil {
+		return nil, err
+	}
+
+	return result.Expanded, nil
 }

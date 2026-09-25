@@ -5,9 +5,9 @@ import "sort"
 const rrfK = 60
 
 type fusedDocument struct {
-	document   Document
-	score      float64
-	vectorRank int
+	document Document
+	score    float64
+	bestRank int
 }
 
 func Fuse(
@@ -15,34 +15,49 @@ func Fuse(
 	keywordDocuments []Document,
 	topK int,
 ) []Document {
+	return FuseRankings(
+		[][]Document{
+			vectorDocuments,
+			keywordDocuments,
+		},
+		topK,
+	)
+}
+
+func FuseRankings(
+	rankings [][]Document,
+	topK int,
+) []Document {
 	scores := make(map[int64]*fusedDocument)
 
-	addRanking := func(documents []Document, isVector bool) {
+	for _, documents := range rankings {
 		for i, doc := range documents {
 			rank := i + 1
 
 			entry, ok := scores[doc.ID]
 			if !ok {
 				entry = &fusedDocument{
-					document:   doc,
-					vectorRank: len(vectorDocuments) + 1,
+					document: doc,
+					bestRank: rank,
 				}
 				scores[doc.ID] = entry
 			}
 
 			entry.score += 1.0 / float64(rrfK+rank)
 
-			if isVector {
-				entry.vectorRank = rank
+			if rank < entry.bestRank {
+				entry.bestRank = rank
+			}
+
+			if doc.Similarity > entry.document.Similarity {
 				entry.document.Similarity = doc.Similarity
-			} else {
+			}
+
+			if doc.KeywordScore > entry.document.KeywordScore {
 				entry.document.KeywordScore = doc.KeywordScore
 			}
 		}
 	}
-
-	addRanking(vectorDocuments, true)
-	addRanking(keywordDocuments, false)
 
 	fused := make([]*fusedDocument, 0, len(scores))
 
@@ -55,8 +70,8 @@ func Fuse(
 			return fused[i].score > fused[j].score
 		}
 
-		if fused[i].vectorRank != fused[j].vectorRank {
-			return fused[i].vectorRank < fused[j].vectorRank
+		if fused[i].bestRank != fused[j].bestRank {
+			return fused[i].bestRank < fused[j].bestRank
 		}
 
 		return fused[i].document.ID < fused[j].document.ID
