@@ -179,12 +179,13 @@ cannot, it replies "I do not have enough information." instead of answering.
 ## 3. Evaluate
 
 `cmd/eval` scores retrieval against `evals/retrieval.json`: a list of questions,
-each with the `source`/`section` documents that should be retrieved. Ingest both
+each with the `source`/`section` documents that should be retrieved. Ingest the
 example corpora first, then run it:
 
 ```bash
 go run ./cmd/ingest examples/loan-policy.md
 go run ./cmd/ingest examples/large-loan-policy.md
+go run ./cmd/ingest examples/member-services-guide.md
 go run ./cmd/eval
 ```
 
@@ -301,8 +302,9 @@ rag-template/
 ├── evals/
 │   └── retrieval.json     # questions + expected source/section
 ├── examples/
-│   ├── loan-policy.md       # sample corpus for cmd/ingest
-│   └── large-loan-policy.md # longer corpus; sections split into several chunks
+│   ├── loan-policy.md           # sample corpus for cmd/ingest
+│   ├── large-loan-policy.md     # longer corpus; several chunks per section
+│   └── member-services-guide.md # distractor corpus for the evaluation
 ├── .agents/
 │   └── scripts/                   # agent scripts; project-agnostic
 │       ├── audit-agent.sh             # over-engineering audit, writes AUDIT.md
