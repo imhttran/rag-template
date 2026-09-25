@@ -24,6 +24,11 @@ const (
 	DefaultDatabaseURL = "postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable"
 	DefaultTopK        = 4
 
+	// DefaultChunkSize and DefaultChunkOverlap are the word counts chunking
+	// splits a section into, used by cmd/ingest.
+	DefaultChunkSize    = 100
+	DefaultChunkOverlap = 20
+
 	// DefaultMinSimilarity is the lowest cosine similarity a retrieved
 	// document may have to be used as context.
 	DefaultMinSimilarity = 0.6
@@ -74,6 +79,8 @@ type Config struct {
 	ChatModel            string
 	DatabaseURL          string
 	Question             string
+	ChunkSize            int
+	ChunkOverlap         int
 	TopK                 int
 	FinalK               int
 	ExpandLimit          int
@@ -98,6 +105,8 @@ func Load() Config {
 		DatabaseURL: envOrDefault("DATABASE_URL", DefaultDatabaseURL),
 		// Question has no default: the rag command requires one.
 		Question:             envOrDefault("QUESTION", ""),
+		ChunkSize:            envIntOrDefault("CHUNK_SIZE", DefaultChunkSize),
+		ChunkOverlap:         envIntOrDefault("CHUNK_OVERLAP", DefaultChunkOverlap),
 		TopK:                 envIntOrDefault("TOP_K", DefaultTopK),
 		FinalK:               envIntOrDefault("FINAL_K", DefaultFinalK),
 		ExpandLimit:          envIntOrDefault("EXPAND_LIMIT", DefaultExpandLimit),

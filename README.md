@@ -259,6 +259,8 @@ set -a; source .env; set +a
 | `OLLAMA_EMBED_MODEL`      | `nomic-embed-text`                                      | all       |
 | `OLLAMA_CHAT_MODEL`       | `qwen3.8:27b-mlx`                                       | rag, eval |
 | `DATABASE_URL`            | `postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable` | all       |
+| `CHUNK_SIZE`              | `100`                                                   | ingest    |
+| `CHUNK_OVERLAP`           | `20`                                                    | ingest    |
 | `TOP_K`                   | `4`                                                     | rag, eval |
 | `FINAL_K`                 | `2`                                                     | rag, eval |
 | `EXPAND_LIMIT`            | `20`                                                    | rag, eval |
@@ -275,7 +277,7 @@ set -a; source .env; set +a
 | `QUESTION`                | _(none — pass it as an argument, or type it)_           | rag       |
 
 `all` = every command; `rag` = `cmd/rag` only; `eval` = `cmd/eval` only;
-`rag, eval` = both commands.
+`ingest` = `cmd/ingest` only; `rag, eval` = both commands.
 
 ## Project structure
 

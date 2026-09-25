@@ -6,18 +6,19 @@ import (
 	"rag-template/internal/document"
 )
 
-const (
-	defaultChunkSize = 100
-	defaultOverlap   = 20
-)
-
 type Chunk struct {
 	Section string
 	Content string
 	Index   int
 }
 
-func FromSections(sections []document.Section) []Chunk {
+// FromSections splits each section into chunks of at most chunkSize words,
+// overlapping consecutive chunks by overlap words.
+func FromSections(
+	sections []document.Section,
+	chunkSize int,
+	overlap int,
+) []Chunk {
 	var chunks []Chunk
 
 	for _, section := range sections {
@@ -29,8 +30,8 @@ func FromSections(sections []document.Section) []Chunk {
 
 		parts := splitWords(
 			content,
-			defaultChunkSize,
-			defaultOverlap,
+			chunkSize,
+			overlap,
 		)
 
 		for index, part := range parts {

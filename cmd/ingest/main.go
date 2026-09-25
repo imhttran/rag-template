@@ -32,7 +32,7 @@ func run(ctx context.Context, path string) error {
 	ctx, cancel := context.WithTimeout(ctx, cfg.RequestTimeout)
 	defer cancel()
 
-	chunks, err := loadChunks(path)
+	chunks, err := loadChunks(path, cfg)
 	if err != nil {
 		return err
 	}
@@ -60,11 +60,15 @@ func run(ctx context.Context, path string) error {
 }
 
 // loadChunks reads the corpus and splits it into chunks.
-func loadChunks(path string) ([]chunking.Chunk, error) {
+func loadChunks(path string, cfg config.Config) ([]chunking.Chunk, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	}
 
-	return chunking.FromSections(document.ParseSections(string(data))), nil
+	return chunking.FromSections(
+		document.ParseSections(string(data)),
+		cfg.ChunkSize,
+		cfg.ChunkOverlap,
+	), nil
 }
