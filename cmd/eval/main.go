@@ -124,7 +124,7 @@ func run(ctx context.Context) error {
 		expandLimit:       cfg.ExpandLimit,
 		candidateK:        cfg.TopK,
 		finalK:            cfg.FinalK,
-		ks:                []int{1, 2, cfg.TopK},
+		ks:                retrievalKs(cfg.TopK),
 	}
 
 	if cfg.AnswerabilityGate ||
@@ -155,6 +155,16 @@ func run(ctx context.Context) error {
 	printOverall(eval, stats)
 
 	return nil
+}
+
+// retrievalKs is the set of K values the report scores, deduplicated so a TOP_K
+// of 1 or 2 does not count the same K twice.
+func retrievalKs(topK int) []int {
+	ks := []int{1, 2, topK}
+
+	slices.Sort(ks)
+
+	return slices.Compact(ks)
 }
 
 // loadCases reads and parses the evaluation cases.

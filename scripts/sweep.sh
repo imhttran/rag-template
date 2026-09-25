@@ -24,6 +24,9 @@ trap 'rm -rf "$work"' EXIT
 out="$work/eval.out"
 
 # report LABEL runs cmd/eval with the current environment and prints one row.
+# Only the Overall block is read: the per-case lines before it share the same
+# prefixes ("Rerank", "LLM Rerank", "Citation Validity", ...), so grepping the
+# whole output would collect those too.
 report() {
 	if ! go run ./cmd/eval >"$out" 2>&1; then
 		printf '%-28s FAILED\n' "$1"
@@ -31,8 +34,10 @@ report() {
 		return 0
 	fi
 
-	hybrid=$(grep -A 100 '^Hybrid retrieval:' "$out" | grep '^K=' | tr '\n' ' ' | tr -s ' ' || true)
-	extra=$(grep -E '^(Rerank |LLM Rerank |Answerability gate:|Avg Evidence Recall:|Generated Fact Recall:|Similarity-only rejection=|Groundedness:|Citation Validity:|Citation Entailment:)' "$out" | tr '\n' ' ' | tr -s ' ' || true)
+	overall=$(sed -n '/^Overall:/,$p' "$out")
+
+	hybrid=$(printf '%s\n' "$overall" | sed -n '/^Hybrid retrieval:/,$p' | grep '^K=' | tr '\n' ' ' | tr -s ' ' || true)
+	extra=$(printf '%s\n' "$overall" | grep -E '^(Rerank |LLM Rerank |Answerability gate:|Avg Evidence Recall:|Generated Fact Recall:|Similarity-only rejection=|Groundedness:|Citation Validity:|Citation Entailment:)' | tr '\n' ' ' | tr -s ' ' || true)
 
 	printf '%-28s %s%s\n' "$1" "$hybrid" "$extra"
 }
