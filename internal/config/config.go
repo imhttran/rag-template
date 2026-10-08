@@ -33,6 +33,13 @@ const (
 	DefaultDatabaseURL = "postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable"
 	DefaultTopK        = 4
 
+	// DefaultEmbedDim is the embedding dimension the documents.embedding column
+	// is declared with in migrations/001_init.sql and the dimension
+	// nomic-embed-text produces. EMBED_DIM must match the stored column; a
+	// mismatch is caught by the schema guard in internal/ingestion before any
+	// embedding or retrieval work runs.
+	DefaultEmbedDim = 768
+
 	// DefaultEmbedProvider and DefaultGenProvider name the provider registry
 	// entries the factory methods resolve when EMBED_PROVIDER / GEN_PROVIDER
 	// are unset.
@@ -108,6 +115,7 @@ const (
 type Config struct {
 	OllamaURL            string
 	EmbedModel           string
+	EmbedDim             int
 	ChatModel            string
 	DatabaseURL          string
 	Question             string
@@ -151,6 +159,10 @@ func Load() (Config, error) {
 	}
 
 	var err error
+
+	if cfg.EmbedDim, err = envPositiveInt("EMBED_DIM", DefaultEmbedDim); err != nil {
+		return Config{}, err
+	}
 
 	if cfg.ChunkSize, err = envPositiveInt("CHUNK_SIZE", DefaultChunkSize); err != nil {
 		return Config{}, err

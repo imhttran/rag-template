@@ -22,6 +22,7 @@ import (
 	"rag-template/internal/config"
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
+	"rag-template/internal/ingestion"
 	"rag-template/internal/rag"
 	"rag-template/internal/reranking"
 	"rag-template/internal/retrieval"
@@ -61,6 +62,19 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	embedder := embedding.New(client, cfg.EmbedModel)
 	generator := generation.New(client, cfg.ChatModel)
 
+	conn, err := cfg.Connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close(context.Background())
+
+	// Fail fast when EMBED_DIM does not match the stored documents.embedding
+	// column, before the question is embedded or anything is retrieved. On the
+	// default 768 path this is a silent no-op.
+	if err := ingestion.CheckEmbeddingDim(ctx, conn, cfg.EmbedDim); err != nil {
+		return err
+	}
+
 	originalEmbedding, err := embedQuestion(
 		ctx,
 		embedder,
@@ -97,12 +111,6 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 			return err
 		}
 	}
-
-	conn, err := cfg.Connect(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Close(context.Background())
 
 	documents, err := retrieveDocuments(
 		ctx,

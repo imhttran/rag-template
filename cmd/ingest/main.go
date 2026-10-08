@@ -58,6 +58,13 @@ func run(ctx context.Context, path string) error {
 	}
 	defer conn.Close(context.Background())
 
+	// Fail fast when EMBED_DIM does not match the stored documents.embedding
+	// column, before any embedding is requested. On the default 768 path this is
+	// a silent no-op.
+	if err := ingestion.CheckEmbeddingDim(ctx, conn, cfg.EmbedDim); err != nil {
+		return err
+	}
+
 	service := ingestion.NewWithOptions(
 		conn,
 		embedding.New(cfg.OllamaClient(), cfg.EmbedModel),

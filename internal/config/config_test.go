@@ -14,6 +14,7 @@ func clearEnv(t *testing.T) {
 	for _, key := range []string{
 		"OLLAMA_URL",
 		"OLLAMA_EMBED_MODEL",
+		"EMBED_DIM",
 		"OLLAMA_CHAT_MODEL",
 		"DATABASE_URL",
 		"QUESTION",
@@ -50,6 +51,7 @@ func TestLoadDefaults(t *testing.T) {
 	want := Config{
 		OllamaURL:            DefaultOllamaURL,
 		EmbedModel:           DefaultEmbedModel,
+		EmbedDim:             DefaultEmbedDim,
 		ChatModel:            DefaultChatModel,
 		DatabaseURL:          DefaultDatabaseURL,
 		EmbedProvider:        DefaultEmbedProvider,
@@ -82,6 +84,21 @@ func TestLoadDefaults(t *testing.T) {
 	}
 }
 
+// TestEmbedDimDefaultsTo768 pins the default dimension that the stored
+// vector(768) column expects: an unset EMBED_DIM must not drift from 768.
+func TestEmbedDimDefaultsTo768(t *testing.T) {
+	clearEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if cfg.EmbedDim != 768 {
+		t.Fatalf("EmbedDim = %d, want 768", cfg.EmbedDim)
+	}
+}
+
 // TestLoad covers the four value classes: valid overrides, invalid values,
 // boundaries, and missing (unset or blank) values.
 //
@@ -101,6 +118,10 @@ func TestLoad(t *testing.T) {
 			check: func(t *testing.T, c Config) {
 				t.Helper()
 
+				if c.EmbedDim != DefaultEmbedDim {
+					t.Fatalf("EMBED_DIM = %d, want %d", c.EmbedDim, DefaultEmbedDim)
+				}
+
 				if c.ChunkSize != DefaultChunkSize || c.ChunkOverlap != DefaultChunkOverlap {
 					t.Fatalf("chunk = %d/%d, want %d/%d", c.ChunkSize, c.ChunkOverlap, DefaultChunkSize, DefaultChunkOverlap)
 				}
@@ -119,6 +140,28 @@ func TestLoad(t *testing.T) {
 
 				if c.EmbedProvider != DefaultEmbedProvider || c.GenProvider != DefaultGenProvider {
 					t.Fatalf("providers = %q/%q, want %q/%q", c.EmbedProvider, c.GenProvider, DefaultEmbedProvider, DefaultGenProvider)
+				}
+			},
+		},
+		{
+			name: "valid embedding dimension override",
+			env:  map[string]string{"EMBED_DIM": "1024"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.EmbedDim != 1024 {
+					t.Fatalf("EMBED_DIM = %d, want 1024", c.EmbedDim)
+				}
+			},
+		},
+		{
+			name: "blank embedding dimension counts as missing",
+			env:  map[string]string{"EMBED_DIM": ""},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.EmbedDim != DefaultEmbedDim {
+					t.Fatalf("blank EMBED_DIM = %d, want %d", c.EmbedDim, DefaultEmbedDim)
 				}
 			},
 		},
@@ -340,6 +383,21 @@ func TestLoad(t *testing.T) {
 			name:    "invalid chunk size negative",
 			env:     map[string]string{"CHUNK_SIZE": "-5"},
 			wantErr: "CHUNK_SIZE",
+		},
+		{
+			name:    "invalid embedding dimension text",
+			env:     map[string]string{"EMBED_DIM": "abc"},
+			wantErr: "EMBED_DIM",
+		},
+		{
+			name:    "invalid embedding dimension zero",
+			env:     map[string]string{"EMBED_DIM": "0"},
+			wantErr: "EMBED_DIM",
+		},
+		{
+			name:    "invalid embedding dimension negative",
+			env:     map[string]string{"EMBED_DIM": "-1"},
+			wantErr: "EMBED_DIM",
 		},
 		{
 			name:    "invalid embed workers text",

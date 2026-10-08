@@ -8,12 +8,13 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// migrationFile names the documented procedure operators apply to change the
+// migrationFile names the documented, operator-run procedure for changing the
 // stored embedding dimension. It is referenced from the guard's error so the
-// fix is one file away. The .sql.example suffix keeps it out of the automatic
-// migration glob (migrations/*.sql and the docker-entrypoint-initdb.d mount), so
-// applying it is always an explicit, operator-run step.
-const migrationFile = "migrations/003_embedding_dim.sql.example"
+// fix is one file away. The procedure deliberately lives under docs/operations/
+// and not under migrations/, so it is never matched by the automatic migration
+// glob (migrations/*.sql) or the docker-entrypoint-initdb.d mount: applying it
+// is always an explicit, operator-run step.
+const migrationFile = "docs/operations/embedding-dimension.md"
 
 // embeddingDimQuerier is the single method the guard needs from a database
 // handle. *pgx.Conn satisfies it in production; a fake satisfies it in tests,
@@ -32,7 +33,7 @@ var lookupEmbeddingDimFunc = lookupEmbeddingDim
 //
 // It is a read-only catalog query. It returns nil when the declared dimension
 // equals dim, and an actionable error otherwise: a mismatch names both the
-// configured and the stored dimension and points at the migration and
+// configured and the stored dimension and points at the procedure and
 // re-ingest that resolve it, while a missing table or column says so directly.
 // Running the guard before ingest or retrieval turns what would otherwise be an
 // opaque pgvector error into a fail-fast message.
@@ -48,7 +49,7 @@ func CheckEmbeddingDim(ctx context.Context, conn embeddingDimQuerier, dim int) e
 
 	return fmt.Errorf(
 		"EMBED_DIM (%d) does not match the documents.embedding column (vector(%d)): "+
-			"apply %s to set the column to the dimension you want, re-ingest the corpus, "+
+			"follow %s to set the column to the dimension you want, re-ingest the corpus, "+
 			"then set EMBED_DIM=%d to match the column",
 		dim,
 		stored,
@@ -92,7 +93,7 @@ func lookupEmbeddingDim(ctx context.Context, conn embeddingDimQuerier) (int, err
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, fmt.Errorf(
 				"documents.embedding does not exist: is the schema migrated? "+
-					"apply migrations/001_init.sql (and %s for a non-768 model)",
+					"apply migrations/001_init.sql and see %s for a different dimension",
 				migrationFile,
 			)
 		}
@@ -112,7 +113,7 @@ func vectorFromTypmod(typmod int) (int, error) {
 	if typmod < 4 {
 		return 0, fmt.Errorf(
 			"documents.embedding is not a pgvector vector(n) column: "+
-				"apply migrations/001_init.sql to create it (or %s to change its dimension)",
+				"apply migrations/001_init.sql to create it (see %s to change its dimension)",
 			migrationFile,
 		)
 	}

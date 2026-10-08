@@ -3,11 +3,46 @@ package ingestion
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
 )
+
+// repoRoot returns the repository root, derived from this test file's location
+// (internal/ingestion) so the relative migrationFile path can be resolved
+// regardless of the directory go test runs the package in.
+func repoRoot(t *testing.T) string {
+	t.Helper()
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+
+	return filepath.Dir(filepath.Dir(filepath.Dir(file)))
+}
+
+// TestMigrationFilePointsAtProcedureDocument asserts the guard's referenced
+// file is the operator-run procedure under docs/operations/, and that it is not
+// matched by the automatic migration glob (migrations/*.sql).
+func TestMigrationFilePointsAtProcedureDocument(t *testing.T) {
+	if got, want := migrationFile, "docs/operations/embedding-dimension.md"; got != want {
+		t.Fatalf("migrationFile = %q, want %q", got, want)
+	}
+
+	if strings.HasPrefix(migrationFile, "migrations/") || strings.HasSuffix(migrationFile, ".sql") {
+		t.Fatalf("migrationFile = %q, must not be matched by migrations/*.sql", migrationFile)
+	}
+
+	path := filepath.Join(repoRoot(t), filepath.FromSlash(migrationFile))
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("os.Stat(%q) error: %v", path, err)
+	}
+}
 
 // TestCheckEmbeddingDimMatching asserts the guard is silent when the catalog
 // dimension equals the configured dimension (768 against a 001_init schema).
@@ -21,7 +56,8 @@ func TestCheckEmbeddingDimMatching(t *testing.T) {
 }
 
 // TestCheckEmbeddingDimMismatch asserts a mismatch names both dimensions and
-// the migration/re-ingest remedy, and does not point at a fixed dimension.
+// the operator-run procedure/re-ingest remedy, and does not point at a fixed
+// dimension.
 func TestCheckEmbeddingDimMismatch(t *testing.T) {
 	restore := stubLookup(t, 768, nil)
 	defer restore()
@@ -37,6 +73,14 @@ func TestCheckEmbeddingDimMismatch(t *testing.T) {
 		if !strings.Contains(message, want) {
 			t.Fatalf("error = %q, want it to contain %q", message, want)
 		}
+	}
+
+	if !strings.Contains(message, "docs/operations/embedding-dimension.md") {
+		t.Fatalf("error = %q, want it to name the procedure document", message)
+	}
+
+	if strings.Contains(message, "migrations/003_embedding_dim.sql.example") {
+		t.Fatalf("error = %q, must not name the removed migration example", message)
 	}
 }
 
@@ -129,17 +173,24 @@ func TestVectorFromTypmod(t *testing.T) {
 }
 
 // TestVectorFromTypmodRejectsNonVector asserts a typmod that is not a pgvector
-// vector(n) is reported as a type error, not a negative dimension.
+// vector(n) is reported as a type error, not a negative dimension, and that the
+// error points at the procedure document.
 func TestVectorFromTypmodRejectsNonVector(t *testing.T) {
 	for _, typmod := range []int{-1, 0, 3} {
-		if _, err := vectorFromTypmod(typmod); err == nil {
+		_, err := vectorFromTypmod(typmod)
+		if err == nil {
 			t.Fatalf("vectorFromTypmod(%d) = nil error, want a non-vector error", typmod)
+		}
+
+		if !strings.Contains(err.Error(), "docs/operations/embedding-dimension.md") {
+			t.Fatalf("error = %q, want it to name the procedure document", err)
 		}
 	}
 }
 
 // TestLookupEmbeddingDimNoRows asserts the real lookup maps pgx.ErrNoRows to
-// the missing-column message, using a stub querier that returns no rows.
+// the missing-column message, using a stub querier that returns no rows, and
+// that the message points at the procedure document.
 func TestLookupEmbeddingDimNoRows(t *testing.T) {
 	conn := stubConn{row: stubRow{err: pgx.ErrNoRows}}
 
@@ -150,6 +201,10 @@ func TestLookupEmbeddingDimNoRows(t *testing.T) {
 
 	if !strings.Contains(err.Error(), "documents.embedding does not exist") {
 		t.Fatalf("error = %q, want it to report the missing column", err)
+	}
+
+	if !strings.Contains(err.Error(), "docs/operations/embedding-dimension.md") {
+		t.Fatalf("error = %q, want it to name the procedure document", err)
 	}
 }
 
