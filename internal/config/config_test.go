@@ -27,6 +27,8 @@ func clearEnv(t *testing.T) {
 		"FINAL_K",
 		"EXPAND_LIMIT",
 		"CONTEXT_BUDGET",
+		"MAX_QUESTION_BYTES",
+		"MAX_INPUT_BYTES",
 		"EMBED_WORKERS",
 		"EMBED_RETRIES",
 		"MIN_SIMILARITY",
@@ -67,6 +69,8 @@ func TestLoadDefaults(t *testing.T) {
 		FinalK:                DefaultFinalK,
 		ExpandLimit:           DefaultExpandLimit,
 		ContextBudget:         DefaultContextBudget,
+		MaxQuestionBytes:      DefaultMaxQuestionBytes,
+		MaxInputBytes:         DefaultMaxInputBytes,
 		EmbedWorkers:          DefaultEmbedWorkers,
 		EmbedRetries:          DefaultEmbedRetries,
 		MinSimilarity:         DefaultMinSimilarity,
@@ -124,6 +128,30 @@ func TestContextBudgetDefaultsToDisabled(t *testing.T) {
 
 	if cfg.ContextBudget != DefaultContextBudget {
 		t.Fatalf("ContextBudget = %d, want %d", cfg.ContextBudget, DefaultContextBudget)
+	}
+}
+
+// TestInputSizeLimitsDefaultToDisabled pins the default of the two new size
+// limits: an unset or blank MAX_QUESTION_BYTES / MAX_INPUT_BYTES must keep the
+// current behavior (0/disabled) and must not drift to a non-zero default.
+func TestInputSizeLimitsDefaultToDisabled(t *testing.T) {
+	clearEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if DefaultMaxQuestionBytes != 0 {
+		t.Fatalf("DefaultMaxQuestionBytes = %d, want 0", DefaultMaxQuestionBytes)
+	}
+
+	if DefaultMaxInputBytes != 0 {
+		t.Fatalf("DefaultMaxInputBytes = %d, want 0", DefaultMaxInputBytes)
+	}
+
+	if cfg.MaxQuestionBytes != 0 || cfg.MaxInputBytes != 0 {
+		t.Fatalf("limits = %d/%d, want 0/0", cfg.MaxQuestionBytes, cfg.MaxInputBytes)
 	}
 }
 
@@ -217,6 +245,10 @@ func TestLoad(t *testing.T) {
 					t.Fatalf("CONTEXT_BUDGET = %d, want %d", c.ContextBudget, DefaultContextBudget)
 				}
 
+				if c.MaxQuestionBytes != DefaultMaxQuestionBytes || c.MaxInputBytes != DefaultMaxInputBytes {
+					t.Fatalf("limits = %d/%d, want %d/%d", c.MaxQuestionBytes, c.MaxInputBytes, DefaultMaxQuestionBytes, DefaultMaxInputBytes)
+				}
+
 				if c.EmbedWorkers != DefaultEmbedWorkers || c.EmbedRetries != DefaultEmbedRetries {
 					t.Fatalf("embed = %d/%d, want %d/%d", c.EmbedWorkers, c.EmbedRetries, DefaultEmbedWorkers, DefaultEmbedRetries)
 				}
@@ -266,6 +298,92 @@ func TestLoad(t *testing.T) {
 					t.Fatalf("blank CONTEXT_BUDGET = %d, want %d", c.ContextBudget, DefaultContextBudget)
 				}
 			},
+		},
+		{
+			name: "valid max question bytes override",
+			env:  map[string]string{"MAX_QUESTION_BYTES": "2048"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxQuestionBytes != 2048 {
+					t.Fatalf("MAX_QUESTION_BYTES = %d, want 2048", c.MaxQuestionBytes)
+				}
+			},
+		},
+		{
+			name: "valid max input bytes override",
+			env:  map[string]string{"MAX_INPUT_BYTES": "65536"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxInputBytes != 65536 {
+					t.Fatalf("MAX_INPUT_BYTES = %d, want 65536", c.MaxInputBytes)
+				}
+			},
+		},
+		{
+			name: "zero max question bytes is kept (disabled)",
+			env:  map[string]string{"MAX_QUESTION_BYTES": "0"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxQuestionBytes != 0 {
+					t.Fatalf("MAX_QUESTION_BYTES = %d, want 0", c.MaxQuestionBytes)
+				}
+			},
+		},
+		{
+			name: "zero max input bytes is kept (disabled)",
+			env:  map[string]string{"MAX_INPUT_BYTES": "0"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxInputBytes != 0 {
+					t.Fatalf("MAX_INPUT_BYTES = %d, want 0", c.MaxInputBytes)
+				}
+			},
+		},
+		{
+			name: "blank max question bytes counts as missing",
+			env:  map[string]string{"MAX_QUESTION_BYTES": ""},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxQuestionBytes != DefaultMaxQuestionBytes {
+					t.Fatalf("blank MAX_QUESTION_BYTES = %d, want %d", c.MaxQuestionBytes, DefaultMaxQuestionBytes)
+				}
+			},
+		},
+		{
+			name: "blank max input bytes counts as missing",
+			env:  map[string]string{"MAX_INPUT_BYTES": ""},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxInputBytes != DefaultMaxInputBytes {
+					t.Fatalf("blank MAX_INPUT_BYTES = %d, want %d", c.MaxInputBytes, DefaultMaxInputBytes)
+				}
+			},
+		},
+		{
+			name:    "invalid max question bytes text names the variable",
+			env:     map[string]string{"MAX_QUESTION_BYTES": "lots"},
+			wantErr: "MAX_QUESTION_BYTES",
+		},
+		{
+			name:    "negative max question bytes names the variable",
+			env:     map[string]string{"MAX_QUESTION_BYTES": "-1"},
+			wantErr: "MAX_QUESTION_BYTES",
+		},
+		{
+			name:    "invalid max input bytes text names the variable",
+			env:     map[string]string{"MAX_INPUT_BYTES": "lots"},
+			wantErr: "MAX_INPUT_BYTES",
+		},
+		{
+			name:    "negative max input bytes names the variable",
+			env:     map[string]string{"MAX_INPUT_BYTES": "-4"},
+			wantErr: "MAX_INPUT_BYTES",
 		},
 		{
 			name: "valid observability format human",

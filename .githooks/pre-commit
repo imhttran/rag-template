@@ -6,6 +6,8 @@
 #
 # Requires staticcheck on PATH:  brew install staticcheck
 # Requires jq on PATH for the json check:  brew install jq
+# Optional: govulncheck on PATH for the vulnerability scan:
+#   go install golang.org/x/vuln/cmd/govulncheck@latest
 #
 # Each step runs in order and the commit is aborted if any of them fails.
 set -e
@@ -52,6 +54,17 @@ go vet ./...
 
 echo "pre-commit: staticcheck ./..."
 staticcheck ./...
+
+# Vulnerability scan of the dependency set. govulncheck is a local-only developer
+# tool that may not be installed, so it is skipped with an actionable hint rather
+# than failing the commit when it is absent.
+if command -v govulncheck >/dev/null 2>&1; then
+	echo "pre-commit: govulncheck ./..."
+	govulncheck ./...
+else
+	echo "pre-commit: govulncheck not found, skipping the vulnerability scan"
+	echo "           install it with: go install golang.org/x/vuln/cmd/govulncheck@latest"
+fi
 
 echo "pre-commit: go test ./..."
 go test ./...

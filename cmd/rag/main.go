@@ -69,6 +69,18 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 		out = os.Stdout
 	}
 
+	// Fail fast on an oversized question before any embedding or retrieval work
+	// runs. With MAX_QUESTION_BYTES unset (0) the check is skipped and behavior
+	// is unchanged.
+	limits := rag.InputLimits{
+		MaxQuestionBytes: cfg.MaxQuestionBytes,
+		MaxInputBytes:    cfg.MaxInputBytes,
+	}
+
+	if err := limits.CheckQuestion(question); err != nil {
+		return err
+	}
+
 	println("Question:")
 	println(question)
 
@@ -185,6 +197,13 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 		ContextBytes: contextbudget.EstimateAll(documents),
 		Chunks:       len(documents),
 	})
+
+	// Fail fast on oversized retrieved context before any model call that would
+	// use it. With MAX_INPUT_BYTES unset (0) the check is skipped and behavior is
+	// unchanged.
+	if err := limits.CheckContext(documents); err != nil {
+		return err
+	}
 
 	answerabilityStart := time.Now()
 

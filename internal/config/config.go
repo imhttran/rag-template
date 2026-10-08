@@ -128,6 +128,19 @@ const (
 	// drift is introduced.
 	DefaultContextBudget = 0
 
+	// DefaultMaxQuestionBytes caps the size in bytes of the user question the
+	// commands accept. It is deliberately 0 (disabled), so an unset
+	// MAX_QUESTION_BYTES keeps the current behavior and introduces no default
+	// drift: an oversized question is only rejected when a limit is explicitly
+	// opt-in via the environment.
+	DefaultMaxQuestionBytes = 0
+
+	// DefaultMaxInputBytes caps the size in bytes of the untrusted retrieved
+	// context sent to the model. Like DefaultMaxQuestionBytes it is deliberately
+	// 0 (disabled) so an unset MAX_INPUT_BYTES preserves the current behavior and
+	// introduces no default drift.
+	DefaultMaxInputBytes = 0
+
 	// DefaultLanguage is the corpus language used to select the PostgreSQL
 	// full-text search configuration for ingestion and retrieval. It is empty by
 	// default, which keeps the baseline 'english' configuration, so an unset
@@ -167,6 +180,8 @@ type Config struct {
 	FinalK                int
 	ExpandLimit           int
 	ContextBudget         int
+	MaxQuestionBytes      int
+	MaxInputBytes         int
 	EmbedWorkers          int
 	EmbedRetries          int
 	MinSimilarity         float64
@@ -232,6 +247,14 @@ func Load() (Config, error) {
 	}
 
 	if cfg.ContextBudget, err = envNonNegativeInt("CONTEXT_BUDGET", DefaultContextBudget); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.MaxQuestionBytes, err = envNonNegativeInt("MAX_QUESTION_BYTES", DefaultMaxQuestionBytes); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.MaxInputBytes, err = envNonNegativeInt("MAX_INPUT_BYTES", DefaultMaxInputBytes); err != nil {
 		return Config{}, err
 	}
 
@@ -409,7 +432,7 @@ func envPositiveInt(key string, fallback int) (int, error) {
 }
 
 // envNonNegativeInt is envPositiveInt but accepts zero, for settings where zero
-// is a valid value rather than an absent one (chunk overlap).
+// is a valid value rather than an absent one (chunk overlap, disabled limits).
 func envNonNegativeInt(key string, fallback int) (int, error) {
 	raw, ok := envValue(key)
 	if !ok {
