@@ -60,7 +60,12 @@ func TestMain(m *testing.M) {
 // openTestDatabase connects to DATABASE_URL and applies the migration, so the
 // tests work against a fresh docker-compose database.
 func openTestDatabase(ctx context.Context) (*pgx.Conn, error) {
-	conn, err := pgx.Connect(ctx, config.Load().DatabaseURL)
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := pgx.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("connect: %w", err)
 	}

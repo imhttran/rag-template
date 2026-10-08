@@ -101,7 +101,10 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
 
 	conn, err := cfg.Connect(ctx)
 	if err != nil {

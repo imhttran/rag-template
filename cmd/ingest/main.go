@@ -27,7 +27,10 @@ func main() {
 }
 
 func run(ctx context.Context, path string) error {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
 
 	ctx, cancel := context.WithTimeout(ctx, cfg.RequestTimeout)
 	defer cancel()
@@ -35,6 +38,14 @@ func run(ctx context.Context, path string) error {
 	chunks, err := loadChunks(path, cfg)
 	if err != nil {
 		return err
+	}
+
+	// A document that yields no chunks (an empty file, or one without any
+	// "## " section) would otherwise reach the database, delete the source's
+	// rows, insert nothing, and report success. Fail with an explicit error
+	// instead, before opening a connection.
+	if len(chunks) == 0 {
+		return fmt.Errorf("no sections found in %s", path)
 	}
 
 	conn, err := cfg.Connect(ctx)
