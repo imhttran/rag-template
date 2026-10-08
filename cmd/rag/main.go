@@ -22,13 +22,17 @@ import (
 	"rag-template/internal/config"
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
+	"rag-template/internal/ingestion"
 	"rag-template/internal/rag"
 	"rag-template/internal/reranking"
 	"rag-template/internal/retrieval"
 )
 
 func main() {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	question, err := resolveQuestion(
 		cfg.Question,
@@ -57,6 +61,19 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	client := cfg.OllamaClient()
 	embedder := embedding.New(client, cfg.EmbedModel)
 	generator := generation.New(client, cfg.ChatModel)
+
+	conn, err := cfg.Connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close(context.Background())
+
+	// Fail fast when EMBED_DIM does not match the stored documents.embedding
+	// column, before the question is embedded or anything is retrieved. On the
+	// default 768 path this is a silent no-op.
+	if err := ingestion.CheckEmbeddingDim(ctx, conn, cfg.EmbedDim); err != nil {
+		return err
+	}
 
 	originalEmbedding, err := embedQuestion(
 		ctx,
@@ -94,12 +111,6 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 			return err
 		}
 	}
-
-	conn, err := cfg.Connect(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Close(context.Background())
 
 	documents, err := retrieveDocuments(
 		ctx,
@@ -162,7 +173,7 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 func isAnswerable(
 	ctx context.Context,
 	gate bool,
-	generator *generation.Generator,
+	generator generation.Generator,
 	question string,
 	documents []retrieval.Document,
 ) (bool, error) {
@@ -225,7 +236,7 @@ func resolveQuestion(
 // embedQuestion embeds question and reports the resulting vector size.
 func embedQuestion(
 	ctx context.Context,
-	embedder *embedding.Embedder,
+	embedder embedding.Embedder,
 	question string,
 ) ([]float64, error) {
 	queryEmbedding, err := embedder.Embed(ctx, question)
@@ -247,7 +258,7 @@ func embedQuestion(
 func retrieveDocuments(
 	ctx context.Context,
 	conn *pgx.Conn,
-	generator *generation.Generator,
+	generator generation.Generator,
 	originalQuery string,
 	rewrittenQuery string,
 	originalVector []float64,
@@ -429,7 +440,7 @@ func printFusedAndExpanded(fused []retrieval.Document, expanded []retrieval.Docu
 func rerankAndExpand(
 	ctx context.Context,
 	retriever *retrieval.Retriever,
-	generator *generation.Generator,
+	generator generation.Generator,
 	question string,
 	cfg config.Config,
 	candidates []retrieval.Document,

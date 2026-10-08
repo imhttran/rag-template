@@ -72,9 +72,9 @@ type citedClaim struct {
 
 // evaluator scores cases against a retriever.
 type evaluator struct {
-	embedder          *embedding.Embedder
+	embedder          embedding.Embedder
 	retriever         *retrieval.Retriever
-	generator         *generation.Generator
+	generator         generation.Generator
 	judge             *answerability.Judge
 	lexicalRerank     bool
 	llmRerank         bool
@@ -101,7 +101,10 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
 
 	conn, err := cfg.Connect(ctx)
 	if err != nil {

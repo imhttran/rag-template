@@ -40,7 +40,7 @@ ANSWER:`
 // Answer asks the model to answer question using documents as context.
 func Answer(
 	ctx context.Context,
-	generator *generation.Generator,
+	generator generation.Generator,
 	question string,
 	documents []retrieval.Document,
 ) (string, error) {

@@ -8,15 +8,20 @@ import (
 	"rag-template/internal/ollama"
 )
 
-// Generator produces text with a specific Ollama model.
-type Generator struct {
+// Generator produces text from a prompt.
+type Generator interface {
+	Generate(ctx context.Context, prompt string) (string, error)
+}
+
+// OllamaGenerator produces text with a specific Ollama model.
+type OllamaGenerator struct {
 	client *ollama.Client
 	model  string
 }
 
-// New returns a Generator.
-func New(client *ollama.Client, model string) *Generator {
-	return &Generator{client: client, model: model}
+// New returns a Generator backed by Ollama.
+func New(client *ollama.Client, model string) *OllamaGenerator {
+	return &OllamaGenerator{client: client, model: model}
 }
 
 type generateRequest struct {
@@ -30,7 +35,7 @@ type generateResponse struct {
 }
 
 // Generate returns the model's answer to prompt.
-func (g *Generator) Generate(ctx context.Context, prompt string) (string, error) {
+func (g *OllamaGenerator) Generate(ctx context.Context, prompt string) (string, error) {
 	request := generateRequest{
 		Model:  g.model,
 		Prompt: prompt,
@@ -44,3 +49,6 @@ func (g *Generator) Generate(ctx context.Context, prompt string) (string, error)
 
 	return result.Response, nil
 }
+
+// Compile-time check that OllamaGenerator satisfies Generator.
+var _ Generator = (*OllamaGenerator)(nil)

@@ -14,7 +14,10 @@
 #   make ingest FILE=examples/other.md
 #   make ask Q="When is a late fee assessed?"
 
+# Load local .env if present
+-include .env
 DATABASE_URL ?= postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable
+export DATABASE_URL
 FILE ?= examples/loan-policy.md
 Q ?=
 AXIS ?= all
@@ -30,9 +33,6 @@ db-up:
 db-down:
 	docker compose down
 
-# (Re)apply every migration in order.
-db-schema:
-	for f in migrations/*.sql; do psql '$(DATABASE_URL)' -f "$$f"; done
 
 # Run the unit tests; no database required.
 test:
@@ -72,3 +72,8 @@ eval:
 # Compare cmd/eval metrics across a matrix of settings (see scripts/sweep.sh).
 sweep:
 	./scripts/sweep.sh $(AXIS)
+
+db-schema:
+	@for f in migrations/*.sql; do \
+		psql "$$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$$f" || exit 1; \
+	done

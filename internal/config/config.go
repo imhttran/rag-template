@@ -1,11 +1,17 @@
 // Package config holds the runtime settings shared by the commands. Every
 // setting can be overridden with an environment variable so the code does not
 // have to change between machines.
+//
+// A setting that is absent (unset or blank) falls back to its default. A setting
+// that is present but invalid is an error, never a silent fallback: a typo in
+// CHUNK_SIZE should stop the command with a message naming the variable instead
+// of quietly using the default.
 package config
 
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,7 +20,10 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"rag-template/internal/embedding"
+	"rag-template/internal/generation"
 	"rag-template/internal/ollama"
+	"rag-template/internal/provider"
 )
 
 const (
@@ -24,11 +33,35 @@ const (
 	DefaultDatabaseURL = "postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable"
 	DefaultTopK        = 4
 
+	// DefaultEmbedDim is the embedding dimension the documents.embedding column
+	// is declared with in migrations/001_init.sql and the dimension
+	// nomic-embed-text produces. EMBED_DIM must match the stored column; a
+	// mismatch is caught by the schema guard in internal/ingestion before any
+	// embedding or retrieval work runs.
+	DefaultEmbedDim = 768
+
+	// DefaultEmbedProvider and DefaultGenProvider name the provider registry
+	// entries the factory methods resolve when EMBED_PROVIDER / GEN_PROVIDER
+	// are unset.
+	DefaultEmbedProvider = provider.Default
+	DefaultGenProvider   = provider.Default
+
 	// DefaultChunkSize and DefaultChunkOverlap are the word counts chunking
 	// splits a section into, used by cmd/ingest. 50/20 measured best on the
 	// example corpus (see scripts/sweep.sh).
 	DefaultChunkSize    = 50
 	DefaultChunkOverlap = 20
+
+	// DefaultEmbedWorkers bounds how many embedding calls cmd/ingest runs
+	// concurrently. The default is deliberately modest: Ollama serves requests
+	// from a single model instance, so a larger fan-out mostly queues server
+	// side while adding memory pressure locally.
+	DefaultEmbedWorkers = 4
+
+	// DefaultEmbedRetries is how many times a transient embedding failure is
+	// retried before the ingest fails. The default is small because a failure
+	// that survives a few backoffs is more likely persistent than transient.
+	DefaultEmbedRetries = 3
 
 	// DefaultMinSimilarity is the lowest cosine similarity a retrieved
 	// document may have to be used as context.
@@ -82,14 +115,19 @@ const (
 type Config struct {
 	OllamaURL            string
 	EmbedModel           string
+	EmbedDim             int
 	ChatModel            string
 	DatabaseURL          string
 	Question             string
+	EmbedProvider        string
+	GenProvider          string
 	ChunkSize            int
 	ChunkOverlap         int
 	TopK                 int
 	FinalK               int
 	ExpandLimit          int
+	EmbedWorkers         int
+	EmbedRetries         int
 	MinSimilarity        float64
 	LexicalRerank        bool
 	LLMRerank            bool
@@ -102,31 +140,148 @@ type Config struct {
 	QueryRewrite         bool
 }
 
-// Load reads the settings from the environment, falling back to the defaults.
-func Load() Config {
-	return Config{
-		OllamaURL:   envOrDefault("OLLAMA_URL", DefaultOllamaURL),
-		EmbedModel:  envOrDefault("OLLAMA_EMBED_MODEL", DefaultEmbedModel),
-		ChatModel:   envOrDefault("OLLAMA_CHAT_MODEL", DefaultChatModel),
-		DatabaseURL: envOrDefault("DATABASE_URL", DefaultDatabaseURL),
+// Load reads the settings from the environment, falling back to the defaults
+// when a setting is absent.
+//
+// It returns an error naming the offending variable when a present setting
+// cannot be parsed or is out of range, and when CHUNK_OVERLAP is not smaller than
+// CHUNK_SIZE. Invalid values are never silently replaced with defaults.
+func Load() (Config, error) {
+	cfg := Config{
+		OllamaURL:     envOrDefault("OLLAMA_URL", DefaultOllamaURL),
+		EmbedModel:    envOrDefault("OLLAMA_EMBED_MODEL", DefaultEmbedModel),
+		ChatModel:     envOrDefault("OLLAMA_CHAT_MODEL", DefaultChatModel),
+		DatabaseURL:   envOrDefault("DATABASE_URL", DefaultDatabaseURL),
+		EmbedProvider: envOrDefault("EMBED_PROVIDER", DefaultEmbedProvider),
+		GenProvider:   envOrDefault("GEN_PROVIDER", DefaultGenProvider),
 		// Question has no default: the rag command requires one.
-		Question:             envOrDefault("QUESTION", ""),
-		ChunkSize:            envIntOrDefault("CHUNK_SIZE", DefaultChunkSize),
-		ChunkOverlap:         envNonNegativeIntOrDefault("CHUNK_OVERLAP", DefaultChunkOverlap),
-		TopK:                 envIntOrDefault("TOP_K", DefaultTopK),
-		FinalK:               envIntOrDefault("FINAL_K", DefaultFinalK),
-		ExpandLimit:          envIntOrDefault("EXPAND_LIMIT", DefaultExpandLimit),
-		MinSimilarity:        envFloatOrDefault("MIN_SIMILARITY", DefaultMinSimilarity),
-		LexicalRerank:        envBoolOrDefault("EVAL_LEXICAL_RERANK", DefaultLexicalRerank),
-		LLMRerank:            envBoolOrDefault("EVAL_LLM_RERANK", DefaultLLMRerank),
-		RagLLMRerank:         envBoolOrDefault("RAG_LLM_RERANK", false),
-		AnswerabilityGate:    envBoolOrDefault("EVAL_ANSWERABILITY_GATE", DefaultAnswerabilityGate),
-		FactJudge:            envBoolOrDefault("EVAL_FACT_JUDGE", DefaultFactJudge),
-		RewriteOnly:          envBoolOrDefault("EVAL_REWRITE_ONLY", DefaultRewriteOnly),
-		RagAnswerabilityGate: envBoolOrDefault("RAG_ANSWERABILITY_GATE", DefaultRagAnswerabilityGate),
-		RequestTimeout:       envDurationOrDefault("REQUEST_TIMEOUT", DefaultRequestTimeout),
-		QueryRewrite:         envBoolOrDefault("QUERY_REWRITE", DefaultQueryRewrite),
+		Question: envOrDefault("QUESTION", ""),
 	}
+
+	var err error
+
+	if cfg.EmbedDim, err = envPositiveInt("EMBED_DIM", DefaultEmbedDim); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.ChunkSize, err = envPositiveInt("CHUNK_SIZE", DefaultChunkSize); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.ChunkOverlap, err = envNonNegativeInt("CHUNK_OVERLAP", DefaultChunkOverlap); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.TopK, err = envPositiveInt("TOP_K", DefaultTopK); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.FinalK, err = envPositiveInt("FINAL_K", DefaultFinalK); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.ExpandLimit, err = envPositiveInt("EXPAND_LIMIT", DefaultExpandLimit); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.EmbedWorkers, err = envPositiveInt("EMBED_WORKERS", DefaultEmbedWorkers); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.EmbedRetries, err = envNonNegativeInt("EMBED_RETRIES", DefaultEmbedRetries); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.MinSimilarity, err = envUnitFloat("MIN_SIMILARITY", DefaultMinSimilarity); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.LexicalRerank, err = envBool("EVAL_LEXICAL_RERANK", DefaultLexicalRerank); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.LLMRerank, err = envBool("EVAL_LLM_RERANK", DefaultLLMRerank); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.RagLLMRerank, err = envBool("RAG_LLM_RERANK", false); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.AnswerabilityGate, err = envBool("EVAL_ANSWERABILITY_GATE", DefaultAnswerabilityGate); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.FactJudge, err = envBool("EVAL_FACT_JUDGE", DefaultFactJudge); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.RewriteOnly, err = envBool("EVAL_REWRITE_ONLY", DefaultRewriteOnly); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.RagAnswerabilityGate, err = envBool("RAG_ANSWERABILITY_GATE", DefaultRagAnswerabilityGate); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.RequestTimeout, err = envPositiveDuration("REQUEST_TIMEOUT", DefaultRequestTimeout); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.QueryRewrite, err = envBool("QUERY_REWRITE", DefaultQueryRewrite); err != nil {
+		return Config{}, err
+	}
+
+	// Chunk overlap must leave the window advancing: a step of chunkSize-overlap
+	// has to stay positive, so overlap < chunkSize.
+	if cfg.ChunkOverlap >= cfg.ChunkSize {
+		return Config{}, fmt.Errorf(
+			"CHUNK_OVERLAP (%d) must be smaller than CHUNK_SIZE (%d)",
+			cfg.ChunkOverlap,
+			cfg.ChunkSize,
+		)
+	}
+
+	return cfg, nil
+}
+
+// chunkerConfigVersion identifies the serialization format of ChunkerConfig.
+// Bump it when the chunking algorithm changes in a way that invalidates stored
+// chunkings, so previously ingested documents are re-ingested.
+const chunkerConfigVersion = "v1"
+
+// ChunkerConfig returns a stable, canonical representation of the chunker
+// settings derived from ChunkSize and ChunkOverlap. Two Configs with the same
+// size and overlap produce the same string; changing either produces a
+// different one. It is recorded as ingestion provenance and compared on
+// re-ingest to decide whether a document must be chunked again.
+func (c Config) ChunkerConfig() string {
+	return fmt.Sprintf("chunker=%s;size=%d;overlap=%d", chunkerConfigVersion, c.ChunkSize, c.ChunkOverlap)
+}
+
+// providerClient builds the provider settings the registry needs to construct a
+// vendor client.
+func (c Config) providerClient() provider.Client {
+	return provider.Client{
+		OllamaURL:      c.OllamaURL,
+		EmbedModel:     c.EmbedModel,
+		ChatModel:      c.ChatModel,
+		RequestTimeout: c.RequestTimeout,
+	}
+}
+
+// Embedder resolves the configured EMBED_PROVIDER through the provider registry
+// and returns an embedding.Embedder. An empty provider falls back to the ollama
+// default; an unregistered provider returns a non-nil error.
+func (c Config) Embedder() (embedding.Embedder, error) {
+	return provider.Embedder(c.EmbedProvider, c.providerClient())
+}
+
+// Generator resolves the configured GEN_PROVIDER through the provider registry
+// and returns a generation.Generator. An empty provider falls back to the ollama
+// default; an unregistered provider returns a non-nil error.
+func (c Config) Generator() (generation.Generator, error) {
+	return provider.Generator(c.GenProvider, c.providerClient())
 }
 
 // OllamaClient returns a client for the configured Ollama server.
@@ -144,57 +299,113 @@ func (c Config) Connect(ctx context.Context) (*pgx.Conn, error) {
 	return conn, nil
 }
 
+// envValue returns the trimmed value of key and whether it is present. An unset
+// or blank variable counts as absent, so an empty .env entry uses the default.
+func envValue(key string) (string, bool) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return "", false
+	}
+
+	return value, true
+}
+
 func envOrDefault(key, fallback string) string {
-	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+	if value, ok := envValue(key); ok {
 		return value
 	}
 
 	return fallback
 }
 
-func envIntOrDefault(key string, fallback int) int {
-	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
-	if err != nil || value <= 0 {
-		return fallback
+// envPositiveInt reads an integer setting that must be greater than zero.
+func envPositiveInt(key string, fallback int) (int, error) {
+	raw, ok := envValue(key)
+	if !ok {
+		return fallback, nil
 	}
 
-	return value
-}
-
-// envNonNegativeIntOrDefault is envIntOrDefault but accepts zero, for settings
-// where zero is a valid value rather than an absent one (chunk overlap).
-func envNonNegativeIntOrDefault(key string, fallback int) int {
-	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
-	if err != nil || value < 0 {
-		return fallback
-	}
-
-	return value
-}
-
-func envFloatOrDefault(key string, fallback float64) float64 {
-	value, err := strconv.ParseFloat(strings.TrimSpace(os.Getenv(key)), 64)
+	value, err := strconv.Atoi(raw)
 	if err != nil {
-		return fallback
+		return 0, fmt.Errorf("%s must be an integer, got %q", key, raw)
 	}
 
-	return value
-}
-
-func envDurationOrDefault(key string, fallback time.Duration) time.Duration {
-	value, err := time.ParseDuration(strings.TrimSpace(os.Getenv(key)))
-	if err != nil || value <= 0 {
-		return fallback
+	if value <= 0 {
+		return 0, fmt.Errorf("%s must be greater than 0, got %d", key, value)
 	}
 
-	return value
+	return value, nil
 }
 
-func envBoolOrDefault(key string, fallback bool) bool {
-	value, err := strconv.ParseBool(strings.TrimSpace(os.Getenv(key)))
+// envNonNegativeInt is envPositiveInt but accepts zero, for settings where zero
+// is a valid value rather than an absent one (chunk overlap).
+func envNonNegativeInt(key string, fallback int) (int, error) {
+	raw, ok := envValue(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	value, err := strconv.Atoi(raw)
 	if err != nil {
-		return fallback
+		return 0, fmt.Errorf("%s must be an integer, got %q", key, raw)
 	}
 
-	return value
+	if value < 0 {
+		return 0, fmt.Errorf("%s must be 0 or greater, got %d", key, value)
+	}
+
+	return value, nil
+}
+
+// envUnitFloat reads a similarity-style setting that must lie within [0, 1].
+func envUnitFloat(key string, fallback float64) (float64, error) {
+	raw, ok := envValue(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a number, got %q", key, raw)
+	}
+
+	if math.IsNaN(value) || value < 0 || value > 1 {
+		return 0, fmt.Errorf("%s must be between 0 and 1, got %q", key, raw)
+	}
+
+	return value, nil
+}
+
+// envPositiveDuration reads a duration setting that must be greater than zero.
+func envPositiveDuration(key string, fallback time.Duration) (time.Duration, error) {
+	raw, ok := envValue(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	value, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a duration such as 30s or 5m, got %q", key, raw)
+	}
+
+	if value <= 0 {
+		return 0, fmt.Errorf("%s must be greater than 0, got %q", key, raw)
+	}
+
+	return value, nil
+}
+
+// envBool reads a boolean setting.
+func envBool(key string, fallback bool) (bool, error) {
+	raw, ok := envValue(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, fmt.Errorf("%s must be a boolean such as true or false, got %q", key, raw)
+	}
+
+	return value, nil
 }

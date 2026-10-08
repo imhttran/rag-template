@@ -80,7 +80,25 @@ for f in migrations/*.sql; do
 done
 ```
 
-Every migration is idempotent, so re-running is safe.
+Every migration is idempotent, so re-running is safe. `make db-schema` only
+globs `migrations/*.sql`, so nothing under `docs/operations/` — including the
+dimension-change procedure — is applied automatically; that procedure is
+deliberately outside the glob, which is what keeps `make db-schema` idempotent
+and non-destructive.
+
+### Changing the embedding dimension
+
+`documents.embedding` is a `vector(768)` column (see `migrations/001_init.sql`)
+and `EMBED_DIM` must match it. To move to a model of a different width, follow
+the operator-run procedure in
+[`docs/operations/embedding-dimension.md`](docs/operations/embedding-dimension.md):
+it changes the column to `vector(n)`, rebuilds the `documents_embedding_idx` HNSW
+index, sets `EMBED_DIM`, and requires **re-ingesting the corpus** so every stored
+vector is produced at the new dimension. The guard `ingestion.CheckEmbeddingDim`
+fails fast with the same instructions when `EMBED_DIM` and the column disagree.
+This procedure is never applied by `make db-schema`, `make db-up`, or the
+`docker-entrypoint-initdb.d` mount in `docker-compose.yml`, because it is not
+under `migrations/*.sql`.
 
 ## 1. Ingest
 
@@ -278,6 +296,7 @@ set -a; source .env; set +a
 | `OLLAMA_EMBED_MODEL`      | `nomic-embed-text`                                      | all       |
 | `OLLAMA_CHAT_MODEL`       | `qwen3.8:27b-mlx`                                       | rag, eval |
 | `DATABASE_URL`            | `postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable` | all       |
+| `EMBED_DIM`               | `768`                                                   | all       |
 | `CHUNK_SIZE`              | `50`                                                    | ingest    |
 | `CHUNK_OVERLAP`           | `20`                                                    | ingest    |
 | `TOP_K`                   | `4`                                                     | rag, eval |
@@ -297,6 +316,12 @@ set -a; source .env; set +a
 
 `all` = every command; `rag` = `cmd/rag` only; `eval` = `cmd/eval` only;
 `ingest` = `cmd/ingest` only; `rag, eval` = both commands.
+
+`EMBED_DIM` must match the stored `documents.embedding` column. The guard
+`ingestion.CheckEmbeddingDim` fails fast otherwise and points at
+[`docs/operations/embedding-dimension.md`](docs/operations/embedding-dimension.md),
+the operator-run procedure for changing the dimension; changing it also
+requires re-ingesting the corpus.
 
 ## Project structure
 
@@ -323,7 +348,9 @@ rag-template/
 ├── evals/
 │   └── retrieval.json     # questions + expected source/section
 ├── docs/
-│   └── experiments.md     # sweep results and the decisions they drove
+│   ├── experiments.md     # sweep results and the decisions they drove
+│   └── operations/
+│       └── embedding-dimension.md  # operator-run EMBED_DIM change procedure
 ├── examples/
 │   ├── loan-policy.md                  # sample corpus for cmd/ingest
 │   ├── large-loan-policy.md            # longer corpus; several chunks per section
