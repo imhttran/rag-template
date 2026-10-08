@@ -32,6 +32,10 @@ type EvalCase struct {
 	ExpectedFacts []string           `json:"expected_facts,omitempty"`
 }
 
+// defaultDatasetPath is the dataset scored when EVAL_DATASET is unset or empty.
+// It is the pre-existing default and must not change.
+const defaultDatasetPath = "evals/retrieval.json"
+
 // stats accumulates the per-case metrics for the final summary.
 type stats struct {
 	recallTotals          map[int]float64
@@ -184,17 +188,33 @@ func retrievalKs(topK int) []int {
 	return slices.Compact(ks)
 }
 
-// loadCases reads and parses the evaluation cases.
+// datasetPath selects the evaluation dataset path from EVAL_DATASET. An unset or
+// empty variable keeps the pre-existing default (evals/retrieval.json), so the
+// bundled run is unchanged; any other value selects that file so a bilingual or
+// candidate dataset can be scored without editing code.
+func datasetPath() string {
+	if path := strings.TrimSpace(os.Getenv("EVAL_DATASET")); path != "" {
+		return path
+	}
+
+	return defaultDatasetPath
+}
+
+// loadCases reads and parses the evaluation cases selected by EVAL_DATASET.
+// Both the read and the parse failure name the selected path so a mistaken
+// EVAL_DATASET is actionable in the log.
 func loadCases() ([]EvalCase, error) {
-	data, err := os.ReadFile("evals/retrieval.json")
+	path := datasetPath()
+
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read evaluation dataset %s: %w", path, err)
 	}
 
 	var cases []EvalCase
 
 	if err := json.Unmarshal(data, &cases); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse evaluation dataset %s: %w", path, err)
 	}
 
 	fmt.Printf("Loaded %d evaluation cases\n", len(cases))

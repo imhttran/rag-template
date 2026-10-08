@@ -1,6 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"rag-template/internal/citations"
@@ -13,6 +17,139 @@ func retrieved(source, section string, chunk int) retrieval.Document {
 		Source:     source,
 		Section:    section,
 		ChunkIndex: chunk,
+	}
+}
+
+func TestDatasetPath(t *testing.T) {
+	tests := []struct {
+		name  string
+		set   bool
+		value string
+		want  string
+	}{
+		{name: "unset uses the default", set: false, want: "evals/retrieval.json"},
+		{name: "empty uses the default", set: true, value: "", want: "evals/retrieval.json"},
+		{name: "whitespace uses the default", set: true, value: "   ", want: "evals/retrieval.json"},
+		{name: "a set path is used", set: true, value: "evals/retrieval-vi-en.json", want: "evals/retrieval-vi-en.json"},
+		{name: "an alternative path is used", set: true, value: "/tmp/cases.json", want: "/tmp/cases.json"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if test.set {
+				t.Setenv("EVAL_DATASET", test.value)
+			} else {
+				// t.Setenv then Unsetenv guarantees the variable is absent
+				// even if the ambient environment defines it.
+				t.Setenv("EVAL_DATASET", "placeholder")
+				os.Unsetenv("EVAL_DATASET")
+			}
+
+			if got := datasetPath(); got != test.want {
+				t.Fatalf("datasetPath() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestLoadCasesErrors(t *testing.T) {
+	dir := t.TempDir()
+
+	malformed := filepath.Join(dir, "malformed.json")
+	if err := os.WriteFile(malformed, []byte("{not json"), 0o644); err != nil {
+		t.Fatalf("write malformed fixture: %v", err)
+	}
+
+	missing := filepath.Join(dir, "missing.json")
+
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "missing file", path: missing},
+		{name: "malformed json", path: malformed},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("EVAL_DATASET", test.path)
+
+			_, err := loadCases()
+			if err == nil {
+				t.Fatalf("loadCases() = nil error, want an error naming %q", test.path)
+			}
+
+			if !strings.Contains(err.Error(), test.path) {
+				t.Fatalf("loadCases() error = %q, want it to contain %q", err.Error(), test.path)
+			}
+		})
+	}
+}
+
+func TestLoadCasesSelectsDataset(t *testing.T) {
+	dir := t.TempDir()
+
+	selected := filepath.Join(dir, "cases.json")
+	fixture := `[{"question":"q","expected":[{"source":"a.md","section":"S"}]}]`
+
+	if err := os.WriteFile(selected, []byte(fixture), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	t.Setenv("EVAL_DATASET", selected)
+
+	cases, err := loadCases()
+	if err != nil {
+		t.Fatalf("loadCases() error = %v", err)
+	}
+
+	if len(cases) != 1 || cases[0].Question != "q" {
+		t.Fatalf("loadCases() = %+v, want one case with question %q", cases, "q")
+	}
+}
+
+// TestBilingualDatasetLoads asserts the shipped bilingual dataset parses and
+// covers the retrieval directions plus an unanswerable case.
+func TestBilingualDatasetLoads(t *testing.T) {
+	path := filepath.Join("..", "..", "evals", "retrieval-vi-en.json")
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read bilingual dataset: %v", err)
+	}
+
+	var cases []EvalCase
+
+	if err := json.Unmarshal(data, &cases); err != nil {
+		t.Fatalf("parse bilingual dataset: %v", err)
+	}
+
+	if len(cases) < 5 {
+		t.Fatalf("bilingual dataset has %d cases, want at least 5", len(cases))
+	}
+
+	var answerable, unanswerable int
+
+	for _, evalCase := range cases {
+		if strings.TrimSpace(evalCase.Question) == "" {
+			t.Fatal("bilingual dataset has an empty question")
+		}
+
+		if len(evalCase.Expected) == 0 {
+			unanswerable++
+
+			continue
+		}
+
+		answerable++
+	}
+
+	if answerable == 0 {
+		t.Fatal("bilingual dataset has no answerable cases")
+	}
+
+	if unanswerable == 0 {
+		t.Fatal("bilingual dataset has no unanswerable case")
 	}
 }
 
