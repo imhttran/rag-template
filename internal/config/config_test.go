@@ -17,6 +17,8 @@ func clearEnv(t *testing.T) {
 		"OLLAMA_CHAT_MODEL",
 		"DATABASE_URL",
 		"QUESTION",
+		"EMBED_PROVIDER",
+		"GEN_PROVIDER",
 		"CHUNK_SIZE",
 		"CHUNK_OVERLAP",
 		"TOP_K",
@@ -50,6 +52,8 @@ func TestLoadDefaults(t *testing.T) {
 		EmbedModel:           DefaultEmbedModel,
 		ChatModel:            DefaultChatModel,
 		DatabaseURL:          DefaultDatabaseURL,
+		EmbedProvider:        DefaultEmbedProvider,
+		GenProvider:          DefaultGenProvider,
 		ChunkSize:            DefaultChunkSize,
 		ChunkOverlap:         DefaultChunkOverlap,
 		TopK:                 DefaultTopK,
@@ -112,6 +116,10 @@ func TestLoad(t *testing.T) {
 				if c.MinSimilarity != DefaultMinSimilarity {
 					t.Fatalf("MIN_SIMILARITY = %v, want %v", c.MinSimilarity, DefaultMinSimilarity)
 				}
+
+				if c.EmbedProvider != DefaultEmbedProvider || c.GenProvider != DefaultGenProvider {
+					t.Fatalf("providers = %q/%q, want %q/%q", c.EmbedProvider, c.GenProvider, DefaultEmbedProvider, DefaultGenProvider)
+				}
 			},
 		},
 		{
@@ -124,6 +132,8 @@ func TestLoad(t *testing.T) {
 				"MIN_SIMILARITY":  "",
 				"REQUEST_TIMEOUT": "",
 				"QUERY_REWRITE":   "",
+				"EMBED_PROVIDER":  "",
+				"GEN_PROVIDER":    "",
 			},
 			check: func(t *testing.T, c Config) {
 				t.Helper()
@@ -147,6 +157,10 @@ func TestLoad(t *testing.T) {
 				if c.QueryRewrite != DefaultQueryRewrite {
 					t.Fatalf("blank QUERY_REWRITE = %v, want %v", c.QueryRewrite, DefaultQueryRewrite)
 				}
+
+				if c.EmbedProvider != DefaultEmbedProvider || c.GenProvider != DefaultGenProvider {
+					t.Fatalf("blank providers = %q/%q, want %q/%q", c.EmbedProvider, c.GenProvider, DefaultEmbedProvider, DefaultGenProvider)
+				}
 			},
 		},
 		{
@@ -157,6 +171,17 @@ func TestLoad(t *testing.T) {
 
 				if c.OllamaURL != "http://example:1234" {
 					t.Fatalf("OLLAMA_URL = %q", c.OllamaURL)
+				}
+			},
+		},
+		{
+			name: "valid provider overrides",
+			env:  map[string]string{"EMBED_PROVIDER": "ollama", "GEN_PROVIDER": "ollama"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.EmbedProvider != "ollama" || c.GenProvider != "ollama" {
+					t.Fatalf("providers = %q/%q, want ollama/ollama", c.EmbedProvider, c.GenProvider)
 				}
 			},
 		},

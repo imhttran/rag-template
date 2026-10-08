@@ -20,7 +20,10 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"rag-template/internal/embedding"
+	"rag-template/internal/generation"
 	"rag-template/internal/ollama"
+	"rag-template/internal/provider"
 )
 
 const (
@@ -29,6 +32,12 @@ const (
 	DefaultChatModel   = "qwen3.8:27b-mlx"
 	DefaultDatabaseURL = "postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable"
 	DefaultTopK        = 4
+
+	// DefaultEmbedProvider and DefaultGenProvider name the provider registry
+	// entries the factory methods resolve when EMBED_PROVIDER / GEN_PROVIDER
+	// are unset.
+	DefaultEmbedProvider = provider.Default
+	DefaultGenProvider   = provider.Default
 
 	// DefaultChunkSize and DefaultChunkOverlap are the word counts chunking
 	// splits a section into, used by cmd/ingest. 50/20 measured best on the
@@ -102,6 +111,8 @@ type Config struct {
 	ChatModel            string
 	DatabaseURL          string
 	Question             string
+	EmbedProvider        string
+	GenProvider          string
 	ChunkSize            int
 	ChunkOverlap         int
 	TopK                 int
@@ -129,10 +140,12 @@ type Config struct {
 // CHUNK_SIZE. Invalid values are never silently replaced with defaults.
 func Load() (Config, error) {
 	cfg := Config{
-		OllamaURL:   envOrDefault("OLLAMA_URL", DefaultOllamaURL),
-		EmbedModel:  envOrDefault("OLLAMA_EMBED_MODEL", DefaultEmbedModel),
-		ChatModel:   envOrDefault("OLLAMA_CHAT_MODEL", DefaultChatModel),
-		DatabaseURL: envOrDefault("DATABASE_URL", DefaultDatabaseURL),
+		OllamaURL:     envOrDefault("OLLAMA_URL", DefaultOllamaURL),
+		EmbedModel:    envOrDefault("OLLAMA_EMBED_MODEL", DefaultEmbedModel),
+		ChatModel:     envOrDefault("OLLAMA_CHAT_MODEL", DefaultChatModel),
+		DatabaseURL:   envOrDefault("DATABASE_URL", DefaultDatabaseURL),
+		EmbedProvider: envOrDefault("EMBED_PROVIDER", DefaultEmbedProvider),
+		GenProvider:   envOrDefault("GEN_PROVIDER", DefaultGenProvider),
 		// Question has no default: the rag command requires one.
 		Question: envOrDefault("QUESTION", ""),
 	}
@@ -232,6 +245,31 @@ const chunkerConfigVersion = "v1"
 // re-ingest to decide whether a document must be chunked again.
 func (c Config) ChunkerConfig() string {
 	return fmt.Sprintf("chunker=%s;size=%d;overlap=%d", chunkerConfigVersion, c.ChunkSize, c.ChunkOverlap)
+}
+
+// providerClient builds the provider settings the registry needs to construct a
+// vendor client.
+func (c Config) providerClient() provider.Client {
+	return provider.Client{
+		OllamaURL:      c.OllamaURL,
+		EmbedModel:     c.EmbedModel,
+		ChatModel:      c.ChatModel,
+		RequestTimeout: c.RequestTimeout,
+	}
+}
+
+// Embedder resolves the configured EMBED_PROVIDER through the provider registry
+// and returns an embedding.Embedder. An empty provider falls back to the ollama
+// default; an unregistered provider returns a non-nil error.
+func (c Config) Embedder() (embedding.Embedder, error) {
+	return provider.Embedder(c.EmbedProvider, c.providerClient())
+}
+
+// Generator resolves the configured GEN_PROVIDER through the provider registry
+// and returns a generation.Generator. An empty provider falls back to the ollama
+// default; an unregistered provider returns a non-nil error.
+func (c Config) Generator() (generation.Generator, error) {
+	return provider.Generator(c.GenProvider, c.providerClient())
 }
 
 // OllamaClient returns a client for the configured Ollama server.
