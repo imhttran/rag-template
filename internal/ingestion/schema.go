@@ -106,11 +106,11 @@ func lookupEmbeddingDim(ctx context.Context, conn embeddingDimQuerier) (int, err
 
 // vectorFromTypmod converts pg_attribute.atttypmod to the pgvector dimension.
 // pgvector records vector(n) with atttypmod equal to n, so the stored width is the
-// typmod itself -- unlike varchar/bpchar, which add a length header. A typmod
-// pgvector would not produce is rejected instead of being reported as a nonsense
-// dimension.
+// typmod itself -- unlike varchar/bpchar, which add a length header. A typmod below
+// 1 (an unconstrained or non-vector column) is rejected instead of being reported
+// as a nonsense dimension.
 func vectorFromTypmod(typmod int) (int, error) {
-	if typmod < 4 {
+	if typmod < 1 {
 		return 0, fmt.Errorf(
 			"documents.embedding is not a pgvector vector(n) column: "+
 				"apply migrations/001_init.sql to create it (see %s to change its dimension)",

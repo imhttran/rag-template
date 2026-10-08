@@ -140,15 +140,18 @@ func TestCheckEmbeddingDimMissingTable(t *testing.T) {
 }
 
 // TestVectorFromTypmod pins the pgvector typmod convention: vector(n) records
-// atttypmod equal to n, so the stored width is the typmod itself. It covers the
-// 768 column from migrations/001_init.sql and the 1024 width the acceptance
-// criteria require.
+// atttypmod equal to n, so the stored width is the typmod itself. It covers small
+// dimensions (1, 2, 3), the 768 column from migrations/001_init.sql, and the 1024
+// width the acceptance criteria require.
 func TestVectorFromTypmod(t *testing.T) {
 	cases := []struct {
 		name   string
 		typmod int
 		want   int
 	}{
+		{"1", 1, 1},
+		{"2", 2, 2},
+		{"3", 3, 3},
 		{"768", 768, 768},
 		{"1024", 1024, 1024},
 	}
@@ -172,11 +175,10 @@ func TestVectorFromTypmod(t *testing.T) {
 	}
 }
 
-// TestVectorFromTypmodRejectsNonVector asserts a typmod that is not a pgvector
-// vector(n) is reported as a type error, not a negative dimension, and that the
-// error points at the procedure document.
+// TestVectorFromTypmodRejectsNonVector asserts an invalid typmod (an unconstrained
+// or non-vector column) is reported as a type error, not a nonsense dimension.
 func TestVectorFromTypmodRejectsNonVector(t *testing.T) {
-	for _, typmod := range []int{-1, 0, 3} {
+	for _, typmod := range []int{-1, 0} {
 		_, err := vectorFromTypmod(typmod)
 		if err == nil {
 			t.Fatalf("vectorFromTypmod(%d) = nil error, want a non-vector error", typmod)
