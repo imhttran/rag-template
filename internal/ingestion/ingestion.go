@@ -229,12 +229,18 @@ func (i *Ingester) IsUpToDate(
 		dimensionMatches,
 	)
 
+	// Bind only the placeholders the query actually references: with no dimension
+	// the FILTER uses TRUE and there is no $5, so passing a fifth argument fails
+	// the bind ("expected 4 arguments, got 5").
 	args := []any{
 		source,
 		provenance.ContentHash,
 		provenance.ChunkerConfig,
 		provenance.EmbedModel,
-		provenance.Dimension,
+	}
+
+	if provenance.Dimension > 0 {
+		args = append(args, provenance.Dimension)
 	}
 
 	err := i.conn.QueryRow(ctx, query, args...).Scan(&total, &matches)

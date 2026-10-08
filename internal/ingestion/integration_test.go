@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -482,5 +483,100 @@ func TestReplaceDocumentIntegrationRetryExhaustionPreservesDocument(t *testing.T
 
 	if got := storedChunks(t, ctx); !slices.Equal(got, want) {
 		t.Fatalf("stored chunks after retry exhaustion = %v, want %v", got, want)
+	}
+}
+
+// TestIsUpToDateIntegrationZeroDimension is the regression guard for the
+// provenance lookup when no embedding dimension is pinned (the case the ingest
+// CLI uses). With no dimension the query's FILTER is TRUE and there is no $5, so
+// the bind must supply four arguments; before the fix this failed with
+// "expected 4 arguments, got 5" and made every ingest error out.
+func TestIsUpToDateIntegrationZeroDimension(t *testing.T) {
+	ctx := context.Background()
+	requireDatabase(t)
+
+	resetTestDocument(t, ctx)
+
+	ingester := newIngester(t)
+
+	provenance := Provenance{
+		ContentHash:   "hash-1",
+		EmbedModel:    "fake",
+		ChunkerConfig: "size=50,overlap=20",
+		IngestedAt:    time.Now().UTC(),
+	}
+
+	if err := ingester.ReplaceDocumentWithProvenance(ctx, testSource, []chunking.Chunk{
+		{Section: "Fees", Index: 0, Content: "first chunk"},
+	}, provenance); err != nil {
+		t.Fatalf("seed replace: %v", err)
+	}
+
+	upToDate, err := ingester.IsUpToDate(ctx, testSource, provenance)
+	if err != nil {
+		t.Fatalf("IsUpToDate (unpinned dimension): %v", err)
+	}
+
+	if !upToDate {
+		t.Fatal("unchanged document reported not up to date")
+	}
+
+	changed := provenance
+	changed.ContentHash = "hash-2"
+
+	upToDate, err = ingester.IsUpToDate(ctx, testSource, changed)
+	if err != nil {
+		t.Fatalf("IsUpToDate (changed content): %v", err)
+	}
+
+	if upToDate {
+		t.Fatal("changed document reported up to date")
+	}
+}
+
+// TestIsUpToDateIntegrationPinnedDimension exercises the $5 branch: a pinned
+// dimension is compared, so a document stored at a different width is not up to
+// date.
+func TestIsUpToDateIntegrationPinnedDimension(t *testing.T) {
+	ctx := context.Background()
+	requireDatabase(t)
+
+	resetTestDocument(t, ctx)
+
+	ingester := newIngester(t)
+
+	provenance := Provenance{
+		ContentHash:   "hash-1",
+		EmbedModel:    "fake",
+		Dimension:     embeddingDim,
+		ChunkerConfig: "size=50,overlap=20",
+		IngestedAt:    time.Now().UTC(),
+	}
+
+	if err := ingester.ReplaceDocumentWithProvenance(ctx, testSource, []chunking.Chunk{
+		{Section: "Fees", Index: 0, Content: "first chunk"},
+	}, provenance); err != nil {
+		t.Fatalf("seed replace: %v", err)
+	}
+
+	upToDate, err := ingester.IsUpToDate(ctx, testSource, provenance)
+	if err != nil {
+		t.Fatalf("IsUpToDate (pinned dimension): %v", err)
+	}
+
+	if !upToDate {
+		t.Fatal("unchanged pinned-dimension document reported not up to date")
+	}
+
+	other := provenance
+	other.Dimension = embeddingDim + 1
+
+	upToDate, err = ingester.IsUpToDate(ctx, testSource, other)
+	if err != nil {
+		t.Fatalf("IsUpToDate (different dimension): %v", err)
+	}
+
+	if upToDate {
+		t.Fatal("document with a different stored dimension reported up to date")
 	}
 }
