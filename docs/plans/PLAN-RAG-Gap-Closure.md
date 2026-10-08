@@ -89,6 +89,33 @@ future phase.
   judges are nondeterministic (`docs/experiments.md:211`); M1–M2 changes are
   config/schema only and must not be credited on single-run eval deltas. See §10 R-02.
 
+### Amendment D — Multilingual scope expansion authorized (RAG-009 chain)
+
+Recorded on operator authorization. This supersedes the Amendment B deferral for
+**RAG-009 only**; the other deferred tasks keep their Amendment B status.
+
+- **Multilingual scope expansion: AUTHORIZED.** RAG-009 (multilingual ingestion
+  and retrieval) crosses a `docs/PRD.md:60` boundary and is now explicitly
+  approved as the first Phase 23+ scope expansion. Its acceptance must keep the
+  default `'english'` FTS behavior when a document's language is unset, so
+  English-only corpora remain byte-identical to baseline.
+- **Execution chain authorized in dependency order:** RAG-009 → RAG-011 →
+  RAG-013 → RAG-015 (§7 graph). Each task runs through `sop run` only after its
+  predecessor's acceptance criteria and required evidence are met; reaching a
+  task boundary does **not** authorize the next task's commit.
+- **No automatic commits.** RAG-009/011/013/015 complete locally (`LOCAL_DONE`) at
+  most; each commit needs separate human authorization.
+- **Still frozen:** RAG-007 (PDF), RAG-008 (OCR), and RAG-016 (eval capstone).
+  RAG-016 depends on RAG-007/008 as well, so it remains blocked even after this
+  chain.
+- **Completed under Phase 23+ (recorded for context):** RAG-006 (`42611fd`),
+  RAG-010 (`b2c31c9`), RAG-012 (`abe1a64`), RAG-014 (`7024a51`) are committed;
+  their DB/eval gates remain NOT RUN in this environment (§10 B-01).
+
+**Integration-test blocker: still standing.** RAG-009/011/013 acceptance requires
+the DB integration suite; it is unverified here and must be recorded as NOT RUN
+rather than passed (§9, §10 B-01).
+
 ## 3. Current-state evidence
 
 Verified against commit `221fa45`. File references are `path:line`.
