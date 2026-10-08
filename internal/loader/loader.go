@@ -4,11 +4,12 @@
 // file's content as []document.Section, which is the boundary type consumed by
 // internal/chunking and the ingest command.
 //
-// Future format loaders (HTML, PDF, OCR) register themselves with a Registry
-// via Register and are dispatched without any change to callers. The Markdown
-// loader wraps document.ParseSections so existing Markdown semantics are
-// preserved byte-for-byte; the plain-text loader maps a file's whole content
-// into a single Section.
+// Format loaders register themselves with a Registry via Register and are
+// dispatched without any change to callers. The Markdown loader wraps
+// document.ParseSections so existing Markdown semantics are preserved
+// byte-for-byte; the plain-text loader maps a file's whole content into a
+// single Section; the PDF loader extracts one Section per page from the PDF
+// text layer.
 package loader
 
 import (
@@ -55,13 +56,14 @@ func NewRegistry() *Registry {
 }
 
 // DefaultRegistry is the process-wide registry preloaded with the loaders that
-// ship with this package (Markdown and plain text). Callers that need a
+// ship with this package (Markdown, plain text, and PDF). Callers that need a
 // different set can build their own registry; the shipped defaults are not
 // changed by doing so.
 func DefaultRegistry() *Registry {
 	registry := NewRegistry()
 	registry.Register(&MarkdownLoader{})
 	registry.Register(&TextLoader{})
+	registry.Register(&PDFLoader{})
 
 	return registry
 }
