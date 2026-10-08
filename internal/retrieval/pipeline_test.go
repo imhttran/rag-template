@@ -21,8 +21,13 @@ type fakeSearcher struct {
 	topK         int
 	keywordQuery string
 	keywordTopK  int
+	keywordLang  string
 	expandKeys   []SectionKey
 	expandLimit  int
+
+	searchFilter  Filter
+	keywordFilter Filter
+	expandFilter  Filter
 
 	vectors  [][]Document
 	keywords [][]Document
@@ -32,12 +37,14 @@ type fakeSearcher struct {
 	keywordQueries []string
 }
 
-func (f *fakeSearcher) Search(
+func (f *fakeSearcher) SearchFiltered(
 	ctx context.Context,
 	vector []float64,
 	topK int,
+	filter Filter,
 ) ([]Document, error) {
 	f.topK = topK
+	f.searchFilter = filter
 
 	if f.searchErr != nil {
 		return nil, f.searchErr
@@ -52,13 +59,17 @@ func (f *fakeSearcher) Search(
 	return f.vector, nil
 }
 
-func (f *fakeSearcher) KeywordSearch(
+func (f *fakeSearcher) KeywordSearchFiltered(
 	ctx context.Context,
 	query string,
 	topK int,
+	language string,
+	filter Filter,
 ) ([]Document, error) {
 	f.keywordQuery = query
 	f.keywordTopK = topK
+	f.keywordLang = language
+	f.keywordFilter = filter
 	f.keywordQueries = append(f.keywordQueries, query)
 
 	if f.keywordErr != nil {
@@ -74,13 +85,15 @@ func (f *fakeSearcher) KeywordSearch(
 	return f.keyword, nil
 }
 
-func (f *fakeSearcher) SectionChunks(
+func (f *fakeSearcher) SectionChunksFiltered(
 	ctx context.Context,
 	keys []SectionKey,
 	limit int,
+	filter Filter,
 ) ([]Document, error) {
 	f.expandKeys = keys
 	f.expandLimit = limit
+	f.expandFilter = filter
 
 	if f.expandErr != nil {
 		return nil, f.expandErr
@@ -445,6 +458,80 @@ func TestMultiQueryRetrieveWiresAllRankings(t *testing.T) {
 			wantExpanded,
 			got,
 		)
+	}
+}
+
+// TestHybridRetrieveThreadsLanguage proves the pipeline passes the configured
+// language through to keyword retrieval (and thus the FTS configuration),
+// defaulting to unset when the caller does not supply one.
+func TestHybridRetrieveThreadsLanguage(t *testing.T) {
+	searcher := &fakeSearcher{
+		vector: []Document{
+			{ID: 1, Source: "a.md", Section: "One", Similarity: 0.9},
+		},
+	}
+
+	_, err := HybridRetrieve(
+		context.Background(),
+		searcher,
+		"frage",
+		[]float64{0.1},
+		PipelineOptions{
+			CandidateK:    2,
+			FinalK:        1,
+			ExpandLimit:   5,
+			MinSimilarity: 0.5,
+			Language:      "de",
+		},
+	)
+	if err != nil {
+		t.Fatalf("hybrid retrieve: %v", err)
+	}
+
+	if searcher.keywordLang != "de" {
+		t.Fatalf("expected keyword search language de, got %q", searcher.keywordLang)
+	}
+}
+
+// TestHybridRetrieveThreadsFilter proves the pipeline passes the configured
+// metadata filter to every retrieval path: vector search, keyword search, and
+// section expansion.
+func TestHybridRetrieveThreadsFilter(t *testing.T) {
+	searcher := &fakeSearcher{
+		vector: []Document{
+			{ID: 1, Source: "a.md", Section: "One", Similarity: 0.9},
+		},
+	}
+
+	filter := Filter{SourcePrefix: "a.md", Language: "en"}
+
+	_, err := HybridRetrieve(
+		context.Background(),
+		searcher,
+		"question",
+		[]float64{0.1},
+		PipelineOptions{
+			CandidateK:    2,
+			FinalK:        1,
+			ExpandLimit:   5,
+			MinSimilarity: 0.5,
+			Filter:        filter,
+		},
+	)
+	if err != nil {
+		t.Fatalf("hybrid retrieve: %v", err)
+	}
+
+	if searcher.searchFilter != filter {
+		t.Fatalf("expected vector search filter %+v, got %+v", filter, searcher.searchFilter)
+	}
+
+	if searcher.keywordFilter != filter {
+		t.Fatalf("expected keyword search filter %+v, got %+v", filter, searcher.keywordFilter)
+	}
+
+	if searcher.expandFilter != filter {
+		t.Fatalf("expected expansion filter %+v, got %+v", filter, searcher.expandFilter)
 	}
 }
 

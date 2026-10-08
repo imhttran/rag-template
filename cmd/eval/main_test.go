@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"rag-template/internal/citations"
 	"rag-template/internal/retrieval"
 )
 
@@ -194,11 +195,11 @@ func TestCitationValidity(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			valid, total := citationValidity(test.answer, documents)
+			valid, total := citations.Validity(test.answer, documents)
 
 			if valid != test.valid || total != test.total {
 				t.Fatalf(
-					"citationValidity(%q) = (%d, %d), want (%d, %d)",
+					"citations.Validity(%q) = (%d, %d), want (%d, %d)",
 					test.answer,
 					valid,
 					total,

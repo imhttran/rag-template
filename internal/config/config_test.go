@@ -20,6 +20,7 @@ func clearEnv(t *testing.T) {
 		"QUESTION",
 		"EMBED_PROVIDER",
 		"GEN_PROVIDER",
+		"CORPUS_LANGUAGE",
 		"CHUNK_SIZE",
 		"CHUNK_OVERLAP",
 		"TOP_K",
@@ -36,6 +37,7 @@ func clearEnv(t *testing.T) {
 		"EVAL_FACT_JUDGE",
 		"EVAL_REWRITE_ONLY",
 		"RAG_ANSWERABILITY_GATE",
+		"RAG_CITATION_VALIDATION",
 		"REQUEST_TIMEOUT",
 		"QUERY_REWRITE",
 		"OBSERVABILITY_FORMAT",
@@ -51,31 +53,33 @@ func TestLoadDefaults(t *testing.T) {
 	clearEnv(t)
 
 	want := Config{
-		OllamaURL:            DefaultOllamaURL,
-		EmbedModel:           DefaultEmbedModel,
-		EmbedDim:             DefaultEmbedDim,
-		ChatModel:            DefaultChatModel,
-		DatabaseURL:          DefaultDatabaseURL,
-		EmbedProvider:        DefaultEmbedProvider,
-		GenProvider:          DefaultGenProvider,
-		ChunkSize:            DefaultChunkSize,
-		ChunkOverlap:         DefaultChunkOverlap,
-		TopK:                 DefaultTopK,
-		FinalK:               DefaultFinalK,
-		ExpandLimit:          DefaultExpandLimit,
-		ContextBudget:        DefaultContextBudget,
-		EmbedWorkers:         DefaultEmbedWorkers,
-		EmbedRetries:         DefaultEmbedRetries,
-		MinSimilarity:        DefaultMinSimilarity,
-		LexicalRerank:        DefaultLexicalRerank,
-		LLMRerank:            DefaultLLMRerank,
-		AnswerabilityGate:    DefaultAnswerabilityGate,
-		FactJudge:            DefaultFactJudge,
-		RewriteOnly:          DefaultRewriteOnly,
-		RagAnswerabilityGate: DefaultRagAnswerabilityGate,
-		RequestTimeout:       DefaultRequestTimeout,
-		QueryRewrite:         DefaultQueryRewrite,
-		ObservabilityFormat:  DefaultObservabilityFormat,
+		OllamaURL:             DefaultOllamaURL,
+		EmbedModel:            DefaultEmbedModel,
+		EmbedDim:              DefaultEmbedDim,
+		ChatModel:             DefaultChatModel,
+		DatabaseURL:           DefaultDatabaseURL,
+		EmbedProvider:         DefaultEmbedProvider,
+		GenProvider:           DefaultGenProvider,
+		Language:              DefaultLanguage,
+		ChunkSize:             DefaultChunkSize,
+		ChunkOverlap:          DefaultChunkOverlap,
+		TopK:                  DefaultTopK,
+		FinalK:                DefaultFinalK,
+		ExpandLimit:           DefaultExpandLimit,
+		ContextBudget:         DefaultContextBudget,
+		EmbedWorkers:          DefaultEmbedWorkers,
+		EmbedRetries:          DefaultEmbedRetries,
+		MinSimilarity:         DefaultMinSimilarity,
+		LexicalRerank:         DefaultLexicalRerank,
+		LLMRerank:             DefaultLLMRerank,
+		AnswerabilityGate:     DefaultAnswerabilityGate,
+		FactJudge:             DefaultFactJudge,
+		RewriteOnly:           DefaultRewriteOnly,
+		RagAnswerabilityGate:  DefaultRagAnswerabilityGate,
+		RagCitationValidation: DefaultRagCitationValidation,
+		RequestTimeout:        DefaultRequestTimeout,
+		QueryRewrite:          DefaultQueryRewrite,
+		ObservabilityFormat:   DefaultObservabilityFormat,
 	}
 
 	got, err := Load()
@@ -144,6 +148,37 @@ func TestObservabilityFormatDefaultsToHuman(t *testing.T) {
 
 	if cfg.ObservabilityJSON() {
 		t.Fatalf("ObservabilityJSON() = true for the default, want false")
+	}
+}
+
+// TestCorpusLanguage pins the language default and override: an unset or blank
+// CORPUS_LANGUAGE keeps the baseline 'english' configuration (empty), and an
+// explicit value is loaded verbatim.
+func TestCorpusLanguage(t *testing.T) {
+	clearEnv(t)
+
+	if DefaultLanguage != "" {
+		t.Fatalf("DefaultLanguage = %q, want empty (baseline english)", DefaultLanguage)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if cfg.Language != DefaultLanguage {
+		t.Fatalf("Language = %q, want %q", cfg.Language, DefaultLanguage)
+	}
+
+	t.Setenv("CORPUS_LANGUAGE", "de")
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if cfg.Language != "de" {
+		t.Fatalf("CORPUS_LANGUAGE = %q, want %q", cfg.Language, "de")
 	}
 }
 

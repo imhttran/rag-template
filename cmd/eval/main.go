@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"rag-template/internal/answerability"
+	"rag-template/internal/citations"
 	"rag-template/internal/config"
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
@@ -541,7 +542,7 @@ func (e evaluator) reportEvidenceAndJudge(
 			fmt.Println("Grounded: NO")
 		}
 
-		valid, total := citationValidity(answer, expanded)
+		valid, total := citations.Validity(answer, expanded)
 
 		stats.validCitations += valid
 		stats.totalCitations += total
@@ -602,19 +603,19 @@ func (e evaluator) checkAnswerability(
 	switch {
 	case expectedAnswerable && predictedAnswerable:
 		stats.gateCorrectAccepts++
-		fmt.Println("Answerability: ANSWERABLE ✓")
+		fmt.Println("Answerability: ANSWERABLE \u2713")
 
 	case expectedAnswerable && !predictedAnswerable:
 		stats.gateFalseRejects++
-		fmt.Println("Answerability: NOT_ANSWERABLE ✗ false rejection")
+		fmt.Println("Answerability: NOT_ANSWERABLE \u2717 false rejection")
 
 	case !expectedAnswerable && predictedAnswerable:
 		stats.gateFalseAccepts++
-		fmt.Println("Answerability: ANSWERABLE ✗ false acceptance")
+		fmt.Println("Answerability: ANSWERABLE \u2717 false acceptance")
 
 	default:
 		stats.gateCorrectRejects++
-		fmt.Println("Answerability: NOT_ANSWERABLE ✓")
+		fmt.Println("Answerability: NOT_ANSWERABLE \u2713")
 	}
 
 	return nil
@@ -827,7 +828,7 @@ func printOverall(e evaluator, stats stats) {
 
 	if e.lexicalRerank {
 		fmt.Printf(
-			"Rerank %d→%d  Avg Recall=%.2f  Avg Precision=%.2f\n",
+			"Rerank %d\u2192%d  Avg Recall=%.2f  Avg Precision=%.2f\n",
 			e.candidateK,
 			e.finalK,
 			average(stats.rerankRecall, stats.answerable),
@@ -837,7 +838,7 @@ func printOverall(e evaluator, stats stats) {
 
 	if e.llmRerank {
 		fmt.Printf(
-			"LLM Rerank %d→%d  Avg Recall=%.2f  Avg Precision=%.2f\n",
+			"LLM Rerank %d\u2192%d  Avg Recall=%.2f  Avg Precision=%.2f\n",
 			e.candidateK,
 			e.finalK,
 			average(stats.llmRecall, stats.answerable),
@@ -1002,7 +1003,7 @@ func (e evaluator) report(
 	precision := precisionAtK(expected, documents)
 
 	fmt.Printf(
-		"%s %d→%d  Recall=%.2f  Precision=%.2f\n",
+		"%s %d\u2192%d  Recall=%.2f  Precision=%.2f\n",
 		metrics,
 		e.candidateK,
 		e.finalK,
@@ -1078,52 +1079,6 @@ func printRetrieved(documents []retrieval.Document) {
 	}
 }
 
-// citationValidity counts the [source - section] citations in answer and how
-// many of them name a retrieved document.
-func citationValidity(
-	answer string,
-	documents []retrieval.Document,
-) (valid int, total int) {
-	remaining := answer
-
-	for {
-		_, rest, found := strings.Cut(remaining, "[")
-		if !found {
-			break
-		}
-
-		citation, rest, found := strings.Cut(rest, "]")
-		citation = normalizeCitation(citation)
-		if !found {
-			break
-		}
-
-		remaining = rest
-
-		// Only [source - section] counts as a citation.
-		source, section, found := strings.Cut(citation, " - ")
-		if !found {
-			continue
-		}
-
-		total++
-
-		source = strings.TrimSpace(source)
-		section = strings.TrimSpace(section)
-
-		for _, doc := range documents {
-			if normalizeSource(doc.Source) == normalizeSource(source) &&
-				doc.Section == section {
-				valid++
-
-				break
-			}
-		}
-	}
-
-	return valid, total
-}
-
 func evidenceRecall(
 	expected []ExpectedDocument,
 	actual []retrieval.Document,
@@ -1184,7 +1139,7 @@ func extractCitedClaims(answer string) []citedClaim {
 			end += start
 
 			citation := remaining[start+1 : end]
-			citation = normalizeCitation(citation)
+			citation = citations.NormalizeCitation(citation)
 
 			source, section, found := strings.Cut(citation, " - ")
 			if !found {
@@ -1229,14 +1184,14 @@ func (e evaluator) checkCitationEntailment(
 		var evidence strings.Builder
 
 		for _, doc := range documents {
-			if normalizeSource(doc.Source) == normalizeSource(claim.Source) &&
+			if citations.NormalizeSource(doc.Source) == citations.NormalizeSource(claim.Source) &&
 				doc.Section == claim.Section {
 				evidence.WriteString(doc.Content)
 				evidence.WriteString("\n")
 			}
 		}
 
-		// Invalid citations are already measured by citationValidity().
+		// Invalid citations are already measured by citations.Validity().
 		if evidence.Len() == 0 {
 			continue
 		}
@@ -1258,18 +1213,4 @@ func (e evaluator) checkCitationEntailment(
 	}
 
 	return entailed, judged, nil
-}
-
-func normalizeCitation(citation string) string {
-	citation = strings.ReplaceAll(citation, "–", "-")
-	citation = strings.ReplaceAll(citation, "—", "-")
-
-	return citation
-}
-
-// normalizeSource makes a citation's source comparable to a document's source.
-// Models tend to drop the ".md" suffix and vary capitalization; neither
-// changes which document a citation points at.
-func normalizeSource(source string) string {
-	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(source)), ".md")
 }

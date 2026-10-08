@@ -88,6 +88,7 @@ func run(ctx context.Context, path string) error {
 		ContentHash:   contentFingerprint(data, chunkerConfig),
 		EmbedModel:    cfg.EmbedModel,
 		ChunkerConfig: chunkerConfig,
+		Language:      cfg.Language,
 		IngestedAt:    time.Now().UTC(),
 	}
 

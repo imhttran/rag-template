@@ -107,6 +107,12 @@ const (
 	// the chat model before answering. On by default.
 	DefaultRagAnswerabilityGate = true
 
+	// DefaultRagCitationValidation is whether cmd/rag validates the model's
+	// [source - section] citations against the retrieved documents and repairs an
+	// answer whose citations do not resolve. Off by default, so the default
+	// cmd/rag output is byte-identical to the answer path without validation.
+	DefaultRagCitationValidation = false
+
 	// DefaultFinalK is how many fused candidates cmd/rag keeps after hybrid
 	// retrieval, before the matched sections are expanded.
 	DefaultFinalK = 3
@@ -121,6 +127,12 @@ const (
 	// unset CONTEXT_BUDGET keeps the current chunk-count behaviour and no default
 	// drift is introduced.
 	DefaultContextBudget = 0
+
+	// DefaultLanguage is the corpus language used to select the PostgreSQL
+	// full-text search configuration for ingestion and retrieval. It is empty by
+	// default, which keeps the baseline 'english' configuration, so an unset
+	// CORPUS_LANGUAGE introduces no retrieval behavior change.
+	DefaultLanguage = ""
 
 	// DefaultRequestTimeout bounds every network call the commands make.
 	DefaultRequestTimeout = 5 * time.Minute
@@ -140,34 +152,36 @@ const (
 
 // Config holds the runtime settings.
 type Config struct {
-	OllamaURL            string
-	EmbedModel           string
-	EmbedDim             int
-	ChatModel            string
-	DatabaseURL          string
-	Question             string
-	EmbedProvider        string
-	GenProvider          string
-	ChunkSize            int
-	ChunkOverlap         int
-	TopK                 int
-	FinalK               int
-	ExpandLimit          int
-	ContextBudget        int
-	EmbedWorkers         int
-	EmbedRetries         int
-	MinSimilarity        float64
-	LexicalRerank        bool
-	LLMRerank            bool
-	RagLLMRerank         bool
-	RerankTimeout        time.Duration
-	AnswerabilityGate    bool
-	FactJudge            bool
-	RewriteOnly          bool
-	RagAnswerabilityGate bool
-	RequestTimeout       time.Duration
-	QueryRewrite         bool
-	ObservabilityFormat  string
+	OllamaURL             string
+	EmbedModel            string
+	EmbedDim              int
+	ChatModel             string
+	DatabaseURL           string
+	Question              string
+	EmbedProvider         string
+	GenProvider           string
+	Language              string
+	ChunkSize             int
+	ChunkOverlap          int
+	TopK                  int
+	FinalK                int
+	ExpandLimit           int
+	ContextBudget         int
+	EmbedWorkers          int
+	EmbedRetries          int
+	MinSimilarity         float64
+	LexicalRerank         bool
+	LLMRerank             bool
+	RagLLMRerank          bool
+	RerankTimeout         time.Duration
+	AnswerabilityGate     bool
+	FactJudge             bool
+	RewriteOnly           bool
+	RagAnswerabilityGate  bool
+	RagCitationValidation bool
+	RequestTimeout        time.Duration
+	QueryRewrite          bool
+	ObservabilityFormat   string
 }
 
 // Load reads the settings from the environment, falling back to the defaults
@@ -184,6 +198,9 @@ func Load() (Config, error) {
 		DatabaseURL:   envOrDefault("DATABASE_URL", DefaultDatabaseURL),
 		EmbedProvider: envOrDefault("EMBED_PROVIDER", DefaultEmbedProvider),
 		GenProvider:   envOrDefault("GEN_PROVIDER", DefaultGenProvider),
+		// Language selects the corpus's full-text search configuration. Empty keeps
+		// the baseline 'english' configuration.
+		Language: envOrDefault("CORPUS_LANGUAGE", DefaultLanguage),
 		// Question has no default: the rag command requires one.
 		Question: envOrDefault("QUESTION", ""),
 	}
@@ -261,6 +278,10 @@ func Load() (Config, error) {
 	}
 
 	if cfg.RagAnswerabilityGate, err = envBool("RAG_ANSWERABILITY_GATE", DefaultRagAnswerabilityGate); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.RagCitationValidation, err = envBool("RAG_CITATION_VALIDATION", DefaultRagCitationValidation); err != nil {
 		return Config{}, err
 	}
 

@@ -50,6 +50,11 @@ type Provenance struct {
 	// ChunkerConfig is a canonical serialization of the chunker settings.
 	ChunkerConfig string
 
+	// Language is the document's language as a BCP-47 tag (for example "en",
+	// "de"). An empty value is stored as NULL (unset); retrieval treats unset
+	// as the baseline configuration, so no default changes.
+	Language string
+
 	// IngestedAt is when the chunks were written. It is set by the caller so a
 	// batch shares one timestamp; a zero value is replaced with the current
 	// time.
@@ -307,21 +312,21 @@ func (i *Ingester) insertChunks(
 	builder.WriteString(
 		`INSERT INTO documents (source, section, chunk_index, content, ` +
 			`embedding, content_hash, embed_model, embedding_dim, ` +
-			`chunker_config, ingested_at) VALUES `,
+			`chunker_config, ingested_at, language) VALUES `,
 	)
 
-	args := make([]any, 0, len(embedded)*10)
+	args := make([]any, 0, len(embedded)*11)
 
 	for index, item := range embedded {
 		if index > 0 {
 			builder.WriteString(", ")
 		}
 
-		base := index * 10
+		base := index * 11
 
 		fmt.Fprintf(
 			&builder,
-			"($%d, $%d, $%d, $%d, $%d::vector, $%d, $%d, $%d, $%d, $%d)",
+			"($%d, $%d, $%d, $%d, $%d::vector, $%d, $%d, $%d, $%d, $%d, $%d)",
 			base+1,
 			base+2,
 			base+3,
@@ -332,6 +337,7 @@ func (i *Ingester) insertChunks(
 			base+8,
 			base+9,
 			base+10,
+			base+11,
 		)
 
 		args = append(
@@ -346,6 +352,7 @@ func (i *Ingester) insertChunks(
 			nullableInt(provenance.Dimension),
 			nullableString(provenance.ChunkerConfig),
 			provenance.IngestedAt,
+			nullableString(provenance.Language),
 		)
 	}
 

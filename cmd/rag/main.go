@@ -217,17 +217,33 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 
 	answerStart := time.Now()
 
-	answer, err := rag.Answer(
+	answer, citationOutcome, err := rag.AnswerValidated(
 		ctx,
 		generator,
 		question,
 		documents,
+		cfg.RagCitationValidation,
 	)
 	if err != nil {
 		return err
 	}
 
 	reporter.Stage(observability.StageAnswer, time.Since(answerStart))
+
+	// Report the citation validation/repair outcome only when validation ran, so
+	// the default (validation disabled) output is unchanged. The report goes
+	// through the same human stream as the other stage lines; nothing new is
+	// emitted when the setting is off.
+	if citationOutcome.Enabled {
+		println()
+		printf(
+			"Citation validation: valid=%d/%d repaired=%t stripped=%d\n",
+			citationOutcome.Valid,
+			citationOutcome.Total,
+			citationOutcome.Repaired,
+			citationOutcome.Stripped,
+		)
+	}
 
 	println()
 	println("Answer:")
@@ -374,6 +390,9 @@ func retrieveDocuments(
 		FinalK:        cfg.FinalK,
 		ExpandLimit:   cfg.ExpandLimit,
 		MinSimilarity: cfg.MinSimilarity,
+		// Language selects the full-text search configuration for keyword
+		// retrieval. Empty (the default) keeps the baseline 'english' config.
+		Language: cfg.Language,
 	}
 
 	if cfg.QueryRewrite {
