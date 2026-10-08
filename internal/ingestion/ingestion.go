@@ -59,7 +59,7 @@ type Provenance struct {
 // Ingester writes documents and their embeddings to PostgreSQL.
 type Ingester struct {
 	conn     *pgx.Conn
-	embedder *embedding.Embedder
+	embedder embedding.Embedder
 
 	// embedWorkers bounds how many embedding calls run concurrently. It is
 	// always at least 1.
@@ -75,7 +75,7 @@ type Ingester struct {
 
 // New returns an Ingester that writes to conn using embedder with the default
 // concurrency and retry settings.
-func New(conn *pgx.Conn, embedder *embedding.Embedder) *Ingester {
+func New(conn *pgx.Conn, embedder embedding.Embedder) *Ingester {
 	return NewWithOptions(conn, embedder, DefaultEmbedWorkers, DefaultEmbedRetries)
 }
 
@@ -85,7 +85,7 @@ func New(conn *pgx.Conn, embedder *embedding.Embedder) *Ingester {
 // their minimums are clamped (workers to 1, retries to 0).
 func NewWithOptions(
 	conn *pgx.Conn,
-	embedder *embedding.Embedder,
+	embedder embedding.Embedder,
 	workers int,
 	retries int,
 ) *Ingester {

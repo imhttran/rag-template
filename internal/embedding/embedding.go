@@ -9,15 +9,23 @@ import (
 	"rag-template/internal/ollama"
 )
 
-// Embedder creates embeddings with a specific Ollama model.
-type Embedder struct {
+// Embedder turns text into an embedding vector. Ingestion and other consumers
+// depend on this interface rather than a concrete implementation, so tests can
+// substitute a stub that performs no HTTP.
+type Embedder interface {
+	Embed(ctx context.Context, text string) ([]float64, error)
+}
+
+// ollamaEmbedder creates embeddings with a specific Ollama model. It is the
+// default Embedder implementation.
+type ollamaEmbedder struct {
 	client *ollama.Client
 	model  string
 }
 
-// New returns an Embedder that uses model.
-func New(client *ollama.Client, model string) *Embedder {
-	return &Embedder{client: client, model: model}
+// New returns an Embedder that uses model and talks to Ollama.
+func New(client *ollama.Client, model string) Embedder {
+	return &ollamaEmbedder{client: client, model: model}
 }
 
 type embedRequest struct {
@@ -30,7 +38,7 @@ type embedResponse struct {
 }
 
 // Embed returns the embedding vector for text.
-func (e *Embedder) Embed(ctx context.Context, text string) ([]float64, error) {
+func (e *ollamaEmbedder) Embed(ctx context.Context, text string) ([]float64, error) {
 	request := embedRequest{
 		Model: e.model,
 		Input: text,

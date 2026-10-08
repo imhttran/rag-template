@@ -72,9 +72,9 @@ type citedClaim struct {
 
 // evaluator scores cases against a retriever.
 type evaluator struct {
-	embedder          *embedding.Embedder
+	embedder          embedding.Embedder
 	retriever         *retrieval.Retriever
-	generator         *generation.Generator
+	generator         generation.Generator
 	judge             *answerability.Judge
 	lexicalRerank     bool
 	llmRerank         bool

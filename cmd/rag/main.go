@@ -165,7 +165,7 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 func isAnswerable(
 	ctx context.Context,
 	gate bool,
-	generator *generation.Generator,
+	generator generation.Generator,
 	question string,
 	documents []retrieval.Document,
 ) (bool, error) {
@@ -228,7 +228,7 @@ func resolveQuestion(
 // embedQuestion embeds question and reports the resulting vector size.
 func embedQuestion(
 	ctx context.Context,
-	embedder *embedding.Embedder,
+	embedder embedding.Embedder,
 	question string,
 ) ([]float64, error) {
 	queryEmbedding, err := embedder.Embed(ctx, question)
@@ -250,7 +250,7 @@ func embedQuestion(
 func retrieveDocuments(
 	ctx context.Context,
 	conn *pgx.Conn,
-	generator *generation.Generator,
+	generator generation.Generator,
 	originalQuery string,
 	rewrittenQuery string,
 	originalVector []float64,
@@ -432,7 +432,7 @@ func printFusedAndExpanded(fused []retrieval.Document, expanded []retrieval.Docu
 func rerankAndExpand(
 	ctx context.Context,
 	retriever *retrieval.Retriever,
-	generator *generation.Generator,
+	generator generation.Generator,
 	question string,
 	cfg config.Config,
 	candidates []retrieval.Document,

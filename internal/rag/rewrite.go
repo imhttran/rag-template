@@ -49,7 +49,7 @@ SEARCH QUERY:`
 
 func Rewrite(
 	ctx context.Context,
-	generator *generation.Generator,
+	generator generation.Generator,
 	question string,
 ) (string, error) {
 	rewritten, err := generator.Generate(

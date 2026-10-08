@@ -818,6 +818,39 @@ Recorded here rather than in the active SOP plan `PLAN-RAG-003-005.md` so that p
 source is not changed (a source change would require reconciliation, which this
 authorization bars).
 
+### RAG-004A/B/C decomposition — execution evidence
+
+RAG-004 (BLOCKED, `NO_PROGRESS`) was superseded by the decomposed plan
+`plan-rag-004abc` (`docs/plans/PLAN-RAG-004ABC.md`); the previous plan
+`plan-rag-003-005` is archived `SUPERSEDED` with its FAILED history preserved (no PASS
+or approval fabricated). SOP ran the three subtasks:
+
+| Subtask | SOP status | Evidence |
+|---------|-----------|----------|
+| RAG-004A — Embedder interface + Ollama seam | **LOCAL_DONE** (PASS, 0 fix cycles) | `.agent-sdlc/runs/RAG-004A/report.md` |
+| RAG-004B — Generator interface + Ollama seam | **LOCAL_DONE** (PASS, 0 fix cycles) | `.agent-sdlc/runs/RAG-004B/report.md` |
+| RAG-004C — Provider registry + config interfaces + stub pipeline test | **BLOCKED** (`NO_PROGRESS`, TERMINAL) | `.agent-sdlc/runs/RAG-004C/report.md` |
+
+RAG-004A added an `embedding.Embedder` interface and RAG-004B a `generation.Generator`
+interface; `internal/ollama` remains the only vendor-importing package for
+embedding/generation, so the pipeline stays provider-agnostic.
+
+Findings (recorded; not fixed here):
+
+- **RAG-004A test data race.** `internal/ingestion/embedder_stub_test.go` (new)
+  mutates a plain field in `stubEmbedder.Embed` from the concurrent `mapOrdered`
+  workers, so `go test -race` FAILS (`WARNING: DATA RACE`). SOP's gate does not run
+  `-race`, so it passed there. The stub needs synchronization (e.g. an
+  `atomic.Int64`/mutex).
+- **RAG-004C blocked** (`repository_mutations=0`, 17 iterations, discovery stall): the
+  task — registry + config factories + end-to-end stub test across a new package — is
+  still broad enough to stall the model; it needs further decomposition or more
+  precise file-scoped context.
+
+Gates at this stop: `gofmt`/`go vet`/`staticcheck`/`go build` PASS; `go test ./...`
+PASS; `go test -race ./...` **FAIL** (RAG-004A test race); PostgreSQL integration
+**10 PASS / 0 FAIL**; `git diff --check` PASS.
+
 ## 10. Blockers, risks, and open questions
 
 *Amendments A–C record the execution scope, the deferred decisions, and the standing

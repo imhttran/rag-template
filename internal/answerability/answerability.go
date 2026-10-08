@@ -99,11 +99,11 @@ DECISION:`
 
 // Judge decides whether retrieved evidence can answer a question.
 type Judge struct {
-	generator *generation.Generator
+	generator generation.Generator
 }
 
 // New returns a Judge that decides with generator.
-func New(generator *generation.Generator) *Judge {
+func New(generator generation.Generator) *Judge {
 	return &Judge{
 		generator: generator,
 	}

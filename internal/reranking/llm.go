@@ -35,7 +35,7 @@ RANKING:`
 // RerankLLM ranks retrieved documents using a language model.
 func RerankLLM(
 	ctx context.Context,
-	generator *generation.Generator,
+	generator generation.Generator,
 	question string,
 	documents []retrieval.Document,
 ) ([]retrieval.Document, error) {
