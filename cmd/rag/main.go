@@ -20,6 +20,7 @@ import (
 
 	"rag-template/internal/answerability"
 	"rag-template/internal/config"
+	"rag-template/internal/contextbudget"
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
 	"rag-template/internal/ingestion"
@@ -125,6 +126,13 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	if err != nil {
 		return err
 	}
+
+	// Apply the deterministic context budget to the expanded context. A budget
+	// of 0 (the default) disables the builder and leaves the documents
+	// unchanged, preserving the current chunk-count behaviour. The budgeted set
+	// is the one the answerability gate judges, the one printed, and the one the
+	// model answers from, so those views cannot drift apart.
+	documents = contextbudget.Build(documents, cfg.ContextBudget)
 
 	answerable, err := isAnswerable(
 		ctx,

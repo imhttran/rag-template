@@ -25,6 +25,7 @@ func clearEnv(t *testing.T) {
 		"TOP_K",
 		"FINAL_K",
 		"EXPAND_LIMIT",
+		"CONTEXT_BUDGET",
 		"EMBED_WORKERS",
 		"EMBED_RETRIES",
 		"MIN_SIMILARITY",
@@ -61,6 +62,7 @@ func TestLoadDefaults(t *testing.T) {
 		TopK:                 DefaultTopK,
 		FinalK:               DefaultFinalK,
 		ExpandLimit:          DefaultExpandLimit,
+		ContextBudget:        DefaultContextBudget,
 		EmbedWorkers:         DefaultEmbedWorkers,
 		EmbedRetries:         DefaultEmbedRetries,
 		MinSimilarity:        DefaultMinSimilarity,
@@ -99,6 +101,26 @@ func TestEmbedDimDefaultsTo768(t *testing.T) {
 	}
 }
 
+// TestContextBudgetDefaultsToDisabled pins the default budget: an unset or
+// blank CONTEXT_BUDGET must keep the current chunk-count behaviour (0/disabled)
+// and must not drift to a non-zero default.
+func TestContextBudgetDefaultsToDisabled(t *testing.T) {
+	clearEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if DefaultContextBudget != 0 {
+		t.Fatalf("DefaultContextBudget = %d, want 0", DefaultContextBudget)
+	}
+
+	if cfg.ContextBudget != DefaultContextBudget {
+		t.Fatalf("ContextBudget = %d, want %d", cfg.ContextBudget, DefaultContextBudget)
+	}
+}
+
 // TestLoad covers the four value classes: valid overrides, invalid values,
 // boundaries, and missing (unset or blank) values.
 //
@@ -130,6 +152,10 @@ func TestLoad(t *testing.T) {
 					t.Fatalf("k = %d/%d/%d, want %d/%d/%d", c.TopK, c.FinalK, c.ExpandLimit, DefaultTopK, DefaultFinalK, DefaultExpandLimit)
 				}
 
+				if c.ContextBudget != DefaultContextBudget {
+					t.Fatalf("CONTEXT_BUDGET = %d, want %d", c.ContextBudget, DefaultContextBudget)
+				}
+
 				if c.EmbedWorkers != DefaultEmbedWorkers || c.EmbedRetries != DefaultEmbedRetries {
 					t.Fatalf("embed = %d/%d, want %d/%d", c.EmbedWorkers, c.EmbedRetries, DefaultEmbedWorkers, DefaultEmbedRetries)
 				}
@@ -140,6 +166,39 @@ func TestLoad(t *testing.T) {
 
 				if c.EmbedProvider != DefaultEmbedProvider || c.GenProvider != DefaultGenProvider {
 					t.Fatalf("providers = %q/%q, want %q/%q", c.EmbedProvider, c.GenProvider, DefaultEmbedProvider, DefaultGenProvider)
+				}
+			},
+		},
+		{
+			name: "valid context budget override",
+			env:  map[string]string{"CONTEXT_BUDGET": "4096"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ContextBudget != 4096 {
+					t.Fatalf("CONTEXT_BUDGET = %d, want 4096", c.ContextBudget)
+				}
+			},
+		},
+		{
+			name: "zero context budget is kept (disabled)",
+			env:  map[string]string{"CONTEXT_BUDGET": "0"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ContextBudget != 0 {
+					t.Fatalf("CONTEXT_BUDGET = %d, want 0", c.ContextBudget)
+				}
+			},
+		},
+		{
+			name: "blank context budget counts as missing",
+			env:  map[string]string{"CONTEXT_BUDGET": ""},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ContextBudget != DefaultContextBudget {
+					t.Fatalf("blank CONTEXT_BUDGET = %d, want %d", c.ContextBudget, DefaultContextBudget)
 				}
 			},
 		},
@@ -383,6 +442,16 @@ func TestLoad(t *testing.T) {
 			name:    "invalid chunk size negative",
 			env:     map[string]string{"CHUNK_SIZE": "-5"},
 			wantErr: "CHUNK_SIZE",
+		},
+		{
+			name:    "invalid context budget text",
+			env:     map[string]string{"CONTEXT_BUDGET": "lots"},
+			wantErr: "CONTEXT_BUDGET",
+		},
+		{
+			name:    "invalid context budget negative",
+			env:     map[string]string{"CONTEXT_BUDGET": "-1"},
+			wantErr: "CONTEXT_BUDGET",
 		},
 		{
 			name:    "invalid embedding dimension text",

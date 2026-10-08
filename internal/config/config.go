@@ -107,6 +107,14 @@ const (
 	// DefaultExpandLimit caps how many section chunks cmd/rag sends as context.
 	DefaultExpandLimit = 20
 
+	// DefaultContextBudget caps the estimated size of the context cmd/rag sends
+	// to the model. The size is a provider-neutral byte-based estimate (chunk
+	// content length in bytes plus a fixed per-chunk overhead), not
+	// tokenizer-accurate token counting. It is deliberately 0 (disabled), so an
+	// unset CONTEXT_BUDGET keeps the current chunk-count behaviour and no default
+	// drift is introduced.
+	DefaultContextBudget = 0
+
 	// DefaultRequestTimeout bounds every network call the commands make.
 	DefaultRequestTimeout = 5 * time.Minute
 )
@@ -126,6 +134,7 @@ type Config struct {
 	TopK                 int
 	FinalK               int
 	ExpandLimit          int
+	ContextBudget        int
 	EmbedWorkers         int
 	EmbedRetries         int
 	MinSimilarity        float64
@@ -181,6 +190,10 @@ func Load() (Config, error) {
 	}
 
 	if cfg.ExpandLimit, err = envPositiveInt("EXPAND_LIMIT", DefaultExpandLimit); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.ContextBudget, err = envNonNegativeInt("CONTEXT_BUDGET", DefaultContextBudget); err != nil {
 		return Config{}, err
 	}
 
