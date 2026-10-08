@@ -116,6 +116,31 @@ Recorded on operator authorization. This supersedes the Amendment B deferral for
 the DB integration suite; it is unverified here and must be recorded as NOT RUN
 rather than passed (§9, §10 B-01).
 
+### Amendment E — Implementation status (M1–M5 landed)
+
+Recorded after the RAG-009 → RAG-011 → RAG-013 → RAG-015 chain landed and was
+validated against a disposable PostgreSQL + pgvector instance. Supersedes the
+deferral status for the tasks listed as done; the frozen set is unchanged.
+
+- **Done and committed:** RAG-001 (`70296a3`), RAG-002 (`0f832b0`),
+  RAG-003/004/005 incl. A/B/C (`32c8eaa` and history under `.agent-sdlc/archive/`),
+  RAG-006 (`42611fd`), RAG-010 (`b2c31c9`), RAG-012 (`abe1a64`), RAG-014 (`7024a51`),
+  RAG-009 (`f0ba7da`), RAG-011 (in `f0ba7da`), RAG-013 (in `f0ba7da`),
+  RAG-015 (`1d04a20`). A dependency-fix commit (`b7a5d64`) and an ingestion
+  provenance-lookup fix (`1076bfc`) also landed.
+- **Verified (not just claimed):** the DB integration suite (25 tests) passed
+  against a disposable PostgreSQL 16 + pgvector 0.6.0 instance; `make eval`
+  reproduced the `docs/experiments.md` baseline (citation validity **89/89**, and
+  the 2/6 similarity-only rejection); `make sweep AXIS=rerank` recorded latency and
+  fallback rows; `govulncheck ./...` is clean.
+- **Still frozen / not implemented:** RAG-007 (PDF), RAG-008 (OCR), RAG-016 (eval
+  capstone). These are scoped, still unimplemented, in `docs/PRD-Phase-23b.md` and
+  `docs/plans/PLAN-RAG-Phase-23b.md`.
+- **Historicalized:** `plan-rag-015` (disposition COMPLETE) under
+  `.agent-sdlc/archive/`. No SOP plan is ACTIVE.
+- **Out of scope (unchanged):** genealogy entity/person extraction remains a
+  separate future scope; §8 is constraints only.
+
 ## 3. Current-state evidence
 
 Verified against commit `221fa45`. File references are `path:line`.

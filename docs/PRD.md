@@ -345,15 +345,26 @@ adding unmeasured retrieval features.
 
 ## 14. Next-Phase Candidates
 
+> **Status note (implementation):** the first six items below have landed since
+> this PRD was written; they are kept for history and marked inline. The
+> remaining product-shaping work (PDF, page provenance, OCR, multilingual
+> evaluation, genealogy) is scoped in `docs/PRD-Phase-23b.md`.
+
 Future work may include:
 
--   true token/context budgeting;
--   controlled chunk-size experiments;
--   overlap experiments;
--   Top-K and Final-K experiments;
--   query-rewrite A/B comparisons;
--   reranking A/B comparisons;
+-   ~~true token/context budgeting~~ — **implemented** as a provider-neutral
+    byte-estimate budget (RAG-010);
+-   ~~controlled chunk-size experiments~~ — **implemented** (`make sweep`);
+-   ~~overlap experiments~~ — **implemented**;
+-   ~~Top-K and Final-K experiments~~ — **implemented**;
+-   ~~query-rewrite A/B comparisons~~ — **implemented**;
+-   ~~reranking A/B comparisons~~ — **implemented**;
 -   larger and more diverse corpora;
 -   additional embedding models;
 -   latency and resource measurements;
--   production-oriented observability and deployment.
+-   production-oriented observability and deployment;
+-   **PDF text-layer ingestion, page provenance, and optional OCR** — proposed in
+    `docs/PRD-Phase-23b.md` (not implemented);
+-   **multilingual (Vietnamese/English) retrieval evaluation** — proposed;
+-   **genealogy entity/person extraction** — a separate future scope, not part of
+    Phase 23b (`docs/PRD-Phase-23b.md` §"Out of scope").

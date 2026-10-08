@@ -216,7 +216,10 @@ regressions.
 
 # Phase 19 --- True Context Budgeting
 
-**Status: Next**
+**Status: Implemented** (RAG-010, `internal/contextbudget`). The budget is a
+provider-neutral **byte estimate** (content length plus a fixed per-chunk
+overhead), not character- or tokenizer-accurate counting; `CONTEXT_BUDGET=0`
+(the default) keeps the chunk-count behaviour. See `docs/plans/PLAN-RAG-010.md`.
 
 ## Problem
 
@@ -239,7 +242,9 @@ against the current baseline.
 
 # Phase 20 --- Controlled Retrieval Experiments
 
-**Status: Next**
+**Status: Implemented** (`scripts/sweep.sh`, `make sweep`). Axes cover chunk
+size/overlap, TOP_K, FINAL_K, rewrite, rerank, and MIN_SIMILARITY; results are
+recorded in `docs/experiments.md`.
 
 Change one variable at a time and run the same evaluation suite.
 
@@ -283,7 +288,10 @@ length increase.
 
 # Phase 22 --- Production-Oriented Concerns
 
-**Status: Future / Optional**
+**Status: Partly implemented.** Idempotent re-indexing and schema migrations
+(RAG-003), provider abstraction (RAG-004/005), observability (RAG-014), and
+failure handling and security limits (RAG-012/015) have landed; deployment and
+access controls remain future/optional.
 
 Only after learning and optimization objectives are satisfied, consider
 ingestion lifecycle, idempotent re-indexing, schema migrations,
@@ -323,12 +331,12 @@ deployment, and access controls.
 
 -   [x] Query rewriting capability
 -   [x] Reranking capability
--   [ ] True context/token budgeting
--   [ ] Controlled chunk-size experiments
--   [ ] Controlled overlap experiments
--   [ ] Controlled Top-K / Final-K experiments
--   [ ] Rewrite A/B results
--   [ ] Reranking A/B results
+-   [x] True context budgeting (byte-estimate; RAG-010)
+-   [x] Controlled chunk-size experiments
+-   [x] Controlled overlap experiments
+-   [x] Controlled Top-K / Final-K experiments
+-   [x] Rewrite A/B results
+-   [x] Reranking A/B results
 
 # Working Method Going Forward
 
