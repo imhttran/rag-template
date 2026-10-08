@@ -54,9 +54,11 @@ func run(ctx context.Context, path string) error {
 	}
 	defer conn.Close(context.Background())
 
-	service := ingestion.New(
+	service := ingestion.NewWithOptions(
 		conn,
 		embedding.New(cfg.OllamaClient(), cfg.EmbedModel),
+		cfg.EmbedWorkers,
+		cfg.EmbedRetries,
 	)
 
 	source := filepath.Base(path)

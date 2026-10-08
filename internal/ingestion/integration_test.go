@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -342,5 +343,133 @@ func TestReplaceDocumentIntegrationKeepsDocumentOnEmbedError(t *testing.T) {
 
 	if got := storedChunks(t, ctx); !slices.Equal(got, want) {
 		t.Fatalf("stored chunks after a failed embed = %v, want %v", got, want)
+	}
+}
+
+// flakyOllama serves /api/embed like fakeOllama but fails the first failFirst
+// requests, so a test can exercise transient failures and bounded retries. It
+// returns the server and a counter of the requests it received.
+func flakyOllama(t *testing.T, failFirst int) (*httptest.Server, *atomic.Int64) {
+	t.Helper()
+
+	var attempts atomic.Int64
+
+	server := httptest.NewServer(http.HandlerFunc(func(
+		writer http.ResponseWriter,
+		_ *http.Request,
+	) {
+		if attempts.Add(1) <= int64(failFirst) {
+			http.Error(writer, "transient embed failure", http.StatusInternalServerError)
+
+			return
+		}
+
+		writer.Header().Set("Content-Type", "application/json")
+
+		_ = json.NewEncoder(writer).Encode(map[string]any{
+			"embeddings": [][]float64{stubVector()},
+		})
+	}))
+
+	t.Cleanup(server.Close)
+
+	return server, &attempts
+}
+
+// newIngesterWith returns an Ingester wired to server with an explicit worker
+// count and retry bound, so retry tests can pin concurrency to 1 and make the
+// request count deterministic.
+func newIngesterWith(
+	t *testing.T,
+	server *httptest.Server,
+	workers int,
+	retries int,
+) *Ingester {
+	t.Helper()
+
+	return NewWithOptions(
+		testConn,
+		embedding.New(ollama.New(server.URL, server.Client()), "fake"),
+		workers,
+		retries,
+	)
+}
+
+// A flaky embedder must be retried a bounded number of times: with one worker the
+// first two requests fail, so the ingest needs exactly two extra attempts and
+// still stores every chunk in order.
+func TestReplaceDocumentIntegrationRetriesTransientEmbedFailures(t *testing.T) {
+	ctx := context.Background()
+	requireDatabase(t)
+
+	resetTestDocument(t, ctx)
+
+	server, attempts := flakyOllama(t, 2)
+	ingester := newIngesterWith(t, server, 1, 3)
+
+	chunks := []chunking.Chunk{
+		{Section: "Fees", Index: 0, Content: "first chunk"},
+		{Section: "Fees", Index: 1, Content: "second chunk"},
+		{Section: "Refunds", Index: 0, Content: "third chunk"},
+	}
+
+	if err := ingester.ReplaceDocument(ctx, testSource, chunks); err != nil {
+		t.Fatalf("replace document with transient failures: %v", err)
+	}
+
+	if got, want := attempts.Load(), int64(2+len(chunks)); got != want {
+		t.Fatalf(
+			"embedding attempts = %d, want %d (one per chunk plus the two retries)",
+			got,
+			want,
+		)
+	}
+
+	want := []string{
+		"Fees|0|first chunk",
+		"Fees|1|second chunk",
+		"Refunds|0|third chunk",
+	}
+
+	if got := storedChunks(t, ctx); !slices.Equal(got, want) {
+		t.Fatalf("stored chunks after retries = %v, want %v", got, want)
+	}
+}
+
+// A permanently failing embedder must exhaust the bounded retries, fail the
+// ingest, and leave the previously stored document untouched.
+func TestReplaceDocumentIntegrationRetryExhaustionPreservesDocument(t *testing.T) {
+	ctx := context.Background()
+	requireDatabase(t)
+
+	resetTestDocument(t, ctx)
+
+	server := fakeOllama(t)
+	ingester := newIngesterWith(t, server, 1, 2)
+
+	if err := ingester.ReplaceDocument(ctx, testSource, []chunking.Chunk{
+		{Section: "Fees", Index: 0, Content: "keep me"},
+	}); err != nil {
+		t.Fatalf("seed replace: %v", err)
+	}
+
+	// fakeOllama fails every input containing "FAIL", so this cannot succeed;
+	// the bounded retries are exhausted and the ingest fails before the
+	// transaction opens, leaving the seeded document in place.
+	err := ingester.ReplaceDocument(ctx, testSource, []chunking.Chunk{
+		{Section: "Fees", Index: 0, Content: "FAIL to embed"},
+	})
+	if err == nil {
+		t.Fatal("expected retry exhaustion to fail the ingest")
+	}
+
+	if !strings.Contains(err.Error(), "attempts") {
+		t.Fatalf("error = %q, want it to name the bounded attempts", err)
+	}
+
+	want := []string{"Fees|0|keep me"}
+
+	if got := storedChunks(t, ctx); !slices.Equal(got, want) {
+		t.Fatalf("stored chunks after retry exhaustion = %v, want %v", got, want)
 	}
 }

@@ -22,6 +22,8 @@ func clearEnv(t *testing.T) {
 		"TOP_K",
 		"FINAL_K",
 		"EXPAND_LIMIT",
+		"EMBED_WORKERS",
+		"EMBED_RETRIES",
 		"MIN_SIMILARITY",
 		"EVAL_LEXICAL_RERANK",
 		"EVAL_LLM_RERANK",
@@ -53,6 +55,8 @@ func TestLoadDefaults(t *testing.T) {
 		TopK:                 DefaultTopK,
 		FinalK:               DefaultFinalK,
 		ExpandLimit:          DefaultExpandLimit,
+		EmbedWorkers:         DefaultEmbedWorkers,
+		EmbedRetries:         DefaultEmbedRetries,
 		MinSimilarity:        DefaultMinSimilarity,
 		LexicalRerank:        DefaultLexicalRerank,
 		LLMRerank:            DefaultLLMRerank,
@@ -101,6 +105,10 @@ func TestLoad(t *testing.T) {
 					t.Fatalf("k = %d/%d/%d, want %d/%d/%d", c.TopK, c.FinalK, c.ExpandLimit, DefaultTopK, DefaultFinalK, DefaultExpandLimit)
 				}
 
+				if c.EmbedWorkers != DefaultEmbedWorkers || c.EmbedRetries != DefaultEmbedRetries {
+					t.Fatalf("embed = %d/%d, want %d/%d", c.EmbedWorkers, c.EmbedRetries, DefaultEmbedWorkers, DefaultEmbedRetries)
+				}
+
 				if c.MinSimilarity != DefaultMinSimilarity {
 					t.Fatalf("MIN_SIMILARITY = %v, want %v", c.MinSimilarity, DefaultMinSimilarity)
 				}
@@ -111,6 +119,8 @@ func TestLoad(t *testing.T) {
 			env: map[string]string{
 				"CHUNK_SIZE":      "",
 				"CHUNK_OVERLAP":   "",
+				"EMBED_WORKERS":   "",
+				"EMBED_RETRIES":   "",
 				"MIN_SIMILARITY":  "",
 				"REQUEST_TIMEOUT": "",
 				"QUERY_REWRITE":   "",
@@ -120,6 +130,10 @@ func TestLoad(t *testing.T) {
 
 				if c.ChunkSize != DefaultChunkSize || c.ChunkOverlap != DefaultChunkOverlap {
 					t.Fatalf("blank chunk = %d/%d, want %d/%d", c.ChunkSize, c.ChunkOverlap, DefaultChunkSize, DefaultChunkOverlap)
+				}
+
+				if c.EmbedWorkers != DefaultEmbedWorkers || c.EmbedRetries != DefaultEmbedRetries {
+					t.Fatalf("blank embed = %d/%d, want %d/%d", c.EmbedWorkers, c.EmbedRetries, DefaultEmbedWorkers, DefaultEmbedRetries)
 				}
 
 				if c.MinSimilarity != DefaultMinSimilarity {
@@ -154,6 +168,39 @@ func TestLoad(t *testing.T) {
 
 				if c.ChunkSize != 250 || c.ChunkOverlap != 50 {
 					t.Fatalf("chunk = %d/%d, want 250/50", c.ChunkSize, c.ChunkOverlap)
+				}
+			},
+		},
+		{
+			name: "valid embed workers and retries",
+			env:  map[string]string{"EMBED_WORKERS": "8", "EMBED_RETRIES": "5"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.EmbedWorkers != 8 || c.EmbedRetries != 5 {
+					t.Fatalf("embed = %d/%d, want 8/5", c.EmbedWorkers, c.EmbedRetries)
+				}
+			},
+		},
+		{
+			name: "boundary one embed worker",
+			env:  map[string]string{"EMBED_WORKERS": "1"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.EmbedWorkers != 1 {
+					t.Fatalf("EMBED_WORKERS = %d, want 1", c.EmbedWorkers)
+				}
+			},
+		},
+		{
+			name: "zero embed retries is kept",
+			env:  map[string]string{"EMBED_RETRIES": "0"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.EmbedRetries != 0 {
+					t.Fatalf("EMBED_RETRIES = %d, want 0", c.EmbedRetries)
 				}
 			},
 		},
@@ -268,6 +315,31 @@ func TestLoad(t *testing.T) {
 			name:    "invalid chunk size negative",
 			env:     map[string]string{"CHUNK_SIZE": "-5"},
 			wantErr: "CHUNK_SIZE",
+		},
+		{
+			name:    "invalid embed workers text",
+			env:     map[string]string{"EMBED_WORKERS": "many"},
+			wantErr: "EMBED_WORKERS",
+		},
+		{
+			name:    "invalid embed workers zero",
+			env:     map[string]string{"EMBED_WORKERS": "0"},
+			wantErr: "EMBED_WORKERS",
+		},
+		{
+			name:    "invalid embed workers negative",
+			env:     map[string]string{"EMBED_WORKERS": "-1"},
+			wantErr: "EMBED_WORKERS",
+		},
+		{
+			name:    "invalid embed retries text",
+			env:     map[string]string{"EMBED_RETRIES": "lots"},
+			wantErr: "EMBED_RETRIES",
+		},
+		{
+			name:    "invalid embed retries negative",
+			env:     map[string]string{"EMBED_RETRIES": "-1"},
+			wantErr: "EMBED_RETRIES",
 		},
 		{
 			name:    "invalid overlap text",

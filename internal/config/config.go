@@ -36,6 +36,17 @@ const (
 	DefaultChunkSize    = 50
 	DefaultChunkOverlap = 20
 
+	// DefaultEmbedWorkers bounds how many embedding calls cmd/ingest runs
+	// concurrently. The default is deliberately modest: Ollama serves requests
+	// from a single model instance, so a larger fan-out mostly queues server
+	// side while adding memory pressure locally.
+	DefaultEmbedWorkers = 4
+
+	// DefaultEmbedRetries is how many times a transient embedding failure is
+	// retried before the ingest fails. The default is small because a failure
+	// that survives a few backoffs is more likely persistent than transient.
+	DefaultEmbedRetries = 3
+
 	// DefaultMinSimilarity is the lowest cosine similarity a retrieved
 	// document may have to be used as context.
 	DefaultMinSimilarity = 0.6
@@ -96,6 +107,8 @@ type Config struct {
 	TopK                 int
 	FinalK               int
 	ExpandLimit          int
+	EmbedWorkers         int
+	EmbedRetries         int
 	MinSimilarity        float64
 	LexicalRerank        bool
 	LLMRerank            bool
@@ -143,6 +156,14 @@ func Load() (Config, error) {
 	}
 
 	if cfg.ExpandLimit, err = envPositiveInt("EXPAND_LIMIT", DefaultExpandLimit); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.EmbedWorkers, err = envPositiveInt("EMBED_WORKERS", DefaultEmbedWorkers); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.EmbedRetries, err = envNonNegativeInt("EMBED_RETRIES", DefaultEmbedRetries); err != nil {
 		return Config{}, err
 	}
 
