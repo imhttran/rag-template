@@ -1,0 +1,34 @@
+{
+  "loan-policy.md": {
+    "path": "examples/loan-policy.md",
+    "sha256": "0902649c198ccc1cfb6566d724d8cbb8501eb51baeaa1ca6f7111df4c846c178"
+  },
+  "large-loan-policy.md": {
+    "path": "examples/large-loan-policy.md",
+    "sha256": "dd9813aa2e27a923d78d4eac297d7cd26a70dfc811a456247dd9ee71bd165823"
+  },
+  "member-services-guide.md": {
+    "path": "examples/member-services-guide.md",
+    "sha256": "7d5d2e474bd0f22d0f29c68acad7a2b4ab118cd0160d8a59f42fd4ae667c940f"
+  },
+  "commercial-servicing-manual.md": {
+    "path": "examples/commercial-servicing-manual.md",
+    "sha256": "4439d5eb3aab3f04a0585638e62b79837f70157e2a7e86678488d6e636a29bc6"
+  },
+  "chinh-sach-khoan-vay.md": {
+    "path": "examples/vi/chinh-sach-khoan-vay.md",
+    "sha256": "a60d065caf5f5a869efd93f5c88b63db25301be67fcf24b046f9ac8809f94d4f"
+  },
+  "dich-vu-thanh-vien.md": {
+    "path": "examples/vi/dich-vu-thanh-vien.md",
+    "sha256": "872753477327417b0ac0c8d65f287a783251866fc7896a84a3c66d7c6ea3a2bb"
+  },
+  "quy-trinh-thu-hoi.md": {
+    "path": "examples/vi/quy-trinh-thu-hoi.md",
+    "sha256": "96a360c6c2069eadff39c743706236979ca72c2d0f2ff87bf1e6d69fdcf29d1e"
+  },
+  "bao-hiem-tai-san.md": {
+    "path": "examples/vi/bao-hiem-tai-san.md",
+    "sha256": "fed8a3854de8de10317e9c45db07eed0aacf131f693a5147929059951708e351"
+  }
+}

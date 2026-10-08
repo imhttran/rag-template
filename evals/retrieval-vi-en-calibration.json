@@ -1,0 +1,248 @@
+[
+  {
+    "kind": "en-en",
+    "id": "cal-en-en-01",
+    "question": "What is an escrow cushion?",
+    "expected": [
+      {
+        "source": "commercial-servicing-manual.md",
+        "section": "Escrow Administration",
+        "evidence": [
+          "The permitted cushion is generally one-sixth of the total annual escrow disbursements"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "en-en",
+    "id": "cal-en-en-02",
+    "question": "What is retainage?",
+    "expected": [
+      {
+        "source": "commercial-servicing-manual.md",
+        "section": "Construction Draw Administration",
+        "evidence": [
+          "Retainage is the portion of each draw withheld until the associated work is inspected and accepted."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "en-en",
+    "id": "cal-en-en-03",
+    "question": "Under what condition may a late fee be waived?",
+    "expected": [
+      {
+        "source": "member-services-guide.md",
+        "section": "Fee Waivers",
+        "evidence": [
+          "A waiver request must be submitted before the fee is assessed"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "en-en",
+    "id": "cal-en-en-04",
+    "question": "How are duplicate payments detected?",
+    "expected": [
+      {
+        "source": "large-loan-policy.md",
+        "section": "Payment Processing",
+        "evidence": [
+          "Duplicate payments should be detected using the payment identifier."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "en-en",
+    "id": "cal-en-en-05",
+    "question": "What happens to a partial payment before the full scheduled amount arrives?",
+    "expected": [
+      {
+        "source": "member-services-guide.md",
+        "section": "Partial Payment Handling",
+        "evidence": [
+          "A partial payment is held and applied once the full scheduled amount is received."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "vi-vi",
+    "id": "cal-vi-vi-01",
+    "question": "Mức phí trả chậm được quy định ở đâu?",
+    "expected": [
+      {
+        "source": "chinh-sach-khoan-vay.md",
+        "section": "Phí trả chậm",
+        "evidence": [
+          "Mức phí được ghi trong thỏa thuận khoản vay."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "vi-vi",
+    "id": "cal-vi-vi-02",
+    "question": "Thành viên có thể liên hệ vào lúc nào?",
+    "expected": [
+      {
+        "source": "dich-vu-thanh-vien.md",
+        "section": "Kênh liên hệ",
+        "evidence": [
+          "vào giờ làm việc."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "vi-vi",
+    "id": "cal-vi-vi-03",
+    "question": "Thông báo chậm trả đầu tiên được gửi trong bao lâu?",
+    "expected": [
+      {
+        "source": "quy-trinh-thu-hoi.md",
+        "section": "Thông báo chậm trả",
+        "evidence": [
+          "ba ngày làm việc."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "vi-vi",
+    "id": "cal-vi-vi-04",
+    "question": "Chứng nhận bảo hiểm có thời hạn bao lâu?",
+    "expected": [
+      {
+        "source": "bao-hiem-tai-san.md",
+        "section": "Thời hạn hiệu lực",
+        "evidence": [
+          "mười hai tháng kể từ ngày cấp."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "en-vi",
+    "id": "cal-en-vi-01",
+    "question": "When may a debt be written off?",
+    "expected": [
+      {
+        "source": "quy-trinh-thu-hoi.md",
+        "section": "Xóa nợ",
+        "evidence": [
+          "Việc xóa nợ chỉ được xem xét sau khi quản lý phê duyệt"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "en-vi",
+    "id": "cal-en-vi-02",
+    "question": "How long is a property insurance claim processed?",
+    "expected": [
+      {
+        "source": "bao-hiem-tai-san.md",
+        "section": "Bồi thường",
+        "evidence": [
+          "mười lăm ngày làm việc"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "vi-en",
+    "id": "cal-vi-en-01",
+    "question": "Làm sao để liên hệ hỗ trợ?",
+    "expected": [
+      {
+        "source": "member-services-guide.md",
+        "section": "Contact Channels",
+        "evidence": [
+          "Support is available by phone and through the online portal."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "vi-en",
+    "id": "cal-vi-en-02",
+    "question": "Khi nào thay đổi cách nhận sao kê có hiệu lực?",
+    "expected": [
+      {
+        "source": "member-services-guide.md",
+        "section": "Statement Delivery",
+        "evidence": [
+          "a change to the delivery method takes effect with the next billing cycle."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "vi-en",
+    "id": "cal-vi-en-03",
+    "question": "Thặng dư tài khoản ký quỹ là gì?",
+    "expected": [
+      {
+        "source": "commercial-servicing-manual.md",
+        "section": "Escrow Administration",
+        "evidence": [
+          "A surplus exists when the projected balance exceeds the target."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "vi-en",
+    "id": "cal-vi-en-04",
+    "question": "Thời hạn gia hạn của khoản vay lớn là bao lâu?",
+    "expected": [
+      {
+        "source": "large-loan-policy.md",
+        "section": "Missed Payments",
+        "evidence": [
+          "The grace period lasts fifteen days."
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "unanswerable",
+    "id": "cal-unanswerable-01",
+    "question": "What is the overdraft fee for checking accounts?",
+    "expected": []
+  },
+  {
+    "kind": "unanswerable",
+    "id": "cal-unanswerable-02",
+    "question": "How do I update my mailing address?",
+    "expected": []
+  },
+  {
+    "kind": "unanswerable",
+    "id": "cal-unanswerable-03",
+    "question": "Does the servicer offer notary services?",
+    "expected": []
+  },
+  {
+    "kind": "unanswerable",
+    "id": "cal-unanswerable-04",
+    "question": "What minimum credit score is required?",
+    "expected": []
+  },
+  {
+    "kind": "unanswerable",
+    "id": "cal-unanswerable-05",
+    "question": "Are there prepayment penalties?",
+    "expected": []
+  },
+  {
+    "kind": "unanswerable",
+    "id": "cal-unanswerable-06",
+    "question": "How do I enroll in autopay?",
+    "expected": []
+  }
+]
