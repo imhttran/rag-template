@@ -961,3 +961,100 @@ func TestSearchIntegrationNoFilterMatchesBaseline(t *testing.T) {
 		t.Fatalf("zero filter changed the result: %v vs %v", ids(baseline), ids(filtered))
 	}
 }
+
+// insertDocumentPaged stores one chunk with an explicit page, so the page
+// round-trip test can control documents.page. page 0 is stored as NULL (unset),
+// matching what ingestion writes for page-less formats.
+func insertDocumentPaged(
+	t *testing.T,
+	ctx context.Context,
+	conn *pgx.Conn,
+	document Document,
+	embedding []float64,
+	page int,
+) int64 {
+	t.Helper()
+
+	var id int64
+
+	err := conn.QueryRow(
+		ctx,
+		`
+		INSERT INTO documents
+		    (content, source, section, chunk_index, embedding, page)
+		VALUES ($1, $2, $3, $4, $5::vector, NULLIF($6, 0))
+		RETURNING id
+		`,
+		document.Content,
+		document.Source,
+		document.Section,
+		document.ChunkIndex,
+		VectorToString(embedding),
+		page,
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("insert paged document: %v", err)
+	}
+
+	return id
+}
+
+// TestPageProvenanceIntegration asserts a page number persists and round-trips
+// through vector search and section expansion, and that a page-less (legacy) row
+// reads back as page 0.
+func TestPageProvenanceIntegration(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	query := unitVector(0)
+
+	paged := insertDocumentPaged(t, ctx, conn, Document{
+		Source:  "manual.pdf",
+		Section: "Intro",
+		Content: "page two content",
+	}, query, 2)
+
+	legacy := insertDocumentPaged(t, ctx, conn, Document{
+		Source:  "policy.md",
+		Section: "Fees",
+		Content: "page-less content",
+	}, unitVector(1), 0)
+
+	retriever := New(conn)
+
+	found, err := retriever.SearchFiltered(ctx, query, 10, Filter{})
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+
+	pages := map[int64]int{}
+
+	for _, doc := range found {
+		pages[doc.ID] = doc.Page
+	}
+
+	if pages[paged] != 2 {
+		t.Fatalf("paged document Page = %d, want 2", pages[paged])
+	}
+
+	if pages[legacy] != 0 {
+		t.Fatalf("legacy document Page = %d, want 0 (unset)", pages[legacy])
+	}
+
+	// Section expansion carries the page too.
+	expanded, err := retriever.SectionChunksFiltered(
+		ctx,
+		[]SectionKey{{Source: "manual.pdf", Section: "Intro"}},
+		20,
+		Filter{},
+	)
+	if err != nil {
+		t.Fatalf("section chunks: %v", err)
+	}
+
+	if len(expanded) != 1 || expanded[0].Page != 2 {
+		t.Fatalf("expanded page = %+v, want one document with Page 2", expanded)
+	}
+}

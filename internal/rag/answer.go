@@ -5,7 +5,6 @@ package rag
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"rag-template/internal/generation"
 	"rag-template/internal/retrieval"
@@ -59,6 +58,7 @@ ANSWER FORMAT RULES:
 - Do not include chunk numbers in citations.
 - Do not place a citation before the claim it supports.
 - Never invent a source or citation.
+- If a retrieved source is paginated, you may append the page as ", p.N" inside the same citation block: [source - section - p.N]. Omit the page for unpaginated sources.
 - If retrieved sources disagree, explicitly state that they disagree.
 - Do not guess why the sources disagree.
 - Do not choose one source over another unless the retrieved context establishes which source is authoritative.
@@ -166,26 +166,4 @@ func AnswerLimited(
 	}
 
 	return generator.Generate(ctx, formatAnswerPrompt(question, documents))
-}
-
-// FormatContext renders documents as the context block sent to the model.
-func FormatContext(documents []retrieval.Document) string {
-	parts := make([]string, len(documents))
-
-	for i, doc := range documents {
-		source := doc.Source
-		if source == "" {
-			source = "unknown"
-		}
-
-		parts[i] = fmt.Sprintf(
-			"Source: %s\nSection: %s\nChunk: %d\nContent: %s",
-			source,
-			doc.Section,
-			doc.ChunkIndex,
-			doc.Content,
-		)
-	}
-
-	return strings.Join(parts, "\n\n---\n\n")
 }

@@ -3,19 +3,24 @@
 // answer so that no invalid citation is rendered as if valid.
 //
 // The parser here is the logic proven in cmd/eval: it is lexical over the answer
-// text and the retrieved documents and names no model.
+// text and the retrieved documents and names no model. It accepts an optional
+// page segment ([source - section - p.N]); a page citation is valid only when a
+// retrieved document matches the source and section and carries that page.
 package citations
 
 import (
+	"strconv"
 	"strings"
 
 	"rag-template/internal/retrieval"
 )
 
-// Citation is a parsed [source - section] pair.
+// Citation is a parsed [source - section] pair with an optional page. Page is 0
+// when the citation makes no page claim (the legacy form).
 type Citation struct {
 	Source  string
 	Section string
+	Page    int
 }
 
 // NormalizeCitation normalizes the dashes a model may emit (-, en dash, em dash)
@@ -34,9 +39,10 @@ func NormalizeSource(source string) string {
 	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(source)), ".md")
 }
 
-// Parse extracts every [source - section] citation from answer, in order. A
-// bracket that is unclosed, or that has no " - " separator, is not a citation
-// and is skipped, matching the eval parser.
+// Parse extracts every [source - section] or [source - section - p.N] citation
+// from answer, in order. A bracket that is unclosed, that has no " - "
+// separator, or whose third segment is not "p<digits>" is not a citation and is
+// skipped, matching the eval parser.
 func Parse(answer string) []Citation {
 	var citations []Citation
 
@@ -56,27 +62,77 @@ func Parse(answer string) []Citation {
 
 		remaining = rest
 
-		// Only [source - section] counts as a citation.
-		source, section, found := strings.Cut(citation, " - ")
-		if !found {
-			continue
+		if parsed, ok := parseCitation(citation); ok {
+			citations = append(citations, parsed)
 		}
-
-		citations = append(citations, Citation{
-			Source:  strings.TrimSpace(source),
-			Section: strings.TrimSpace(section),
-		})
 	}
 
 	return citations
 }
 
+// parseCitation parses the inside of a citation bracket. It accepts
+// "source - section" and "source - section - p.N"; anything else is not a
+// citation.
+func parseCitation(citation string) (Citation, bool) {
+	source, rest, found := strings.Cut(citation, " - ")
+	if !found {
+		return Citation{}, false
+	}
+
+	section, pageSegment, hasPage := strings.Cut(rest, " - ")
+
+	parsed := Citation{
+		Source:  strings.TrimSpace(source),
+		Section: strings.TrimSpace(section),
+	}
+
+	if !hasPage {
+		return parsed, true
+	}
+
+	page, ok := parsePageSegment(pageSegment)
+	if !ok {
+		return Citation{}, false
+	}
+
+	parsed.Page = page
+
+	return parsed, true
+}
+
+// parsePageSegment parses a page segment of the form "p.N" where N is a
+// positive integer, returning the page number.
+func parsePageSegment(segment string) (int, bool) {
+	trimmed := strings.TrimSpace(segment)
+
+	digits, found := strings.CutPrefix(trimmed, "p.")
+	if !found {
+		return 0, false
+	}
+
+	page, err := strconv.Atoi(strings.TrimSpace(digits))
+	if err != nil || page <= 0 {
+		return 0, false
+	}
+
+	return page, true
+}
+
 // Valid reports whether citation resolves to a retrieved document's source and
-// section.
+// section, and — when the citation claims a page — whether that document
+// carries the same page.
 func Valid(citation Citation, documents []retrieval.Document) bool {
 	for _, doc := range documents {
-		if NormalizeSource(doc.Source) == NormalizeSource(citation.Source) &&
-			doc.Section == citation.Section {
+		if NormalizeSource(doc.Source) != NormalizeSource(citation.Source) ||
+			doc.Section != citation.Section {
+			continue
+		}
+
+		if citation.Page == 0 {
+			return true
+		}
+
+		if doc.Page == citation.Page {
 			return true
 		}
 	}
@@ -85,7 +141,8 @@ func Valid(citation Citation, documents []retrieval.Document) bool {
 }
 
 // Validity counts the citations in answer and how many of them name a retrieved
-// document. It reproduces the exact valid/total counts of the cmd/eval parser.
+// document. It reproduces the exact valid/total counts of the cmd/eval parser
+// for the legacy form and extends them to the page form.
 func Validity(answer string, documents []retrieval.Document) (valid int, total int) {
 	for _, citation := range Parse(answer) {
 		total++
@@ -134,18 +191,13 @@ func Strip(answer string, documents []retrieval.Document) (string, int) {
 
 		citation := NormalizeCitation(remaining[open+1 : closeIndex])
 
-		source, section, found := strings.Cut(citation, " - ")
-		if !found {
+		parsed, ok := parseCitation(citation)
+		if !ok {
 			// Not a citation: keep it verbatim.
 			builder.WriteString(remaining[:closeIndex+1])
 			remaining = remaining[closeIndex+1:]
 
 			continue
-		}
-
-		parsed := Citation{
-			Source:  strings.TrimSpace(source),
-			Section: strings.TrimSpace(section),
 		}
 
 		if Valid(parsed, documents) {

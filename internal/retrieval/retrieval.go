@@ -82,13 +82,16 @@ func NormalizeFTSConfig(language string) string {
 
 // Document is a stored chunk returned by a search. Similarity is the cosine
 // score from vector search, KeywordScore the full-text rank, and FusionScore the
-// reciprocal-rank score; each is zero unless that retrieval path set it.
+// reciprocal-rank score; each is zero unless that retrieval path set it. Page is
+// the 1-based source page the chunk came from, or 0 when the source has no page
+// information (pre-existing rows read NULL and coalesce to 0).
 type Document struct {
 	ID           int64
 	Source       string
 	Section      string
 	ChunkIndex   int
 	Content      string
+	Page         int
 	Similarity   float64
 	KeywordScore float64
 	FusionScore  float64
@@ -144,6 +147,7 @@ func (r *Retriever) SearchFiltered(
 		    COALESCE(section, ''),
 		    chunk_index,
 		    content,
+		    COALESCE(page, 0),
 		    1 - (embedding <=> $1::vector) AS similarity
 		FROM documents
 		`+where+`ORDER BY embedding <=> $1::vector
@@ -163,6 +167,7 @@ func (r *Retriever) SearchFiltered(
 			&doc.Section,
 			&doc.ChunkIndex,
 			&doc.Content,
+			&doc.Page,
 			&doc.Similarity,
 		}
 	})
@@ -287,7 +292,7 @@ func (r *Retriever) KeywordSearchFiltered(
 		    ) @@ websearch_to_tsquery($3::regconfig, $1)`
 
 	if fragment != "" {
-		where += "\n		    AND " + fragment
+		where += "\n\t\t    AND " + fragment
 	}
 
 	args := make([]any, 0, 3+len(filterArgs))
@@ -303,6 +308,7 @@ func (r *Retriever) KeywordSearchFiltered(
 		    COALESCE(section, ''),
 		    chunk_index,
 		    content,
+		    COALESCE(page, 0),
 		    ts_rank(
 		        to_tsvector(
 		            $3::regconfig,
@@ -328,6 +334,7 @@ func (r *Retriever) KeywordSearchFiltered(
 			&doc.Section,
 			&doc.ChunkIndex,
 			&doc.Content,
+			&doc.Page,
 			&doc.KeywordScore,
 		}
 	})
@@ -434,7 +441,8 @@ func (r *Retriever) SectionChunksFiltered(
 			COALESCE(source, '') AS source,
 			COALESCE(section, '') AS section,
 			chunk_index,
-			content
+			content,
+			COALESCE(page, 0) AS page
 		FROM (
 			SELECT
 				id,
@@ -442,6 +450,7 @@ func (r *Retriever) SectionChunksFiltered(
 				section,
 				chunk_index,
 				content,
+				page,
 				ROW_NUMBER() OVER (
 					PARTITION BY source, section
 					ORDER BY chunk_index
@@ -466,6 +475,7 @@ func (r *Retriever) SectionChunksFiltered(
 			&doc.Section,
 			&doc.ChunkIndex,
 			&doc.Content,
+			&doc.Page,
 		}
 	})
 }

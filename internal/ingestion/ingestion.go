@@ -38,7 +38,8 @@ const (
 type Provenance struct {
 	// ContentHash is a fingerprint of the file's bytes combined with the
 	// chunker configuration, so a content or chunker-config change invalidates
-	// it.
+	// it. It never covers a chunk's page, so re-ingesting unchanged content is
+	// still a no-op.
 	ContentHash string
 
 	// EmbedModel is the embedding model that produced the vectors.
@@ -200,7 +201,8 @@ func (i *Ingester) ReplaceDocumentWithProvenance(
 // stored row carries the same content hash, chunker config, embedding model,
 // and (when supplied) embedding dimension as the supplied provenance. A missing
 // source, a content or chunker-config change, or a model or dimension change all
-// report false, which routes the caller through the full replacement path.
+// report false, which routes the caller through the full replacement path. The
+// page never participates, so re-ingesting unchanged content is a no-op.
 func (i *Ingester) IsUpToDate(
 	ctx context.Context,
 	source string,
@@ -296,7 +298,8 @@ func (i *Ingester) embedAll(
 
 // insertChunks writes every embedded chunk with one batched statement inside tx.
 // It constructs a single multi-row INSERT so the delete-then-insert replacement
-// stays atomic and the round trips do not scale with the chunk count.
+// stays atomic and the round trips do not scale with the chunk count. The chunk's
+// page is written as NULL when 0 (unset) so page-less formats store no page.
 func (i *Ingester) insertChunks(
 	ctx context.Context,
 	tx pgx.Tx,
@@ -312,21 +315,21 @@ func (i *Ingester) insertChunks(
 	builder.WriteString(
 		`INSERT INTO documents (source, section, chunk_index, content, ` +
 			`embedding, content_hash, embed_model, embedding_dim, ` +
-			`chunker_config, ingested_at, language) VALUES `,
+			`chunker_config, ingested_at, language, page) VALUES `,
 	)
 
-	args := make([]any, 0, len(embedded)*11)
+	args := make([]any, 0, len(embedded)*12)
 
 	for index, item := range embedded {
 		if index > 0 {
 			builder.WriteString(", ")
 		}
 
-		base := index * 11
+		base := index * 12
 
 		fmt.Fprintf(
 			&builder,
-			"($%d, $%d, $%d, $%d, $%d::vector, $%d, $%d, $%d, $%d, $%d, $%d)",
+			"($%d, $%d, $%d, $%d, $%d::vector, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
 			base+1,
 			base+2,
 			base+3,
@@ -338,6 +341,7 @@ func (i *Ingester) insertChunks(
 			base+9,
 			base+10,
 			base+11,
+			base+12,
 		)
 
 		args = append(
@@ -353,6 +357,7 @@ func (i *Ingester) insertChunks(
 			nullableString(provenance.ChunkerConfig),
 			provenance.IngestedAt,
 			nullableString(provenance.Language),
+			nullableInt(item.chunk.Page),
 		)
 	}
 
@@ -374,7 +379,8 @@ func nullableString(value string) any {
 	return value
 }
 
-// nullableInt returns nil for a zero dimension.
+// nullableInt returns nil for a zero value so the column is stored as NULL
+// (unset) rather than 0.
 func nullableInt(value int) any {
 	if value == 0 {
 		return nil
