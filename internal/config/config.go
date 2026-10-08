@@ -124,6 +124,18 @@ const (
 
 	// DefaultRequestTimeout bounds every network call the commands make.
 	DefaultRequestTimeout = 5 * time.Minute
+
+	// OutputHuman and OutputJSON are the accepted values of the OBSERVABILITY_FORMAT
+	// setting. OutputHuman is the default: existing human-readable stage output is
+	// preserved unchanged. OutputJSON is opt-in and emits one structured record per
+	// run via log/slog instead of the human-readable lines.
+	OutputHuman = "human"
+	OutputJSON  = "json"
+
+	// DefaultObservabilityFormat selects the human-readable output. An unset or
+	// blank OBSERVABILITY_FORMAT keeps the current output and introduces no
+	// default drift; JSON must be requested explicitly.
+	DefaultObservabilityFormat = OutputHuman
 )
 
 // Config holds the runtime settings.
@@ -155,6 +167,7 @@ type Config struct {
 	RagAnswerabilityGate bool
 	RequestTimeout       time.Duration
 	QueryRewrite         bool
+	ObservabilityFormat  string
 }
 
 // Load reads the settings from the environment, falling back to the defaults
@@ -259,6 +272,10 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	if cfg.ObservabilityFormat, err = envOutputFormat("OBSERVABILITY_FORMAT", DefaultObservabilityFormat); err != nil {
+		return Config{}, err
+	}
+
 	// Chunk overlap must leave the window advancing: a step of chunkSize-overlap
 	// has to stay positive, so overlap < chunkSize.
 	if cfg.ChunkOverlap >= cfg.ChunkSize {
@@ -270,6 +287,12 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// ObservabilityJSON reports whether the configured output format selects the
+// opt-in JSON structured record instead of the human-readable stream.
+func (c Config) ObservabilityJSON() bool {
+	return c.ObservabilityFormat == OutputJSON
 }
 
 // chunkerConfigVersion identifies the serialization format of ChunkerConfig.
@@ -455,4 +478,29 @@ func envBool(key string, fallback bool) (bool, error) {
 	}
 
 	return value, nil
+}
+
+// envOutputFormat reads the observability output-format setting. It accepts only
+// the enumerated values (human, json); a present but unknown value is an error
+// naming the variable, never a silent fallback to the default.
+func envOutputFormat(key, fallback string) (string, error) {
+	raw, ok := envValue(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	switch strings.ToLower(raw) {
+	case OutputHuman:
+		return OutputHuman, nil
+	case OutputJSON:
+		return OutputJSON, nil
+	default:
+		return "", fmt.Errorf(
+			"%s must be %q or %q, got %q",
+			key,
+			OutputHuman,
+			OutputJSON,
+			raw,
+		)
+	}
 }

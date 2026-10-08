@@ -15,6 +15,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -24,10 +25,17 @@ import (
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
 	"rag-template/internal/ingestion"
+	"rag-template/internal/observability"
 	"rag-template/internal/rag"
 	"rag-template/internal/reranking"
 	"rag-template/internal/retrieval"
 )
+
+// out is where the human-readable stage output is written. It defaults to
+// stdout so the default workflow is byte-for-byte unchanged. When JSON
+// observability is selected, run points it at io.Discard so the structured
+// record on stdout stays machine-parseable.
+var out io.Writer = os.Stdout
 
 func main() {
 	cfg, err := config.Load()
@@ -53,8 +61,23 @@ func main() {
 }
 
 func run(ctx context.Context, cfg config.Config, question string) error {
-	fmt.Println("Question:")
-	fmt.Println(question)
+	// In JSON mode the human-readable stream is suppressed so stdout carries
+	// only the structured record; the default (human) mode is unchanged.
+	if cfg.ObservabilityJSON() {
+		out = io.Discard
+	} else {
+		out = os.Stdout
+	}
+
+	println("Question:")
+	println(question)
+
+	// One reporter per invocation. Its run ID correlates every record emitted
+	// for this run. The human reporter adds no lines to the stream above, so the
+	// default output is unchanged; the JSON reporter emits one structured record
+	// at the end.
+	reporter := observability.New(cfg.ObservabilityJSON(), os.Stdout)
+	defer reporter.Finish()
 
 	ctx, cancel := context.WithTimeout(ctx, cfg.RequestTimeout)
 	defer cancel()
@@ -76,6 +99,8 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 		return err
 	}
 
+	embedStart := time.Now()
+
 	originalEmbedding, err := embedQuestion(
 		ctx,
 		embedder,
@@ -85,11 +110,15 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 		return err
 	}
 
+	reporter.Stage(observability.StageEmbed, time.Since(embedStart))
+
 	retrievalQuery := question
 
 	var rewrittenEmbedding []float64
 
 	if cfg.QueryRewrite {
+		rewriteStart := time.Now()
+
 		retrievalQuery, err = rag.Rewrite(
 			ctx,
 			generator,
@@ -99,9 +128,11 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 			return err
 		}
 
-		fmt.Println()
-		fmt.Println("Retrieval query:")
-		fmt.Println(retrievalQuery)
+		reporter.Stage(observability.StageRewrite, time.Since(rewriteStart))
+
+		println()
+		println("Retrieval query:")
+		println(retrievalQuery)
 
 		rewrittenEmbedding, err = embedQuestion(
 			ctx,
@@ -112,6 +143,8 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 			return err
 		}
 	}
+
+	retrieveStart := time.Now()
 
 	documents, err := retrieveDocuments(
 		ctx,
@@ -127,12 +160,33 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 		return err
 	}
 
+	reporter.Stage(observability.StageRetrieve, time.Since(retrieveStart))
+
+	// Counts describe the retrieval output: KEPT documents cleared the similarity
+	// floor printRetrieved applies; FILTERED are below it (including chunks
+	// recovered only by section expansion, which carry no similarity score).
+	// Usage.Chunks below reports the final, post-budget context size instead.
+	reporter.Counts(countRetrieved(documents, cfg.MinSimilarity))
+
 	// Apply the deterministic context budget to the expanded context. A budget
 	// of 0 (the default) disables the builder and leaves the documents
 	// unchanged, preserving the current chunk-count behaviour. The budgeted set
 	// is the one the answerability gate judges, the one printed, and the one the
 	// model answers from, so those views cannot drift apart.
+	budgetStart := time.Now()
+
 	documents = contextbudget.Build(documents, cfg.ContextBudget)
+
+	reporter.Stage(observability.StageBudget, time.Since(budgetStart))
+
+	// Token/context usage uses the RAG-010 provider-neutral byte estimate over
+	// the same documents that are printed and sent to rag.Answer.
+	reporter.Usage(observability.Usage{
+		ContextBytes: contextbudget.EstimateAll(documents),
+		Chunks:       len(documents),
+	})
+
+	answerabilityStart := time.Now()
 
 	answerable, err := isAnswerable(
 		ctx,
@@ -145,19 +199,23 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 		return err
 	}
 
+	reporter.Stage(observability.StageAnswerability, time.Since(answerabilityStart))
+
 	if !answerable {
-		fmt.Println()
-		fmt.Println("Answer:")
-		fmt.Println("I do not have enough information.")
+		println()
+		println("Answer:")
+		println("I do not have enough information.")
 
 		return nil
 	}
 
 	// Print exactly what rag.Answer sends, so the debug output and the request
 	// cannot drift apart.
-	fmt.Println()
-	fmt.Println("Context being sent to the LLM:")
-	fmt.Println(rag.FormatContext(documents))
+	println()
+	println("Context being sent to the LLM:")
+	println(rag.FormatContext(documents))
+
+	answerStart := time.Now()
 
 	answer, err := rag.Answer(
 		ctx,
@@ -169,11 +227,47 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 		return err
 	}
 
-	fmt.Println()
-	fmt.Println("Answer:")
-	fmt.Println(answer)
+	reporter.Stage(observability.StageAnswer, time.Since(answerStart))
+
+	println()
+	println("Answer:")
+	println(answer)
 
 	return nil
+}
+
+// println writes a line to the configured human output writer, matching the
+// behavior of fmt.Println on stdout in the default mode.
+func println(args ...any) {
+	fmt.Fprintln(out, args...)
+}
+
+// printf writes formatted output to the configured human output writer.
+func printf(format string, args ...any) {
+	fmt.Fprintf(out, format, args...)
+}
+
+// countRetrieved tallies the final context by whether each document cleared the
+// similarity floor printRetrieved applies (doc.Similarity < minSimilarity is
+// filtered). Retrieved is the number of documents at or above the floor;
+// Filtered is the number below it, including chunks recovered only by section
+// expansion (whose similarity score is not set). It is a retrieval-output tally,
+// computed before the optional budget/rerank, so it does not describe the final
+// model context (Usage.Chunks does).
+func countRetrieved(documents []retrieval.Document, minSimilarity float64) observability.Counts {
+	counts := observability.Counts{}
+
+	for _, doc := range documents {
+		if doc.Similarity < minSimilarity {
+			counts.Filtered++
+
+			continue
+		}
+
+		counts.Retrieved++
+	}
+
+	return counts
 }
 
 // isAnswerable reports whether documents can answer question: false when nothing
@@ -252,8 +346,8 @@ func embedQuestion(
 		return nil, err
 	}
 
-	fmt.Println()
-	fmt.Printf(
+	println()
+	printf(
 		"Ollama created a %d-dimensional query vector\n",
 		len(queryEmbedding),
 	)
@@ -362,20 +456,20 @@ func printVectorStage(
 	documents []retrieval.Document,
 	minSimilarity float64,
 ) {
-	fmt.Println()
-	fmt.Println(label)
+	println()
+	println(label)
 	printRetrieved(documents, minSimilarity)
 }
 
 func printKeywordStage(label string, documents []retrieval.Document) {
-	fmt.Println()
-	fmt.Println(label)
+	println()
+	println(label)
 	printKeywordRetrieved(documents)
 }
 
 func printKeywordRetrieved(documents []retrieval.Document) {
 	for _, doc := range documents {
-		fmt.Printf(
+		printf(
 			"%.4f  [%s - %s - chunk %d] %s\n",
 			doc.KeywordScore,
 			doc.Source,
@@ -388,7 +482,7 @@ func printKeywordRetrieved(documents []retrieval.Document) {
 
 func printHybridRetrieved(documents []retrieval.Document) {
 	for _, doc := range documents {
-		fmt.Printf(
+		printf(
 			"RRF %.6f  vector %.4f  keyword %.4f  [%s - %s - chunk %d] %s\n",
 			doc.FusionScore,
 			doc.Similarity,
@@ -405,12 +499,12 @@ func printHybridRetrieved(documents []retrieval.Document) {
 func printRetrieved(documents []retrieval.Document, minSimilarity float64) {
 	for _, doc := range documents {
 		if doc.Similarity < minSimilarity {
-			fmt.Printf("FILTERED  %.4f  %s\n", doc.Similarity, doc.Content)
+			printf("FILTERED  %.4f  %s\n", doc.Similarity, doc.Content)
 
 			continue
 		}
 
-		fmt.Printf(
+		printf(
 			"KEPT      %.4f  [%s - %s - chunk %d] %s\n",
 			doc.Similarity,
 			doc.Source,
@@ -423,7 +517,7 @@ func printRetrieved(documents []retrieval.Document, minSimilarity float64) {
 
 func printExpandedDocuments(documents []retrieval.Document) {
 	for _, doc := range documents {
-		fmt.Printf(
+		printf(
 			"[%s - %s - chunk %d] %s\n",
 			doc.Source,
 			doc.Section,
@@ -434,12 +528,12 @@ func printExpandedDocuments(documents []retrieval.Document) {
 }
 
 func printFusedAndExpanded(fused []retrieval.Document, expanded []retrieval.Document) {
-	fmt.Println()
-	fmt.Println("Fused retrieval:")
+	println()
+	println("Fused retrieval:")
 	printHybridRetrieved(fused)
 
-	fmt.Println()
-	fmt.Println("Expanded context:")
+	println()
+	println("Expanded context:")
 	printExpandedDocuments(expanded)
 }
 
@@ -483,8 +577,8 @@ func rerankAndExpand(
 	}
 
 	if result.FellBack {
-		fmt.Println()
-		fmt.Printf(
+		println()
+		printf(
 			"Semantic reranking unavailable (%s); using the fused order.\n",
 			result.Reason,
 		)
@@ -503,12 +597,12 @@ func rerankAndExpand(
 		return nil, err
 	}
 
-	fmt.Println()
-	fmt.Println("Semantic reranking:")
+	println()
+	println("Semantic reranking:")
 	printHybridRetrieved(reranked)
 
-	fmt.Println()
-	fmt.Println("Reranked expanded context:")
+	println()
+	println("Reranked expanded context:")
 	printExpandedDocuments(rerankedExpanded)
 
 	return rerankedExpanded, nil

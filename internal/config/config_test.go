@@ -38,6 +38,7 @@ func clearEnv(t *testing.T) {
 		"RAG_ANSWERABILITY_GATE",
 		"REQUEST_TIMEOUT",
 		"QUERY_REWRITE",
+		"OBSERVABILITY_FORMAT",
 	} {
 		t.Setenv(key, "")
 	}
@@ -74,6 +75,7 @@ func TestLoadDefaults(t *testing.T) {
 		RagAnswerabilityGate: DefaultRagAnswerabilityGate,
 		RequestTimeout:       DefaultRequestTimeout,
 		QueryRewrite:         DefaultQueryRewrite,
+		ObservabilityFormat:  DefaultObservabilityFormat,
 	}
 
 	got, err := Load()
@@ -118,6 +120,30 @@ func TestContextBudgetDefaultsToDisabled(t *testing.T) {
 
 	if cfg.ContextBudget != DefaultContextBudget {
 		t.Fatalf("ContextBudget = %d, want %d", cfg.ContextBudget, DefaultContextBudget)
+	}
+}
+
+// TestObservabilityFormatDefaultsToHuman pins the observability default: an
+// unset or blank OBSERVABILITY_FORMAT must keep the current human-readable
+// output and must not drift to JSON, which is opt-in.
+func TestObservabilityFormatDefaultsToHuman(t *testing.T) {
+	clearEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if DefaultObservabilityFormat != OutputHuman {
+		t.Fatalf("DefaultObservabilityFormat = %q, want %q", DefaultObservabilityFormat, OutputHuman)
+	}
+
+	if cfg.ObservabilityFormat != OutputHuman {
+		t.Fatalf("ObservabilityFormat = %q, want %q", cfg.ObservabilityFormat, OutputHuman)
+	}
+
+	if cfg.ObservabilityJSON() {
+		t.Fatalf("ObservabilityJSON() = true for the default, want false")
 	}
 }
 
@@ -167,6 +193,10 @@ func TestLoad(t *testing.T) {
 				if c.EmbedProvider != DefaultEmbedProvider || c.GenProvider != DefaultGenProvider {
 					t.Fatalf("providers = %q/%q, want %q/%q", c.EmbedProvider, c.GenProvider, DefaultEmbedProvider, DefaultGenProvider)
 				}
+
+				if c.ObservabilityFormat != DefaultObservabilityFormat {
+					t.Fatalf("OBSERVABILITY_FORMAT = %q, want %q", c.ObservabilityFormat, DefaultObservabilityFormat)
+				}
 			},
 		},
 		{
@@ -201,6 +231,63 @@ func TestLoad(t *testing.T) {
 					t.Fatalf("blank CONTEXT_BUDGET = %d, want %d", c.ContextBudget, DefaultContextBudget)
 				}
 			},
+		},
+		{
+			name: "valid observability format human",
+			env:  map[string]string{"OBSERVABILITY_FORMAT": "human"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ObservabilityFormat != OutputHuman {
+					t.Fatalf("OBSERVABILITY_FORMAT = %q, want %q", c.ObservabilityFormat, OutputHuman)
+				}
+
+				if c.ObservabilityJSON() {
+					t.Fatalf("ObservabilityJSON() = true, want false")
+				}
+			},
+		},
+		{
+			name: "valid observability format json",
+			env:  map[string]string{"OBSERVABILITY_FORMAT": "json"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ObservabilityFormat != OutputJSON {
+					t.Fatalf("OBSERVABILITY_FORMAT = %q, want %q", c.ObservabilityFormat, OutputJSON)
+				}
+
+				if !c.ObservabilityJSON() {
+					t.Fatalf("ObservabilityJSON() = false, want true")
+				}
+			},
+		},
+		{
+			name: "observability format is case-insensitive",
+			env:  map[string]string{"OBSERVABILITY_FORMAT": "JSON"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if !c.ObservabilityJSON() {
+					t.Fatalf("ObservabilityJSON() = false for %q, want true", c.ObservabilityFormat)
+				}
+			},
+		},
+		{
+			name: "blank observability format counts as missing",
+			env:  map[string]string{"OBSERVABILITY_FORMAT": ""},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ObservabilityFormat != DefaultObservabilityFormat {
+					t.Fatalf("blank OBSERVABILITY_FORMAT = %q, want %q", c.ObservabilityFormat, DefaultObservabilityFormat)
+				}
+			},
+		},
+		{
+			name:    "invalid observability format",
+			env:     map[string]string{"OBSERVABILITY_FORMAT": "xml"},
+			wantErr: "OBSERVABILITY_FORMAT",
 		},
 		{
 			name: "valid embedding dimension override",
