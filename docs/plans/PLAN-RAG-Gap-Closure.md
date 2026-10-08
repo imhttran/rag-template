@@ -617,8 +617,8 @@ Non-destructive checks run from the repository root at `221fa45`:
 | Vet | `go vet ./...` | **PASS** (exit 0) |
 | Format | `gofmt -l .` | **PASS** (no files listed) |
 | Unit tests | `go test ./...` | **PASS** (all packages ok; `cmd/ingest`, `internal/embedding`, `internal/generation`, `internal/ollama` have no tests) |
-| Integration | `RAG_INTEGRATION= ... -run Integration` | **SKIPPED** by design (guard `integration_test.go:50`) — no PostgreSQL/Docker in this environment |
-| Static analysis | `staticcheck ./...` | **NOT RUN** — `staticcheck` not installed on `PATH` (see `README.md:364`) |
+| Integration | `RAG_INTEGRATION= ... -run Integration` | **SKIPPED** by design then (guard `integration_test.go:50`) — no PostgreSQL/Docker at that time. **Resolved later:** 8 PASS, 0 FAIL (see *Environment verification* below) |
+| Static analysis | `staticcheck ./...` | **NOT RUN** then — not installed. **Resolved later:** PASS, no findings (see *Environment verification* below) |
 
 Not executed (require models/DB) and therefore reported as **NOT RUN**:
 LLM-judge eval paths (`EVAL_FACT_JUDGE`, `EVAL_LLM_RERANK`, `EVAL_ANSWERABILITY_GATE`),
@@ -637,8 +637,8 @@ Implemented on branch `feature/rag-gap-closure` in the working tree (**not commi
 | Race tests | `go test -race -count=1 ./...` | **PASS** (all packages) |
 | Whitespace | `git diff --check` | **PASS** (exit 0) |
 | Config cases | `go test -count=1 -run TestLoad ./internal/config/` | **PASS** (30 table subtests + `TestLoadDefaults`) |
-| Static analysis | `staticcheck ./...` | **NOT RUN** — not installed on `PATH` (environmental blocker) |
-| DB integration | `RAG_INTEGRATION=1 go test ...` | **NOT RUN** — no PostgreSQL/Docker (environmental blocker, B-01) |
+| Static analysis | `staticcheck ./...` | **NOT RUN then** — not installed on `PATH`. **Resolved:** PASS, no findings (see *Environment verification* below) |
+| DB integration | `RAG_INTEGRATION=1 go test ...` | **NOT RUN then** — no PostgreSQL/Docker. **Resolved for the tested local configuration:** 8 PASS, 0 FAIL (B-01, see below) |
 
 Actionable-error smoke checks (each fails at `config.Load`, before any DB or model
 call, exit 1):
@@ -706,10 +706,11 @@ Minimum follow-up to satisfy item 5 (not implemented — review gate): after
 example `no sections found in <path>`), so an empty or heading-less document exits
 nonzero deterministically. This is within RAG-001 scope, not RAG-002.
 
-Unresolved blockers (environmental, carried from the implementation pass):
+Environmental blockers at the time (both since resolved — see *Environment
+verification* below):
 
-- `staticcheck ./...` NOT RUN — not installed on `PATH` (see `README.md:364`).
-- DB integration tests NOT RUN — no PostgreSQL/Docker available (B-01).
+- `staticcheck ./...` was not installed on `PATH` (see `README.md:364`).
+- DB integration tests could not run — no PostgreSQL/Docker available (B-01).
 
 ### RAG-001 item-5 fix and final acceptance (updated)
 
@@ -748,16 +749,44 @@ Verification (this pass): `gofmt -l .` (no files), `go vet ./...` (exit 0),
 `go test -count=1 ./...` (all packages ok), `go test -race -count=1 ./...` (all
 packages ok), `go build ./...` (exit 0), `git diff --check` (exit 0).
 
-RAG-001 decision (updated): **PASS**. Environmental blockers remain for
-`staticcheck` and the DB integration suite (B-01).
+RAG-001 decision (updated): **PASS**. The former environmental blockers for
+`staticcheck` and the DB integration suite are resolved (see *Environment
+verification* below).
+
+### Environment verification (blockers resolved)
+
+Environment: **Linux Mint 22.3 (Zena)**; **PostgreSQL 16 with pgvector** installed
+and operational; `staticcheck 2026.2.1 (0.8.1)`.
+
+| Check | Result | Source |
+|-------|--------|--------|
+| Native PostgreSQL integration tests (`internal/retrieval`, `internal/ingestion`) | **8 PASS, 0 FAIL** | environment verification on the tested local configuration |
+| `staticcheck ./...` | **PASS** — no reported findings | environment verification; independently re-confirmed in the agent shell (`staticcheck 2026.2.1`, exit 0, no output) |
+| `gofmt -l .`, `go vet ./...`, `go test -count=1 ./...`, `go test -race -count=1 ./...`, `go build ./...`, `git diff --check` | **PASS** | agent shell (see *RAG-001 verification* above) |
+
+Consequences:
+
+- **B-01 resolved** for the tested local configuration: the DB integration suite
+  runs and passes 8/8. Other environments remain unverified.
+- **Staticcheck environment blocker resolved:** `staticcheck` is available and
+  reports no findings.
+
+Preserved: the RAG-001 acceptance evidence above and the local commit
+`70296a3` (`fix(rag): validate configuration and reject empty ingestion`) are
+unchanged.
 
 ## 10. Blockers, risks, and open questions
 
 *Amendments A–C record the execution scope, the deferred decisions, and the standing
 blockers below.*
 
-- **B-01 (standing blocker — unverified).** Integration tests were not run here (no
-  database); they must pass before any RAG-002/003/005 change is accepted.
+- **B-01 (resolved for the tested local configuration).** The DB integration suite
+  now runs and passes 8/8 on Linux Mint 22.3 with PostgreSQL 16 + pgvector (see §9
+  *Environment verification*). The prior unverified caveat is lifted for that
+  configuration; other environments remain unverified.
+- **B-04 (staticcheck environment blocker — RESOLVED).** `staticcheck 2026.2.1`
+  (0.8.1) is installed and `staticcheck ./...` reports no findings (see §9
+  *Environment verification*).
 - **B-02 (scope).** RAG-007/008/009/010/011/012/013/014/015 cross `docs/PRD.md`
   non-goals and are deferred to proposed Phase 23+; they require an explicit human
   decision to open that phase.
