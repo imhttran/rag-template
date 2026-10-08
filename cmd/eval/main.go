@@ -8,6 +8,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"rag-template/internal/answerability"
 	"rag-template/internal/config"
@@ -62,6 +63,16 @@ type stats struct {
 	totalCitations    int
 	entailedCitations int
 	judgedCitations   int
+
+	// Rerank latency and outcome tracking. off has no rerank call, so it adds
+	// no latency; lexical and LLM measure wall time around their rerank calls,
+	// and fallback counts how often the hardened reranker degraded to the
+	// fused order instead of returning a model ordering.
+	llmLatencyTotal     time.Duration
+	llmLatencyCases     int
+	llmFallbacks        int
+	lexicalLatencyTotal time.Duration
+	lexicalLatencyCases int
 }
 
 type citedClaim struct {
@@ -86,6 +97,7 @@ type evaluator struct {
 	expandLimit       int
 	candidateK        int
 	finalK            int
+	rerankTimeout     time.Duration
 	ks                []int
 }
 
@@ -127,6 +139,7 @@ func run(ctx context.Context) error {
 		expandLimit:       cfg.ExpandLimit,
 		candidateK:        cfg.TopK,
 		finalK:            cfg.FinalK,
+		rerankTimeout:     cfg.RerankTimeout,
 		ks:                retrievalKs(cfg.TopK),
 	}
 
@@ -683,6 +696,11 @@ func (e evaluator) reportBaseline(
 
 // rerank reports the reranked result for an answerable case. diverse is the
 // deduplicated candidate set.
+//
+// Each strategy's wall time is measured around its rerank call so sweep rows can
+// compare off / lexical / LLM (and any future cross-encoder) on latency as well
+// as recall, precision, and evidence recall. A hardened reranker that degrades
+// to the fused order is recorded as a fallback rather than aborting evaluation.
 func (e evaluator) rerank(
 	ctx context.Context,
 	evalCase EvalCase,
@@ -690,11 +708,18 @@ func (e evaluator) rerank(
 	stats *stats,
 ) error {
 	if e.lexicalRerank {
+		start := time.Now()
+
+		reranked := reranking.Rerank(evalCase.Question, diverse)
+
+		stats.lexicalLatencyTotal += time.Since(start)
+		stats.lexicalLatencyCases++
+
 		recall, precision := e.report(
 			"Rerank",
 			"Reranked",
 			evalCase.Expected,
-			topK(reranking.Rerank(evalCase.Question, diverse), e.finalK),
+			topK(reranked, e.finalK),
 		)
 
 		stats.rerankRecall += recall
@@ -705,21 +730,48 @@ func (e evaluator) rerank(
 		return nil
 	}
 
-	llmReranked, err := reranking.RerankLLM(
+	start := time.Now()
+
+	result, err := reranking.RerankLLMWithTimeout(
 		ctx,
 		e.generator,
 		evalCase.Question,
 		diverse,
+		e.rerankTimeout,
 	)
+
+	stats.llmLatencyTotal += time.Since(start)
+	stats.llmLatencyCases++
+
 	if err != nil {
-		return err
+		// The hardened reranker degrades internally; a returned error is only
+		// possible for programming errors and should not abort the whole run.
+		fmt.Printf("LLM Rerank: fell back to fused order (%v)\n", err)
+
+		stats.llmFallbacks++
+
+		return nil
+	}
+
+	// The hardened reranker reports its own outcome, so a model that happens to
+	// return the fused order is not misclassified as a fallback. The disabled
+	// case (no candidates to rank) is not a reranker failure and is not counted
+	// as a fallback either.
+	switch {
+	case !result.FellBack:
+		fmt.Println("LLM Rerank: used model ordering")
+	case result.Reason == reranking.FallbackDisabled:
+		fmt.Println("LLM Rerank: no candidates to rank")
+	default:
+		stats.llmFallbacks++
+		fmt.Printf("LLM Rerank: used fused order (fallback: %s)\n", result.Reason)
 	}
 
 	llmRecall, llmPrecision := e.report(
 		"LLM Rerank",
 		"LLM Reranked",
 		evalCase.Expected,
-		topK(llmReranked, e.finalK),
+		topK(result.Documents, e.finalK),
 	)
 
 	stats.llmRecall += llmRecall
@@ -767,6 +819,11 @@ func printOverall(e evaluator, stats stats) {
 			average(stats.evidenceAfter, stats.evidenceCases),
 		)
 	}
+
+	// Latency comparison row, always printed so the off baseline is reported
+	// even on an off-only run. Off makes no rerank call, so it contributes zero
+	// rerank latency; lexical/LLM report their measured wall time.
+	printLatencyComparison(e, stats)
 
 	if e.lexicalRerank {
 		fmt.Printf(
@@ -852,6 +909,51 @@ func printOverall(e evaluator, stats stats) {
 			float64(stats.entailedCitations)/float64(stats.judgedCitations),
 		)
 	}
+}
+
+// printLatencyComparison reports the per-strategy rerank latency row so sweep
+// output compares off / lexical / LLM (and any future cross-encoder) on latency
+// alongside recall, precision, and evidence recall. The off strategy makes no
+// rerank call, so its contribution is reported as zero with a clear marker.
+// It is always printed so an off-only run still reports the baseline.
+func printLatencyComparison(e evaluator, stats stats) {
+	fmt.Println("Rerank latency:")
+
+	fmt.Println("  off      avg=0s  (baseline, no rerank call)")
+
+	if e.lexicalRerank {
+		fmt.Printf(
+			"  lexical  avg=%s  calls=%d\n",
+			averageDuration(stats.lexicalLatencyTotal, stats.lexicalLatencyCases),
+			stats.lexicalLatencyCases,
+		)
+	} else {
+		fmt.Println("  lexical  unavailable (EVAL_LEXICAL_RERANK=false)")
+	}
+
+	if e.llmRerank {
+		fmt.Printf(
+			"  llm      avg=%s  calls=%d  fallbacks=%d\n",
+			averageDuration(stats.llmLatencyTotal, stats.llmLatencyCases),
+			stats.llmLatencyCases,
+			stats.llmFallbacks,
+		)
+	} else {
+		fmt.Println("  llm      unavailable (EVAL_LLM_RERANK=false)")
+	}
+
+	fmt.Println(
+		"  cross-encoder  unavailable (no cross-encoder provider registered)",
+	)
+}
+
+// averageDuration returns sum/count as a rounded duration, or 0 when count is 0.
+func averageDuration(sum time.Duration, count int) time.Duration {
+	if count == 0 {
+		return 0
+	}
+
+	return sum / time.Duration(count)
 }
 
 // average returns sum/count, or 0 when count is 0 so the report never shows NaN.

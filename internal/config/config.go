@@ -75,6 +75,13 @@ const (
 	// Off by default: the K baselines are reported on their own.
 	DefaultLexicalRerank = false
 
+	// DefaultRerankTimeout bounds how long the LLM reranker may wait for the
+	// chat model before falling back to the fused order. It is deliberately 0
+	// (guard disabled), so an unset RERANK_TIMEOUT preserves the current
+	// behavior and introduces no default drift. It is scoped to the reranker
+	// call only; REQUEST_TIMEOUT still bounds the whole request.
+	DefaultRerankTimeout = time.Duration(0)
+
 	// DefaultAnswerabilityGate is whether cmd/eval asks the chat model whether
 	// the retrieved evidence can answer each question. Off by default: it adds
 	// one chat-model call per case.
@@ -141,6 +148,7 @@ type Config struct {
 	LexicalRerank        bool
 	LLMRerank            bool
 	RagLLMRerank         bool
+	RerankTimeout        time.Duration
 	AnswerabilityGate    bool
 	FactJudge            bool
 	RewriteOnly          bool
@@ -218,6 +226,12 @@ func Load() (Config, error) {
 	}
 
 	if cfg.RagLLMRerank, err = envBool("RAG_LLM_RERANK", false); err != nil {
+		return Config{}, err
+	}
+
+	// The reranker latency guard. 0 (the default) disables the guard; an
+	// explicit positive duration bounds the reranker call.
+	if cfg.RerankTimeout, err = envNonNegativeDuration("RERANK_TIMEOUT", DefaultRerankTimeout); err != nil {
 		return Config{}, err
 	}
 
@@ -403,6 +417,26 @@ func envPositiveDuration(key string, fallback time.Duration) (time.Duration, err
 
 	if value <= 0 {
 		return 0, fmt.Errorf("%s must be greater than 0, got %q", key, raw)
+	}
+
+	return value, nil
+}
+
+// envNonNegativeDuration is envPositiveDuration but accepts zero, for settings
+// where zero means disabled rather than absent (the reranker latency guard).
+func envNonNegativeDuration(key string, fallback time.Duration) (time.Duration, error) {
+	raw, ok := envValue(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	value, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a duration such as 30s or 5m, got %q", key, raw)
+	}
+
+	if value < 0 {
+		return 0, fmt.Errorf("%s must be 0 or greater, got %q", key, raw)
 	}
 
 	return value, nil

@@ -445,6 +445,12 @@ func printFusedAndExpanded(fused []retrieval.Document, expanded []retrieval.Docu
 
 // rerankAndExpand optionally reranks the candidates with the model, then expands
 // the surviving sections. With reranking off it returns expanded unchanged.
+//
+// The reranker is hardened: a parse/validation failure, a generator error, or a
+// latency-guard expiry degrades to the fused order (the candidates) instead of
+// surfacing an error, so the request still answers. The reranker never returns
+// an error for those paths, and this function degrades to the fused order even
+// if one is ever returned, so no reranker failure can reach the user.
 func rerankAndExpand(
 	ctx context.Context,
 	retriever *retrieval.Retriever,
@@ -458,17 +464,35 @@ func rerankAndExpand(
 		return expanded, nil
 	}
 
-	reranked, err := reranking.RerankLLM(
+	result, err := reranking.RerankLLMWithTimeout(
 		ctx,
 		generator,
 		question,
 		candidates,
+		cfg.RerankTimeout,
 	)
 	if err != nil {
-		return nil, err
+		// Degrade to the fused order rather than surfacing an error: reranker
+		// failures must never stop the request from answering.
+		log.Printf(
+			"reranking: falling back to fused order: %v",
+			err,
+		)
+
+		return expanded, nil
 	}
 
-	reranked = reranked[:min(len(reranked), cfg.FinalK)]
+	if result.FellBack {
+		fmt.Println()
+		fmt.Printf(
+			"Semantic reranking unavailable (%s); using the fused order.\n",
+			result.Reason,
+		)
+
+		return expanded, nil
+	}
+
+	reranked := result.Documents[:min(len(result.Documents), cfg.FinalK)]
 
 	rerankedExpanded, err := retriever.SectionChunks(
 		ctx,
