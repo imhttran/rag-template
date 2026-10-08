@@ -775,6 +775,49 @@ Preserved: the RAG-001 acceptance evidence above and the local commit
 `70296a3` (`fix(rag): validate configuration and reject empty ingestion`) are
 unchanged.
 
+### RAG-003 validation recovery (evidence)
+
+SOP ran RAG-003 to `LOCAL_DONE` (gate PASS), but SOP's configured gate
+(`go build`/`go test`/`go vet`) covers neither formatting/Staticcheck nor the DB
+integration suite. Independent verification found three failures, all
+attributable to RAG-003:
+
+| Gate | Failure | Classification | Root cause |
+|------|---------|----------------|------------|
+| `gofmt -l .` | `internal/ingestion/ingestion.go` unformatted | implementation | the change was never `gofmt`-ed |
+| `staticcheck ./...` | `internal/config/chunker_config_test.go:51` SA4000 (identical expressions) | test | the determinism subtest compared `cfg.ChunkerConfig()` to itself |
+| PostgreSQL integration (ingestion) | `column \"content_hash\" does not exist` | test / infrastructure | `002_ingestion_metadata.sql` was added, but both harnesses applied only `001_init.sql` |
+
+Corrections (minimal, bounded; no test weakened, no gate skipped, no recovery budget raised):
+
+- `gofmt -w internal/ingestion/ingestion.go`.
+- `internal/config/chunker_config_test.go`: the determinism subtest now captures two
+  calls into `first`/`second` and compares those, preserving the assertion while
+  removing the self-comparison Staticcheck flags.
+- `internal/ingestion/integration_test.go` and `internal/retrieval/integration_test.go`:
+  `applyMigration` (hard-coded `001_init.sql`) replaced by `applyMigrations`, which
+  globs and applies every `migrations/*.sql` in name order (as `make db-schema` does),
+  so the tests pick up `002` against a fresh database; every statement is idempotent.
+
+Preserved: ingestion provenance (content hash, embed model/dim, chunker config,
+ingested-at), idempotent re-indexing (`IsUpToDate` skip), and document atomicity
+(embeddings before the transaction; delete-then-insert) are unchanged.
+
+Verification (recovery pass): `gofmt -l .` clean · `go vet ./...` PASS ·
+`staticcheck ./...` PASS · `go build ./...` PASS · `go test -count=1 ./...` PASS ·
+`go test -race -count=1 ./...` PASS · PostgreSQL integration **10 PASS / 0 FAIL**
+(retrieval 5/5, ingestion 5/5) · `git diff --check` PASS.
+
+Noted, **not** a gate failure (left unchanged to avoid a scope change): `002` names
+the columns `embed_model`/`chunker_config` and adds no `sources` table / `source_path`
+column, slightly differing from the RAG-003 scope wording. Core acceptance
+(no-op re-ingest when unchanged, re-ingest on change, distinct sources via
+`sourceName`, queryable provenance) is met.
+
+Recorded here rather than in the active SOP plan `PLAN-RAG-003-005.md` so that plan's
+source is not changed (a source change would require reconciliation, which this
+authorization bars).
+
 ## 10. Blockers, risks, and open questions
 
 *Amendments A–C record the execution scope, the deferred decisions, and the standing

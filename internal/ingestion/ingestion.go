@@ -32,6 +32,30 @@ const (
 	maxRetryBackoff = 5 * time.Second
 )
 
+// Provenance records where a chunk came from and how it was produced. It is
+// stored alongside every chunk so "is this document up to date?" is answerable
+// from the database and an unchanged file can be skipped without re-embedding.
+type Provenance struct {
+	// ContentHash is a fingerprint of the file's bytes combined with the
+	// chunker configuration, so a content or chunker-config change invalidates
+	// it.
+	ContentHash string
+
+	// EmbedModel is the embedding model that produced the vectors.
+	EmbedModel string
+
+	// Dimension is the width of the embedding vectors.
+	Dimension int
+
+	// ChunkerConfig is a canonical serialization of the chunker settings.
+	ChunkerConfig string
+
+	// IngestedAt is when the chunks were written. It is set by the caller so a
+	// batch shares one timestamp; a zero value is replaced with the current
+	// time.
+	IngestedAt time.Time
+}
+
 // Ingester writes documents and their embeddings to PostgreSQL.
 type Ingester struct {
 	conn     *pgx.Conn
@@ -88,7 +112,20 @@ type embeddedChunk struct {
 	vector []float64
 }
 
-// ReplaceDocument replaces all stored chunks for source.
+// ReplaceDocument replaces all stored chunks for source with no provenance.
+//
+// It is a thin wrapper over ReplaceDocumentWithProvenance kept for callers that
+// do not need the provenance columns populated.
+func (i *Ingester) ReplaceDocument(
+	ctx context.Context,
+	source string,
+	chunks []chunking.Chunk,
+) error {
+	return i.ReplaceDocumentWithProvenance(ctx, source, chunks, Provenance{})
+}
+
+// ReplaceDocumentWithProvenance replaces all stored chunks for source and
+// records provenance alongside every chunk.
 //
 // Embeddings are generated before the transaction starts. The database
 // replacement itself is atomic: either every new chunk is stored or the
@@ -100,14 +137,27 @@ type embeddedChunk struct {
 // failures are retried with backoff up to the configured bound; a terminal
 // failure returns before the transaction begins, so the stored document is left
 // untouched.
-func (i *Ingester) ReplaceDocument(
+func (i *Ingester) ReplaceDocumentWithProvenance(
 	ctx context.Context,
 	source string,
 	chunks []chunking.Chunk,
+	provenance Provenance,
 ) error {
 	embedded, err := i.embedAll(ctx, chunks)
 	if err != nil {
 		return err
+	}
+
+	dimension := provenance.Dimension
+	if dimension == 0 && len(embedded) > 0 {
+		dimension = len(embedded[0].vector)
+	}
+
+	stored := provenance
+	stored.Dimension = dimension
+
+	if stored.IngestedAt.IsZero() {
+		stored.IngestedAt = time.Now().UTC()
 	}
 
 	tx, err := i.conn.Begin(ctx)
@@ -127,7 +177,7 @@ func (i *Ingester) ReplaceDocument(
 		return fmt.Errorf("delete existing document: %w", err)
 	}
 
-	if err := i.insertChunks(ctx, tx, source, embedded); err != nil {
+	if err := i.insertChunks(ctx, tx, source, stored, embedded); err != nil {
 		return err
 	}
 
@@ -136,6 +186,67 @@ func (i *Ingester) ReplaceDocument(
 	}
 
 	return nil
+}
+
+// IsUpToDate reports whether the stored chunks for source already match the
+// supplied provenance, so the caller can skip re-embedding entirely.
+//
+// It returns true only when the source has at least one stored row and every
+// stored row carries the same content hash, chunker config, embedding model,
+// and (when supplied) embedding dimension as the supplied provenance. A missing
+// source, a content or chunker-config change, or a model or dimension change all
+// report false, which routes the caller through the full replacement path.
+func (i *Ingester) IsUpToDate(
+	ctx context.Context,
+	source string,
+	provenance Provenance,
+) (bool, error) {
+	var (
+		total   int
+		matches int
+	)
+
+	// A zero dimension means the caller did not pin one, so the dimension check
+	// is skipped rather than matching against a stored NULL.
+	dimensionMatches := "TRUE"
+	if provenance.Dimension > 0 {
+		dimensionMatches = "embedding_dim = $5"
+	}
+
+	query := fmt.Sprintf(
+		`
+		SELECT
+		    COUNT(*),
+		    COUNT(*) FILTER (
+		        WHERE content_hash = $2
+		          AND chunker_config = $3
+		          AND embed_model = $4
+		          AND %s
+		    )
+		FROM documents
+		WHERE source = $1
+		`,
+		dimensionMatches,
+	)
+
+	args := []any{
+		source,
+		provenance.ContentHash,
+		provenance.ChunkerConfig,
+		provenance.EmbedModel,
+		provenance.Dimension,
+	}
+
+	err := i.conn.QueryRow(ctx, query, args...).Scan(&total, &matches)
+	if err != nil {
+		return false, fmt.Errorf("query stored provenance: %w", err)
+	}
+
+	if total == 0 {
+		return false, nil
+	}
+
+	return matches == total, nil
 }
 
 // embedAll embeds every chunk with bounded concurrency and returns the results
@@ -179,6 +290,7 @@ func (i *Ingester) insertChunks(
 	ctx context.Context,
 	tx pgx.Tx,
 	source string,
+	provenance Provenance,
 	embedded []embeddedChunk,
 ) error {
 	if len(embedded) == 0 {
@@ -188,26 +300,32 @@ func (i *Ingester) insertChunks(
 	var builder strings.Builder
 	builder.WriteString(
 		`INSERT INTO documents (source, section, chunk_index, content, ` +
-			`embedding) VALUES `,
+			`embedding, content_hash, embed_model, embedding_dim, ` +
+			`chunker_config, ingested_at) VALUES `,
 	)
 
-	args := make([]any, 0, len(embedded)*5)
+	args := make([]any, 0, len(embedded)*10)
 
 	for index, item := range embedded {
 		if index > 0 {
 			builder.WriteString(", ")
 		}
 
-		base := index * 5
+		base := index * 10
 
 		fmt.Fprintf(
 			&builder,
-			"($%d, $%d, $%d, $%d, $%d::vector)",
+			"($%d, $%d, $%d, $%d, $%d::vector, $%d, $%d, $%d, $%d, $%d)",
 			base+1,
 			base+2,
 			base+3,
 			base+4,
 			base+5,
+			base+6,
+			base+7,
+			base+8,
+			base+9,
+			base+10,
 		)
 
 		args = append(
@@ -217,6 +335,11 @@ func (i *Ingester) insertChunks(
 			item.chunk.Index,
 			item.chunk.Content,
 			retrieval.VectorToString(item.vector),
+			nullableString(provenance.ContentHash),
+			nullableString(provenance.EmbedModel),
+			nullableInt(provenance.Dimension),
+			nullableString(provenance.ChunkerConfig),
+			provenance.IngestedAt,
 		)
 	}
 
@@ -225,4 +348,24 @@ func (i *Ingester) insertChunks(
 	}
 
 	return nil
+}
+
+// nullableString returns nil for an empty string so the provenance column is
+// stored as NULL rather than ”, keeping "not recorded" distinct from "recorded
+// empty".
+func nullableString(value string) any {
+	if value == "" {
+		return nil
+	}
+
+	return value
+}
+
+// nullableInt returns nil for a zero dimension.
+func nullableInt(value int) any {
+	if value == 0 {
+		return nil
+	}
+
+	return value
 }

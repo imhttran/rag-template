@@ -2,7 +2,7 @@
 //
 // They are skipped unless RAG_INTEGRATION=1 is set, so `go test ./...` (and the
 // pre-commit hook) stays fast. TestMain connects to DATABASE_URL and applies
-// migrations/001_init.sql, so they run against the docker-compose database
+// every migration in migrations/, so they run against the docker-compose database
 // (`make db-up`). Embeddings come from a stub Ollama server, so no model is
 // needed.
 //
@@ -84,7 +84,7 @@ func openTestDatabase(ctx context.Context) (*pgx.Conn, error) {
 		return nil, fmt.Errorf("connect: %w", err)
 	}
 
-	if err := applyMigration(ctx, conn); err != nil {
+	if err := applyMigrations(ctx, conn); err != nil {
 		_ = conn.Close(ctx)
 
 		return nil, err
@@ -93,18 +93,29 @@ func openTestDatabase(ctx context.Context) (*pgx.Conn, error) {
 	return conn, nil
 }
 
-// applyMigration runs migrations/001_init.sql, whose statements are all
-// idempotent.
-func applyMigration(ctx context.Context, conn *pgx.Conn) error {
-	migration, err := os.ReadFile(
-		filepath.Join("..", "..", "migrations", "001_init.sql"),
+// applyMigrations runs every migrations/*.sql file in name order, the way
+// `make db-schema` does, so the tests work against a fresh database and pick up
+// migrations added after 001 (for example 002_ingestion_metadata.sql). Every
+// statement is idempotent.
+func applyMigrations(ctx context.Context, conn *pgx.Conn) error {
+	paths, err := filepath.Glob(
+		filepath.Join("..", "..", "migrations", "*.sql"),
 	)
 	if err != nil {
-		return fmt.Errorf("read migration: %w", err)
+		return fmt.Errorf("list migrations: %w", err)
 	}
 
-	if _, err := conn.Exec(ctx, string(migration)); err != nil {
-		return fmt.Errorf("apply migration: %w", err)
+	slices.Sort(paths)
+
+	for _, path := range paths {
+		migration, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read migration %s: %w", path, err)
+		}
+
+		if _, err := conn.Exec(ctx, string(migration)); err != nil {
+			return fmt.Errorf("apply migration %s: %w", path, err)
+		}
 	}
 
 	return nil

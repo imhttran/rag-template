@@ -220,6 +220,20 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
+// chunkerConfigVersion identifies the serialization format of ChunkerConfig.
+// Bump it when the chunking algorithm changes in a way that invalidates stored
+// chunkings, so previously ingested documents are re-ingested.
+const chunkerConfigVersion = "v1"
+
+// ChunkerConfig returns a stable, canonical representation of the chunker
+// settings derived from ChunkSize and ChunkOverlap. Two Configs with the same
+// size and overlap produce the same string; changing either produces a
+// different one. It is recorded as ingestion provenance and compared on
+// re-ingest to decide whether a document must be chunked again.
+func (c Config) ChunkerConfig() string {
+	return fmt.Sprintf("chunker=%s;size=%d;overlap=%d", chunkerConfigVersion, c.ChunkSize, c.ChunkOverlap)
+}
+
 // OllamaClient returns a client for the configured Ollama server.
 func (c Config) OllamaClient() *ollama.Client {
 	return ollama.New(c.OllamaURL, &http.Client{Timeout: c.RequestTimeout})
