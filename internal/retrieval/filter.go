@@ -83,7 +83,6 @@ func filterFragment(f Filter, startIndex int) (string, []any) {
 	if f.IngestedTo != nil {
 		clauses = append(clauses, fmt.Sprintf("ingested_at <= $%d", next))
 		args = append(args, *f.IngestedTo)
-		next++
 	}
 
 	return strings.Join(clauses, " AND "), args
