@@ -27,7 +27,7 @@ A candidate model may be proposed for promotion only if **all** hold:
 6. **Reproducibility**: results stable across ≥3 repeat runs within the reported
    variance (see §5).
 7. **No default drift without evidence**: promotion is recorded in
-   `docs/experiments.md` and is a separate, explicit operator step.
+   `docs/reference/experiments.md` and is a separate, explicit operator step.
 
 Failing any criterion → keep the incumbent (`nomic-embed-text`).
 
@@ -73,7 +73,7 @@ Failing any criterion → keep the incumbent (`nomic-embed-text`).
    representative chunks, e.g. via the ingest wall time or a small harness), and peak
    RSS during ingest. Record both.
 6. **Record** each run (model, version, dimension, floor, corpus manifest hash,
-   repeat index) in `docs/experiments.md` or a dedicated results file.
+   repeat index) in `docs/reference/experiments.md` or a dedicated results file.
 
 ## 6. Metrics
 

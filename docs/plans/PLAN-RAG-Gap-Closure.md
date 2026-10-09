@@ -5,15 +5,15 @@
 **Author:** Agentic SOP gap audit (audit + plan only; no implementation)
 **Repository:** `rag-template`
 **Base commit:** `221fa45` (`feature/rag-gap-closure`)
-**Supersedes:** none. Complements `docs/PLAN.md` (Phases 1–18 complete, 19–22 open);
+**Supersedes:** none. Complements `docs/plans/PLAN.md` (Phases 1–18 complete, 19–22 open);
 this plan closes the gaps those phases leave open plus the audit areas below.
 
 ---
 
 ## 1. Purpose
 
-`rag-template` is a first-principles RAG learning system. `docs/PRD.md` and
-`docs/PLAN.md` declare the core loop complete (ingestion → chunking → embeddings
+`rag-template` is a first-principles RAG learning system. `docs/requirements/PRD.md` and
+`docs/plans/PLAN.md` declare the core loop complete (ingestion → chunking → embeddings
 → pgvector search → FTS → RRF → dedup → expansion → answerability → grounded
 answer with citations → evaluation). This plan audits that system against ten
 capability areas and closes the gaps **without** duplicating what already works.
@@ -32,7 +32,7 @@ and date provenance) **without implementing any genealogy-specific feature**.
 - **Do not** commit, push, merge, tag, or bypass approvals as part of this plan.
 - **Preserve** existing files, defaults, and SOP state. No task may silently
   change a shipped default; defaults change only with recorded experiment evidence
-  (`docs/experiments.md`), per the working method in `docs/PLAN.md:333`.
+  (`docs/reference/experiments.md`), per the working method in `docs/plans/PLAN.md:333`.
 - **Human review gate.** Work stops here for review before any task is scheduled
   or executed through `sop run`.
 - **Non-duplication.** Every task below states what already exists and why the
@@ -40,7 +40,7 @@ and date provenance) **without implementing any genealogy-specific feature**.
 
 ### Relationship to the existing PRD non-goals
 
-`docs/PRD.md:60` lists non-goals (SaaS, document-management product, distributed
+`docs/requirements/PRD.md:60` lists non-goals (SaaS, document-management product, distributed
 vector platform, agent framework, production-scale ingestion). The areas audited
 here (PDF/OCR, multilingual, observability, security) sit **outside** the current
 PRD. This plan therefore proposes a **new, explicitly-scoped phase** ("Phase 23+")
@@ -51,7 +51,7 @@ it and carries a "scope expansion" note for human decision.
 
 Approved for initial execution: **Milestone 1 (RAG-001, RAG-002, RAG-003)** and
 **Milestone 2 (RAG-004, RAG-005)**. These are the robustness and
-model/provider-independence gaps that carry **no** `docs/PRD.md` non-goal conflict.
+model/provider-independence gaps that carry **no** `docs/requirements/PRD.md` non-goal conflict.
 
 Execution is serial and evidence-gated: only **RAG-001** proceeds now. RAG-002
 onward wait for human review of each predecessor; reaching a milestone boundary
@@ -60,7 +60,7 @@ does **not** authorize the next task.
 ### Amendment B — Deferred to proposed Phase 23+
 
 The following milestones and tasks are **retained, not deleted**, but deferred to a
-proposed **Phase 23+** because they cross `docs/PRD.md:60` non-goals or depend on
+proposed **Phase 23+** because they cross `docs/requirements/PRD.md:60` non-goals or depend on
 features that do:
 
 - **Milestone 3** — RAG-006, RAG-007 (PDF), RAG-008 (OCR), RAG-009 (multilingual).
@@ -78,7 +78,7 @@ future phase.
 ### Amendment C — Frozen defaults and recorded deferrals
 
 - **Defaults are frozen.** No default changes in M1–M2 unless a recorded
-  evaluation row (`docs/experiments.md`) supports it (`docs/PLAN.md:333`).
+  evaluation row (`docs/reference/experiments.md`) supports it (`docs/plans/PLAN.md:333`).
 - **Token-vs-character budget: DEFERRED** to RAG-010 (Phase 23+). The choice
   between a real tokenizer and a provider-neutral character estimate is **not**
   made now.
@@ -86,7 +86,7 @@ future phase.
   requires the DB integration suite, currently unverified in this environment; see
   §9 and §10 B-01.
 - **Nondeterministic-evaluation risk: RECORDED (standing).** Rewrite and LLM
-  judges are nondeterministic (`docs/experiments.md:211`); M1–M2 changes are
+  judges are nondeterministic (`docs/reference/experiments.md:211`); M1–M2 changes are
   config/schema only and must not be credited on single-run eval deltas. See §10 R-02.
 
 ### Amendment D — Multilingual scope expansion authorized (RAG-009 chain)
@@ -95,7 +95,7 @@ Recorded on operator authorization. This supersedes the Amendment B deferral for
 **RAG-009 only**; the other deferred tasks keep their Amendment B status.
 
 - **Multilingual scope expansion: AUTHORIZED.** RAG-009 (multilingual ingestion
-  and retrieval) crosses a `docs/PRD.md:60` boundary and is now explicitly
+  and retrieval) crosses a `docs/requirements/PRD.md:60` boundary and is now explicitly
   approved as the first Phase 23+ scope expansion. Its acceptance must keep the
   default `'english'` FTS behavior when a document's language is unset, so
   English-only corpora remain byte-identical to baseline.
@@ -130,11 +130,11 @@ deferral status for the tasks listed as done; the frozen set is unchanged.
   provenance-lookup fix (`1076bfc`) also landed.
 - **Verified (not just claimed):** the DB integration suite (25 tests) passed
   against a disposable PostgreSQL 16 + pgvector 0.6.0 instance; `make eval`
-  reproduced the `docs/experiments.md` baseline (citation validity **89/89**, and
+  reproduced the `docs/reference/experiments.md` baseline (citation validity **89/89**, and
   the 2/6 similarity-only rejection); `make sweep AXIS=rerank` recorded latency and
   fallback rows; `govulncheck ./...` is clean.
 - **Still frozen / not implemented:** RAG-007 (PDF), RAG-008 (OCR), RAG-016 (eval
-  capstone). These are scoped, still unimplemented, in `docs/PRD-Phase-23b.md` and
+  capstone). These are scoped, still unimplemented, in `docs/requirements/PRD-Phase-23b.md` and
   `docs/plans/PLAN-RAG-Phase-23b.md`.
 - **Historicalized:** `plan-rag-015` (disposition COMPLETE) under
   `.agent-sdlc/archive/`. No SOP plan is ACTIVE.
@@ -163,13 +163,13 @@ Verified against commit `221fa45`. File references are `path:line`.
 | 14 | Grounded generation prompt | Implemented | `internal/rag/answer.go:14` |
 | 15 | Citations | **Prompt-only**, no structured output | `internal/rag/answer.go:26-32` |
 | 16 | Evaluation metrics | Implemented (retrieval, evidence, facts, groundedness, citation validity/entailment) | `cmd/eval/main.go:729` |
-| 17 | Eval dataset | 43 cases (37 answerable, 6 unanswerable) | `evals/retrieval.json`; `docs/experiments.md:18` |
+| 17 | Eval dataset | 43 cases (37 answerable, 6 unanswerable) | `evals/retrieval.json`; `docs/reference/experiments.md:18` |
 | 18 | Unit + DB integration tests | Implemented | `*_test.go`; `README.md:429` |
 | 19 | Model/provider independence | **Partial** — Ollama concrete types; schema dim fixed | `embedding.go:12-21`; `generation.go:11-20`; `migrations/001_init.sql` `vector(768)` |
 | 20 | PDF / OCR ingestion | **Missing** — markdown `## ` only | `internal/document/document.go:12` |
 | 21 | Multilingual | **Missing** — FTS hardcoded `english` | `retrieval.go:161`,`:165` |
 | 22 | Metadata filtering | **Missing** | no filter param in `Search`/`KeywordSearch` |
-| 23 | Token/context budgeting | **Missing** — chunk-count caps only | `retrieval.go:244`; `docs/PLAN.md:217` (Phase 19 "Next") |
+| 23 | Token/context budgeting | **Missing** — chunk-count caps only | `retrieval.go:244`; `docs/plans/PLAN.md:217` (Phase 19 "Next") |
 | 24 | Ingestion reliability (batch/retry/provenance) | **Partial** — sequential per-chunk embed, no retry, no hash/metadata | `internal/ingestion/ingestion.go:49-64` |
 | 25 | Observability | **Partial** — stdout stage prints only | `cmd/rag/main.go:317-425` |
 | 26 | Security | **Baseline** — parameterized SQL; no limits/injection defense | `retrieval.go:40-56`; `internal/rag/answer.go:14` |
@@ -220,7 +220,7 @@ them; none re-implements them.
    Retrieval, ingestion, generation, reranking, answerability, and eval depend on
    interfaces, not concrete clients. Defaults remain Ollama + local models.
 2. **Determinism first.** Prefer deterministic checks before LLM judges
-   (`docs/PLAN.md:281`; `docs/LESSONS.md` §13). New logic must be unit-testable
+   (`docs/plans/PLAN.md:281`; `docs/lessons.md` §13). New logic must be unit-testable
    without a database or model.
 3. **Shared pipeline.** Any retrieval change flows through
    `HybridRetrieve`/`MultiQueryRetrieve` so eval reflects production.
@@ -440,10 +440,10 @@ done), **Validation gate** (what makes it pass), **Rollback**.
 ### Milestone 4 — Retrieval, reranking, citation quality — **deferred to proposed Phase 23+**
 
 #### RAG-010 — Deterministic token/context budget
-- **Area:** Retrieval quality (G-11). Corresponds to open `docs/PLAN.md:217`.
+- **Area:** Retrieval quality (G-11). Corresponds to open `docs/plans/PLAN.md:217`.
 - **Rationale:** `ExpandLimit` counts chunks (`retrieval.go:244`), not tokens, and
   expansion can exceed a nominal limit when many sections each get one chunk
-  (`docs/PLAN.md:223`).
+  (`docs/plans/PLAN.md:223`).
 - **Scope:** A deterministic context builder with an explicit token (or
   character, decided by experiment) budget: allocate across sections by fused
   rank, measure the budget with a model-agnostic tokenizer estimate, and never
@@ -460,7 +460,7 @@ done), **Validation gate** (what makes it pass), **Rollback**.
   - Higher-ranked sections receive budget priority, with fairness across sections.
   - Evidence recall (before/after) is reported against the pre-change baseline.
 - **Validation gate:** Unit tests for budget boundaries and fairness; eval run
-  comparing evidence recall, latency, and token usage per `docs/PLAN.md:235`.
+  comparing evidence recall, latency, and token usage per `docs/plans/PLAN.md:235`.
 - **Rollback:** Switch the builder back to chunk-count mode via config.
 
 #### RAG-011 — Metadata filtering across retrieval
@@ -485,7 +485,7 @@ done), **Validation gate** (what makes it pass), **Rollback**.
 - **Area:** Reranking (G-12).
 - **Rationale:** `RAG_LLM_RERANK` defaults off (`config.go:122`) and
   `RerankLLM` aborts the whole request on a parse failure
-  (`reranking/llm.go:59`, `parseRanking`). Experiments (`docs/experiments.md:105`)
+  (`reranking/llm.go:59`, `parseRanking`). Experiments (`docs/reference/experiments.md:105`)
   measured it but did not promote it.
 - **Scope:** On parse/validation failure, fall back deterministically to the
   fused order (log the fallback) instead of erroring; add a bounded latency guard;
@@ -500,7 +500,7 @@ done), **Validation gate** (what makes it pass), **Rollback**.
   - New sweep rows compare off / lexical / LLM (/ cross-encoder) on recall,
     precision, evidence recall, and latency.
 - **Validation gate:** Unit tests for fallback and guard; `make sweep` rows
-  recorded in `docs/experiments.md`.
+  recorded in `docs/reference/experiments.md`.
 - **Rollback:** Default stays off; revert the fallback change independently.
 
 #### RAG-013 — Structured citations with runtime validation and repair
@@ -596,7 +596,7 @@ done), **Validation gate** (what makes it pass), **Rollback**.
   - The full suite runs in the documented time budget (or a fast subset is defined).
 - **Validation gate:** `go test ./...` + `RAG_INTEGRATION=1` integration +
   `make eval` (and `make sweep` for affected axes), results recorded in
-  `docs/experiments.md`.
+  `docs/reference/experiments.md`.
 - **Rollback:** Revert dataset additions; existing cases unaffected.
 
 ## 7. Dependency graph and sequencing
@@ -915,14 +915,14 @@ blockers below.*
 - **B-04 (staticcheck environment blocker — RESOLVED).** `staticcheck 2026.2.1`
   (0.8.1) is installed and `staticcheck ./...` reports no findings (see §9
   *Environment verification*).
-- **B-02 (scope).** RAG-007/008/009/010/011/012/013/014/015 cross `docs/PRD.md`
+- **B-02 (scope).** RAG-007/008/009/010/011/012/013/014/015 cross `docs/requirements/PRD.md`
   non-goals and are deferred to proposed Phase 23+; they require an explicit human
   decision to open that phase.
 - **B-03 (RAG-001 acceptance gap). RESOLVED.** Item 5 was closed by the item-5
   fix recorded in §9 (`cmd/ingest` now fails with `no sections found in <path>`;
   regression tests added). No longer a blocker.
 - **R-01 (default drift).** Several tasks touch defaults (chunk size, rerank).
-  `docs/experiments.md:199` already flags the chunk-size default as unresolved;
+  `docs/reference/experiments.md:199` already flags the chunk-size default as unresolved;
   this plan forbids default changes without recorded sweep evidence.
 - **R-02 (standing risk — nondeterminism).** Rewrite and LLM judges are
   nondeterministic (`experiments.md:211`); RAG-016 (Phase 23+) must quantify variance
@@ -948,5 +948,5 @@ implemented under this plan.
 
 - Every task is independently revertible; none requires destructive data
   migration. New SQL is additive and idempotent.
-- Defaults move only with recorded evidence in `docs/experiments.md`.
+- Defaults move only with recorded evidence in `docs/reference/experiments.md`.
 - No commit, push, merge, or approval is performed by this plan.

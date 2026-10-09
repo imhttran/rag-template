@@ -218,7 +218,7 @@ recall@4). Both models selected floor `0.70`; on the held-out split the means ar
 rejection; `embeddinggemma`'s higher raw recall appears only at a zero-rejection
 floor, which the selection rule excludes. Decision: **retain `nomic-embed-text`**.
 The full protocol, thresholds, per-run records, and the defect that this run
-exposed live in [`experiments-eval-sweep.md`](experiments-eval-sweep.md).
+exposed live in [`experiments-eval-sweep.md`](../experiments-eval-sweep.md).
 
 ## Still open
 

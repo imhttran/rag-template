@@ -348,7 +348,7 @@ adding unmeasured retrieval features.
 > **Status note (implementation):** the first six items below have landed since
 > this PRD was written; they are kept for history and marked inline. The
 > remaining product-shaping work (PDF, page provenance, OCR, multilingual
-> evaluation, genealogy) is scoped in `docs/PRD-Phase-23b.md`.
+> evaluation, genealogy) is scoped in `docs/requirements/PRD-Phase-23b.md`.
 
 Future work may include:
 
@@ -364,7 +364,7 @@ Future work may include:
 -   latency and resource measurements;
 -   production-oriented observability and deployment;
 -   **PDF text-layer ingestion, page provenance, and optional OCR** — proposed in
-    `docs/PRD-Phase-23b.md` (not implemented);
+    `docs/requirements/PRD-Phase-23b.md` (not implemented);
 -   **multilingual (Vietnamese/English) retrieval evaluation** — proposed;
 -   **genealogy entity/person extraction** — a separate future scope, not part of
-    Phase 23b (`docs/PRD-Phase-23b.md` §"Out of scope").
+    Phase 23b (`docs/requirements/PRD-Phase-23b.md` §"Out of scope").

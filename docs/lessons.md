@@ -1,5 +1,11 @@
 # RAG Template --- Lessons Learned
 
+> **Non-normative retrospective.** This records the reasoning behind decisions
+> already made. The normative sources are the
+> [requirements](requirements/PRD.md) and the
+> [reference](reference/commands.md) documents; the
+> [documentation index](README.md) lists the whole set.
+
 ## Purpose
 
 This document captures the major lessons learned while building the RAG
@@ -8,9 +14,9 @@ Template project.
 It is intentionally different from the other project documents:
 
 ```text
-PRD.md      -> What are we building and why?
-PLAN.md     -> What steps did we take and what comes next?
-LESSONS.md  -> What did those steps teach us?
+docs/requirements/PRD.md    -> What are we building and why?
+docs/plans/PLAN.md          -> What steps did we take and what comes next?
+docs/lessons.md             -> What did those steps teach us?
 ```
 
 The goal is to preserve not just the final architecture, but the
@@ -1115,7 +1121,7 @@ components is not the priority.
 
 The next step is controlled experimentation. That first pass is done: chunk
 size and overlap, Candidate Top-K, Final-K, query rewriting, and reranking were
-each swept and the results are recorded in `experiments.md`. Context budgeting
+each swept and the results are recorded in `docs/reference/experiments.md`. Context budgeting
 is still open.
 
 ## Context budgeting
@@ -1266,19 +1272,19 @@ README.md
    |
    +-> What is this repository and how do I run it?
 
-PRD.md
+docs/requirements/PRD.md
    |
    +-> What are we building and why?
 
-PLAN.md
+docs/plans/PLAN.md
    |
    +-> What stages did we build and what comes next?
 
-LESSONS.md
+docs/lessons.md
    |
    +-> What did we learn and why does the architecture look this way?
 
-experiments.md
+docs/reference/experiments.md
    |
    +-> What did we measure, and what did the numbers change?
 ```

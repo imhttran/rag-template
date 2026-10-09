@@ -244,7 +244,7 @@ against the current baseline.
 
 **Status: Implemented** (`scripts/sweep.sh`, `make sweep`). Axes cover chunk
 size/overlap, TOP_K, FINAL_K, rewrite, rerank, and MIN_SIMILARITY; results are
-recorded in `docs/experiments.md`.
+recorded in `docs/reference/experiments.md`.
 
 Change one variable at a time and run the same evaluation suite.
 

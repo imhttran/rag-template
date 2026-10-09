@@ -29,7 +29,7 @@ existing lexical reranker and RRF baselines. The prompt and the
 - **Files (expected):** `internal/reranking/llm.go` (fallback path and guard),
   `internal/reranking/llm_test.go` (fallback and guard tests),
   `internal/config/config.go` (guard/limit setting, default-safe), and
-  `docs/experiments.md` (new sweep rows); `cmd/eval/main.go` only if the sweep
+  `docs/reference/experiments.md` (new sweep rows); `cmd/eval/main.go` only if the sweep
   harness needs wiring. No change to `internal/contextbudget`,
   `internal/retrieval` query structure, migrations, or `internal/ingestion`.
 - **Depends on:** none
@@ -43,7 +43,7 @@ existing lexical reranker and RRF baselines. The prompt and the
   - The default remains off; with reranking off, behaviour is byte-identical to
     baseline.
 - **Validation gate:** unit tests for the fallback and the guard;
-  `make sweep` rows recorded in `docs/experiments.md`;
+  `make sweep` rows recorded in `docs/reference/experiments.md`;
   `go build ./... && go vet ./... && go test ./...` green (optionally
   `go test -race ./...`). The sweep requires PostgreSQL plus a running model; if
   unavailable, record the sweep as **NOT RUN** — never as passed.

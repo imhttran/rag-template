@@ -4,7 +4,7 @@
 **Status:** **PROPOSED — NOT ACTIVE.** Nothing here is implemented, scheduled, or
 approved. RAG-007, RAG-008, and RAG-016 remain **frozen** until the operator
 explicitly opens Phase 23b.
-**Supersedes:** none. It **extends** `docs/PRD.md` (§14) and sequences the
+**Supersedes:** none. It **extends** `docs/requirements/PRD.md` (§14) and sequences the
 remaining M3/M6 work of `docs/plans/PLAN-RAG-Gap-Closure.md` (Amendments B/D).
 **Related:** `docs/plans/PLAN-RAG-Phase-23b.md` (execution plan),
 `docs/plans/PLAN-RAG-Gap-Closure.md` (audit; Amendment E records what already
@@ -52,7 +52,7 @@ possible.
 - No change to embedding **dimensions** or the default embedding **model** in this
   phase (a model swap is a recorded decision, not a default change — see §7).
 - No new provider, no distributed/vector-platform work, no SaaS/document-management
-  surface (`docs/PRD.md` §5).
+  surface (`docs/requirements/PRD.md` §5).
 - No destructive migration; all schema changes are additive.
 
 ## 4. Requirements
@@ -161,7 +161,7 @@ then has to unwind. The contract to fix first:
 - **Embedding quality for Vietnamese** — the default model is English-centric;
   retrieval quality is unproven until measured.
 - **Evaluation nondeterminism** — rewrite/LLM judges vary run to run; single-run
-  deltas must not be over-read (`docs/experiments.md`).
+  deltas must not be over-read (`docs/reference/experiments.md`).
 
 ## 9. Out of scope
 

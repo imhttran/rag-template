@@ -7,19 +7,15 @@ question, and asks a local model to answer using only those chunks. A separate
 command scores retrieval quality and compares a lexical reranker against plain
 vector search.
 
-## Workflow
+Three commands drive it — `cmd/ingest` loads a document, `cmd/rag` answers a
+question, and `cmd/eval` scores retrieval. The full list, including the `make`
+shortcuts, is in the [command reference](docs/reference/commands.md).
 
-Three commands:
-
-| Command      | What it does                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| `cmd/ingest` | Read a document → split into chunks → embed each chunk → store it |
-| `cmd/rag`    | Embed a question → retrieve the closest chunks → answer from them |
-| `cmd/eval`   | Score retrieval (recall/precision) and compare a lexical reranker |
+## Architecture
 
 ```mermaid
 flowchart TD
-    doc[Markdown document] --> parse[Parse sections]
+    doc[Document file] --> parse[Parse sections]
     parse --> chunk[Chunk]
     chunk --> embed[Embed with Ollama]
     embed --> db[(PostgreSQL + pgvector)]
@@ -31,23 +27,12 @@ flowchart TD
     ctx --> answer[Answer with local model]
 ```
 
-## Shortcuts
+Retrieval is hybrid: vector search and PostgreSQL full-text search are fused with
+reciprocal rank fusion, the top sections are deduplicated and expanded, and an
+optional answerability gate decides whether the evidence can answer at all. See
+the [architecture overview](docs/architecture/OVERVIEW.md) for the full picture.
 
-A `Makefile` wraps the same steps:
-
-| Target             | Runs                                                  |
-| ------------------ | ----------------------------------------------------- |
-| `make db-up`       | start the database and apply all migrations           |
-| `make db-down`     | `docker compose down`                                 |
-| `make db-schema`   | apply all migrations (existing volume only)           |
-| `make test`        | run the unit tests (no database needed)               |
-| `make fmt-json`    | rewrite every tracked JSON file with `jq`             |
-| `make integration` | run the integration tests against the database        |
-| `make ingest`      | ingest `examples/loan-policy.md` (`FILE=…` to change) |
-| `make ask Q="…"`   | ask a question (omit `Q` to be prompted)              |
-| `make eval`        | score retrieval against `evals/retrieval.json`        |
-
-## Prerequisites
+## Requirements
 
 - Go 1.26 or newer
 - Ollama running locally, with an embedding model and a chat model:
@@ -59,543 +44,54 @@ A `Makefile` wraps the same steps:
 
 - Docker (for the bundled PostgreSQL + pgvector)
 
-## Setup
+## Quick start
 
-Start the database and apply the migrations (pgvector extension, `documents`
-table, and the vector index):
+Start the database and apply the migrations, then ingest a document, ask a
+question, and score retrieval:
 
 ```bash
 make db-up
+make ingest
+make ask Q="What happens if someone misses a payment?"
+make eval
 ```
 
-`docker compose` runs every file in `migrations/` in name order the first time
-the volume is created, which only covers a fresh database. `make db-up`
-therefore re-applies the migrations afterwards, and `make db-schema` does so on
-demand for an existing volume. Without `make`:
-
-```bash
-docker compose up -d --wait
-for f in migrations/*.sql; do
-  psql 'postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable' -f "$f"
-done
-```
-
-Every migration is idempotent, so re-running is safe. `make db-schema` only
-globs `migrations/*.sql`, so nothing under `docs/operations/` — including the
-dimension-change procedure — is applied automatically; that procedure is
-deliberately outside the glob, which is what keeps `make db-schema` idempotent
-and non-destructive.
-
-### Changing the embedding dimension
-
-`documents.embedding` is a `vector(768)` column (see `migrations/001_init.sql`)
-and `EMBED_DIM` must match it. To move to a model of a different width, follow
-the operator-run procedure in
-[`docs/operations/embedding-dimension.md`](docs/operations/embedding-dimension.md):
-it changes the column to `vector(n)`, rebuilds the `documents_embedding_idx` HNSW
-index, sets `EMBED_DIM`, and requires **re-ingesting the corpus** so every stored
-vector is produced at the new dimension. The guard `ingestion.CheckEmbeddingDim`
-fails fast with the same instructions when `EMBED_DIM` and the column disagree.
-This procedure is never applied by `make db-schema`, `make db-up`, or the
-`docker-entrypoint-initdb.d` mount in `docker-compose.yml`, because it is not
-under `migrations/*.sql`.
-
-## 1. Ingest
-
-Chunk a document, embed each chunk, and store it:
-
-```bash
-go run ./cmd/ingest examples/loan-policy.md
-```
-
-The corpus is markdown; each `## section` is split into overlapping ~100-word
-chunks stored with their `source`, `section`, and `chunk_index` for citations.
-Output:
-
-```text
-Ingested 6 chunks from loan-policy.md.
-```
-
-Re-running replaces that file's stored chunks, so the store never accumulates
-duplicates.
-
-## 2. Query
-
-Ask a question:
-
-```bash
-go run ./cmd/rag "What happens if someone misses a payment?"
-```
-
-The question can also come from the `QUESTION` setting, or be typed at the prompt
-when the command is run with no argument:
-
-```bash
-QUESTION="What happens if someone misses a payment?" go run ./cmd/rag
-go run ./cmd/rag   # prompts: Question:
-```
-
-Output (scores and the answer vary by model and data):
-
-```text
-Question:
-What happens if someone misses a payment?
-
-Ollama created a 768-dimensional query vector
-
-Vector retrieval:
-KEPT      <score>  [loan-policy.md - Missed Payments - chunk 0] If a borrower misses a payment, ...
-KEPT      <score>  [loan-policy.md - Late Fees - chunk 0] A late fee may be assessed ...
-FILTERED  <score>  A delinquent loan may eventually be referred to collections ...
-
-Hybrid retrieval:
-RRF <score>  vector <score>  keyword <score>  [loan-policy.md - Missed Payments - chunk 0] ...
-
-Expanded context:
-[loan-policy.md - Missed Payments - chunk 0] ...
-[loan-policy.md - Missed Payments - chunk 1] ...
-
-Context being sent to the LLM:
-Source: loan-policy.md
-Section: Missed Payments
-Chunk: 0
-Content: If a borrower misses a payment, ...
-
-Answer:
-<the model's answer, citing [loan-policy.md - Missed Payments] where relevant>
-```
-
-Retrieval is hybrid: vector search (`TOP_K` candidates) and PostgreSQL full-text
-search (`TOP_K` candidates) are combined with reciprocal rank fusion, keeping the
-top `FINAL_K` fused chunks, and each matched section is then expanded to its
-chunks (`EXPAND_LIMIT` cap) before the context is sent to the model.
-Vector-only candidates below `MIN_SIMILARITY` are marked `FILTERED` and left out.
-
-By default `cmd/rag` rewrites the question into a search query with the chat
-model (`internal/rag`), then retrieves over both the original question and the
-rewritten query. Each query runs a vector search and a PostgreSQL full-text
-search, and the four rankings are fused with reciprocal rank fusion before
-section deduplication and expansion. Set `QUERY_REWRITE=false` to retrieve over
-the original question only. Either way the model answers the original question.
-
-The original query is kept alongside the rewrite rather than replaced: the
-rewrite is lossy, and retrieving over it alone finds fewer of the expected
-documents (see the evaluation below). Fusing both matches the original query's
-retrieval while hedging against a bad rewrite.
-
-When `RAG_LLM_RERANK` is set, `cmd/rag` asks the chat model to reorder the fused
-candidates by relevance (`reranking.RerankLLM`), keeps the top `FINAL_K`, and
-expands those sections before answering — the same reranker the evaluation
-compares under `EVAL_LLM_RERANK`. Otherwise it expands the fused sections
-directly.
-
-Before answering, `cmd/rag` asks the chat model whether the kept documents can
-actually answer the question (`RAG_ANSWERABILITY_GATE`, on by default). If they
-cannot, it replies "I do not have enough information." instead of answering.
-
-## 3. Evaluate
-
-`cmd/eval` scores retrieval against `evals/retrieval.json`: a list of questions,
-each with the `source`/`section` documents that should be retrieved. Ingest the
-example corpora first, then run it:
-
-```bash
-go run ./cmd/ingest examples/loan-policy.md
-go run ./cmd/ingest examples/large-loan-policy.md
-go run ./cmd/ingest examples/member-services-guide.md
-go run ./cmd/ingest examples/commercial-servicing-manual.md
-go run ./cmd/eval
-```
-
-For each case it reports recall and precision at K = 1, 2, `TOP_K` for plain
-vector search and for hybrid retrieval (vector and keyword results fused with
-RRF). When a reranker is enabled it runs the reranking experiment — retrieve
-`TOP_K` candidates, rerank with `internal/reranking`, keep the top `FINAL_K` —
-reporting the same metrics, followed by averages across all cases.
-
-It also runs the production pipeline from `internal/retrieval`, the same one
-`cmd/rag` uses, and reports evidence recall before and after section expansion so
-the effect of expanding a section into all of its chunks is visible. Add an
-`evidence` array of substrings to a case in `evals/retrieval.json` to opt in.
-
-The reranker is lexical: it scores a candidate by how many distinct question
-words appear in its section and content, and `retrieval.DeduplicateSections`
-drops all but the top-ranked chunk per source/section before reranking. It is a
-teaching baseline, not a semantic reranker.
-
-Both rerankers are off by default. Set `EVAL_LEXICAL_RERANK=true` for the lexical
-one and/or `EVAL_LLM_RERANK=true` for the chat model (`RerankLLM` in the same
-package), which asks the model to order the candidates by semantic relevance.
-They use the same candidate set, so their results are reported side by side.
-
-An optional answerability gate (`EVAL_ANSWERABILITY_GATE=true`) asks the chat
-model whether the expanded evidence can answer each question — the same
-documents `cmd/rag` sends to its answerability gate and the model — and reports
-a confusion matrix (correct accepts/rejects, false rejects/accepts).
-
-An optional fact judge (`EVAL_FACT_JUDGE=true`) asks the chat model which of a
-case's `expected_facts` the expanded evidence supports, and reports the total
-supported across cases. Add an `expected_facts` array to a case in
-`evals/retrieval.json` to opt in.
-
-Query rewriting (`QUERY_REWRITE`, on by default) rewrites each question into a
-search query with the chat model (`internal/rag`), then reports multi-query
-retrieval — a vector and a full-text search for both the original and the
-rewritten query, four rankings fused with RRF. This is what `cmd/rag` does.
-
-Setting `EVAL_REWRITE_ONLY=true` retrieves over the rewritten query alone
-instead of fusing it with the original — the experiment behind keeping both.
-Averaged over the four-document example corpus, hybrid retrieval scores:
-
-| Mode                 | Recall@1 | Precision@1 | Recall@4 | Precision@4 |
-| -------------------- | -------- | ----------- | -------- | ----------- |
-| original only        | 0.68     | 0.81        | 0.94     | 0.55        |
-| rewritten only       | 0.69     | 0.78        | 0.91     | 0.61        |
-| original + rewritten | 0.73     | 0.86        | 0.93     | 0.52        |
-
-Replacing the original with its rewrite holds K=1 recall but loses recall at
-K=4 (0.94 → 0.91); keeping both is the best at K=1 (0.73) and still competitive
-at K=4. The rewrite comes from the chat model, so its wording — and these
-averages — vary a little from run to run.
-
-### Comparing settings
-
-`scripts/sweep.sh` (or `make sweep`) runs `cmd/eval` once per configuration and
-prints the Overall averages as one row per configuration, so a change is judged
-by the numbers instead of by a couple of answers:
-
-```bash
-make sweep              # every axis
-make sweep AXIS=chunk   # or topk | finalk | rewrite | rerank | minsim | judge
-```
-
-Each row shows hybrid retrieval's per-K recall and precision plus whichever
-optional metrics that configuration produced. The `chunk` axis re-ingests
-examples/*.md before each step (cmd/ingest replaces a file's chunks, so
-repeating is safe). `QUERY_REWRITE` is on by default, so every axis calls the
-chat model; run `QUERY_REWRITE=false make sweep AXIS=…` to sweep without it, and
-every axis still needs the database up and the corpora ingested. Recorded
-results live in `docs/experiments.md`.
-
-For a controlled **embedding-model** comparison, `scripts/eval-model-sweep.sh`
-sweeps `MIN_SIMILARITY` per model on a **calibration split** and reports the
-disjoint **held-out split**, one isolated database per model, three repeats per
-model (see `docs/operations/embedding-models.md`). Its eval runs default to
-`QUERY_REWRITE=false`, so the comparison is deterministic and needs no chat
-model; recorded results live in `docs/experiments-eval-sweep.md`.
-
-## Configuration
-
-All three commands read the same settings from the environment. The defaults
-work with the bundled `docker-compose.yml` and a local Ollama.
-
-`.env.example` lists every setting; copy it to `.env` and load it into your
-shell (Go does not read `.env` files on its own):
+Every setting is read from the environment; [`.env.example`](.env.example) lists
+them all. Copy it to `.env` and load it into your shell (Go does not read `.env`
+files on its own):
 
 ```bash
 cp .env.example .env
 set -a; source .env; set +a
 ```
 
-| Variable                  | Default                                                 | Used by        |
-| ------------------------- | ------------------------------------------------------- | -------------- |
-| `OLLAMA_URL`              | `http://localhost:11434`                                | all            |
-| `OLLAMA_EMBED_MODEL`      | `nomic-embed-text`                                      | all            |
-| `OLLAMA_CHAT_MODEL`       | `qwen3.8:27b-mlx`                                       | rag, eval      |
-| `DATABASE_URL`            | `postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable` | all            |
-| `EMBED_DIM`               | `768`                                                   | all            |
-| `EMBED_PROVIDER`          | `ollama`                                                | all            |
-| `GEN_PROVIDER`            | `ollama`                                                | all            |
-| `CHUNK_SIZE`              | `50`                                                    | ingest         |
-| `CHUNK_OVERLAP`           | `20`                                                    | ingest         |
-| `EMBED_WORKERS`           | `4`                                                     | ingest         |
-| `EMBED_RETRIES`           | `3`                                                     | ingest         |
-| `CORPUS_LANGUAGE`         | _(empty — baseline `english` FTS)_                      | ingest, rag    |
-| `TOP_K`                   | `4`                                                     | rag, eval      |
-| `FINAL_K`                 | `3`                                                     | rag, eval      |
-| `EXPAND_LIMIT`            | `20`                                                    | rag, eval      |
-| `MIN_SIMILARITY`          | `0.6`                                                   | rag, eval      |
-| `CONTEXT_BUDGET`          | `0` (disabled)                                          | rag            |
-| `MAX_QUESTION_BYTES`      | `0` (disabled)                                          | rag            |
-| `MAX_INPUT_BYTES`         | `0` (disabled)                                          | rag            |
-| `REQUEST_TIMEOUT`         | `5m`                                                    | all            |
-| `RAG_ANSWERABILITY_GATE`  | `true`                                                  | rag            |
-| `RAG_LLM_RERANK`          | `false`                                                 | rag            |
-| `RAG_CITATION_VALIDATION` | `false`                                                 | rag            |
-| `RERANK_TIMEOUT`          | `0s` (disabled)                                         | rag, eval      |
-| `OBSERVABILITY_FORMAT`    | `human`                                                 | rag            |
-| `QUERY_REWRITE`           | `true`                                                  | rag, eval      |
-| `EVAL_LEXICAL_RERANK`     | `false`                                                 | eval           |
-| `EVAL_LLM_RERANK`         | `false`                                                 | eval           |
-| `EVAL_ANSWERABILITY_GATE` | `false`                                                 | eval           |
-| `EVAL_FACT_JUDGE`         | `false`                                                 | eval           |
-| `EVAL_REWRITE_ONLY`       | `false`                                                 | eval           |
-| `QUESTION`                | _(none — pass it as an argument, or type it)_           | rag            |
+For running the commands directly, changing the embedding dimension, and the full
+setup details, see the [usage guide](docs/guides/usage.md).
 
-`all` = every command; `rag` = `cmd/rag` only; `eval` = `cmd/eval` only;
-`ingest` = `cmd/ingest` only; `rag, eval` = both commands.
+## Documentation
 
-### Post-gap-closure settings
+The full index — with a one-line "when to read it" for every document — lives in
+[docs/README.md](docs/README.md). The major areas:
 
-The settings below were added by the RAG gap-closure work (RAG-006…RAG-015).
-Each defaults to the pre-change behaviour, so an unset value changes nothing:
+| Area                                                 | What is here                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Requirements](docs/requirements/PRD.md)             | The canonical PRD, and the phase-23b PRD for proposed work                                                                                                                                                                                                      |
+| [Architecture](docs/architecture/OVERVIEW.md)        | The RAG loop, package responsibilities, and boundaries                                                                                                                                                                                                          |
+| [Reference](docs/reference/commands.md)              | Commands, [configuration](docs/reference/configuration.md), [capabilities](docs/reference/capabilities.md), [project structure](docs/reference/project-structure.md), [testing](docs/reference/testing.md), [experiments](docs/reference/experiments.md)        |
+| [Guides](docs/guides/usage.md)                       | Task-oriented how-tos: [usage](docs/guides/usage.md), [evaluation](docs/guides/evaluation.md), [git hooks and agent scripts](docs/guides/agent-scripts.md)                                                                                                      |
+| [Operations](docs/operations/embedding-dimension.md) | Operator-run procedures: [embedding dimension](docs/operations/embedding-dimension.md), [embedding models](docs/operations/embedding-models.md), [page provenance](docs/operations/page-provenance.md), [prompt injection](docs/operations/prompt-injection.md) |
+| [Plans](docs/plans/PLAN.md)                          | The [engineering and learning plan](docs/plans/PLAN.md) and focused, SOP-compatible task plans (RAG-*)                                                                                                                                                          |
+| [Lessons](docs/lessons.md)                           | The [lessons-learned](docs/lessons.md) retrospective (non-normative)                                                                                                                                                                                            |
 
-- **`CORPUS_LANGUAGE`** (`ingest`, `rag`) — BCP-47 tag selecting the PostgreSQL
-  full-text search configuration for keyword retrieval and stored per document.
-  Empty (default) keeps `english`; a supported language uses its configuration;
-  an unsupported one falls back to `simple` (see `internal/retrieval.NormalizeFTSConfig`).
-- **`CONTEXT_BUDGET`** (`rag`) — byte-based cap on the context sent to the model.
-  `0` (default) keeps the chunk-count behaviour. See
-  [`internal/contextbudget`](internal/contextbudget).
-- **`RAG_CITATION_VALIDATION`** (`rag`) — validates the model's `[source - section]`
-  citations against the retrieved documents and repairs an answer whose citations
-  do not resolve (one bounded re-prompt, then strip). Off by default; when off the
-  answer path is unchanged. See [`internal/citations`](internal/citations).
-- **`MAX_QUESTION_BYTES` / `MAX_INPUT_BYTES`** (`rag`) — fail-fast size limits for
-  the question and the assembled retrieved context. `0` (default) disables each
-  check; an oversized input errors before any model call, naming the variable.
-- **`RERANK_TIMEOUT`** (`rag`, `eval`) — bounds the LLM reranker; `0s` (default)
-  disables the guard. A malformed, slow, or failed reranker degrades to the fused
-  order instead of failing the request.
-- **`OBSERVABILITY_FORMAT`** (`rag`) — `human` (default) keeps the existing stage
-  output; `json` emits one correlated `log/slog` record per run with a run ID,
-  stage timings, retrieved/filtered counts, and context usage. See
-  [`internal/observability`](internal/observability).
-- **`EMBED_PROVIDER` / `GEN_PROVIDER`** (`all`) — provider-registry selectors
-  (`ollama` by default). See [`internal/provider`](internal/provider).
+## Status
 
-`EMBED_DIM` must match the stored `documents.embedding` column. The guard
-`ingestion.CheckEmbeddingDim` fails fast otherwise and points at
-[`docs/operations/embedding-dimension.md`](docs/operations/embedding-dimension.md),
-the operator-run procedure for changing the dimension; changing it also
-requires re-ingesting the corpus.
-
-## Project structure
-
-```text
-rag-template/
-├── cmd/
-│   ├── eval/              # score retrieval and compare reranking
-│   ├── ingest/            # chunk a file into the documents table
-│   └── rag/               # answer a question from the stored documents
-├── internal/
-│   ├── answerability/     # ask the chat model whether the evidence answers the question
-│   ├── chunking/          # sections -> chunks
-│   ├── citations/         # parse/validate/repair [source - section] citations (RAG-013)
-│   ├── config/            # settings + Ollama/Postgres setup
-│   ├── contextbudget/     # deterministic byte-estimate context budget (RAG-010)
-│   ├── document/          # parse markdown into sections
-│   ├── embedding/         # text -> vector (Ollama /api/embed)
-│   ├── generation/        # prompt -> answer (Ollama /api/generate)
-│   ├── ingestion/         # replace a source's chunks + embeddings atomically
-│   ├── loader/            # pluggable format loaders + Registry/Dispatch (RAG-006)
-│   ├── observability/     # per-run reporter: human output or JSON slog (RAG-014)
-│   ├── ollama/            # shared JSON client for the Ollama server
-│   ├── provider/          # embedder/generator provider registry (RAG-004)
-│   ├── rag/               # rewrite the question, build the answer prompt
-│   ├── reranking/         # lexical + LLM rerankers (with fallback + guard, RAG-012)
-│   └── retrieval/         # pgvector search, RRF fusion, section expansion, filters
-├── migrations/
-│   ├── 001_init.sql       # pgvector extension + documents table + index
-│   ├── 002_ingestion_metadata.sql  # provenance columns (hash/model/dim/chunker/ingested_at) (RAG-003)
-│   └── 003_add_language.sql        # nullable per-document language (RAG-009)
-├── evals/
-│   └── retrieval.json     # questions + expected source/section
-├── docs/
-│   ├── experiments.md     # sweep results and the decisions they drove
-│   ├── plans/             # focused, SOP-compatible task plans (RAG-*) + phase plans
-│   └── operations/
-│       ├── embedding-dimension.md  # operator-run EMBED_DIM change procedure
-│       └── prompt-injection.md     # prompt-injection risk + mitigations (RAG-015)
-├── examples/
-│   ├── loan-policy.md                  # sample corpus for cmd/ingest
-│   ├── large-loan-policy.md            # longer corpus; several chunks per section
-│   ├── member-services-guide.md        # distractor corpus for the evaluation
-│   └── commercial-servicing-manual.md  # long sections; exercises CHUNK_SIZE / CHUNK_OVERLAP
-├── .agents/
-│   └── scripts/                   # agent scripts; project-agnostic
-│       ├── audit-agent.sh             # over-engineering audit, writes AUDIT.md
-│       ├── integration-test-agent.sh  # run the integration tests
-│       └── review-agent.sh            # code review agent
-├── .githooks/
-│   ├── pre-commit         # tidy / fmt / jq / vet / staticcheck / test / build
-│   └── pre-push           # integration tests
-├── .env.example
-├── .gitignore
-├── docker-compose.yml
-├── Makefile
-├── go.mod
-├── go.sum
-└── README.md
-```
-
-The commands only wire these packages together.
-
-## Implemented capabilities (gap-closure RAG-006…RAG-015)
-
-These are shipped and covered by unit tests (and, where noted, the PostgreSQL
-integration suite). They are recorded here so the code and this document agree:
-
-- **Pluggable document loader (RAG-006)** — `internal/loader` exposes a
-  `Loader` interface plus a `Registry`/`Dispatch`; Markdown and plain-text
-  loaders ship today. `cmd/ingest` dispatches by loader, so a new format is added
-  by registering a loader, not by editing the ingest path. Unknown formats return
-  a clear `no loader for <path>` error.
-- **Ingestion provenance and idempotent re-index (RAG-003)** — every chunk stores
-  a content hash, embed model, dimension, chunker config, ingest time, and
-  language; re-ingesting an unchanged file is a no-op (migrations 002/003).
-- **Model/provider independence (RAG-004/RAG-005)** — embedder and generator are
-  resolved through `internal/provider` (`EMBED_PROVIDER`/`GEN_PROVIDER`);
-  `EMBED_DIM` is validated against the stored column before any write.
-- **Multilingual retrieval (RAG-009)** — `CORPUS_LANGUAGE` selects the FTS
-  configuration (`NormalizeFTSConfig`; unset → `english`, unsupported → `simple`)
-  and is stored per document; the FTS config is a bound SQL parameter.
-- **Metadata filtering (RAG-011)** — an optional parameterized `Filter` (source
-  prefix with LIKE-escaping, language, ingested-date range) narrows vector search,
-  keyword search, and section expansion; a zero filter is byte-identical to the
-  unfiltered query.
-- **Deterministic context budget (RAG-010)** — `internal/contextbudget` selects a
-  subset of ranked documents whose byte-estimated size fits `CONTEXT_BUDGET`
-  (higher-rank priority, round-robin fairness, oversize chunks excluded); `0`
-  disables it and keeps the chunk-count behaviour.
-- **Reranking hardening (RAG-012)** — a malformed, slow, or failed LLM reranker
-  degrades to the fused order (bounded by `RERANK_TIMEOUT`) instead of aborting the
-  request; the default stays off.
-- **Structured citation validation (RAG-013)** — `internal/citations` parses,
-  validates, and repairs `[source - section]` citations; `RAG_CITATION_VALIDATION`
-  runs it in `cmd/rag` (off by default), reusing the parser that `cmd/eval`
-  already used.
-- **Structured observability (RAG-014)** — `OBSERVABILITY_FORMAT=json` emits one
-  correlated `log/slog` record per run (run ID, stage timings, counts, context
-  usage); the default `human` output is unchanged.
-- **Security hardening (RAG-015)** — `MAX_QUESTION_BYTES`/`MAX_INPUT_BYTES` fail
-  fast with actionable errors; the answer prompt separates trusted instructions
-  from untrusted retrieved text (see
-  [`docs/operations/prompt-injection.md`](docs/operations/prompt-injection.md));
-  the pre-commit hook runs `govulncheck` when it is installed.
-
-The proposed but **not yet implemented** work (PDF text layer, page-level
-provenance, OCR, genealogy entity extraction) is described in
-[`docs/PRD-Phase-23b.md`](docs/PRD-Phase-23b.md) and
-[`docs/plans/PLAN-RAG-Phase-23b.md`](docs/plans/PLAN-RAG-Phase-23b.md).
-
-## Git hooks
-
-`.githooks/pre-commit` runs `go mod tidy`, `go fmt ./...`, `go vet ./...`,
-`staticcheck ./...`, `go test ./...`, and `go build ./...`, and aborts the commit
-if any step fails. It also aborts when `go mod tidy` or `go fmt` changed a file
-that is part of the commit, so the fix can be staged before committing again.
-When `govulncheck` is on `PATH` it also runs `govulncheck ./...` (skipped with an
-install hint otherwise).
-
-It also runs `jq empty` over every tracked `*.json`, so a malformed
-`evals/retrieval.json` or `.zed/settings.json` fails the commit instead of the
-command that reads it. `jq` is skipped with a note if it is not on `PATH`.
-`make fmt-json` is the reformatting counterpart, for when you want jq's layout
-rather than just a syntax check.
-
-`staticcheck` must be on `PATH` (`brew install staticcheck` on macOS). It catches
-unused code — functions, methods, and types — which `go vet` does not.
-
-`.githooks/pre-push` runs what the pre-commit hook skips, using one
-project-agnostic script in `.agents/scripts/`. The hook supplies only what is
-specific to this project.
-
-`.agents/scripts/integration-test-agent.sh` runs the database tests
-(`internal/retrieval`, `internal/ingestion`) given by `INTEGRATION_TEST_CMD`. It
-probes `INTEGRATION_TEST_DB` with `psql` first — this project points that at
-`RAG_TEST_DATABASE_URL` (a throwaway database, `rag_test` by default), because the
-tests truncate the `documents` table and must never touch `DATABASE_URL`. An
-unreachable database is skipped with a note, so a stopped Docker daemon never
-blocks a push; `INTEGRATION_TEST_STRICT` (`RAG_REQUIRE_INTEGRATION=1`) fails
-instead. It also fails when the command passes but no test ran, so a `-run` filter
-that matches nothing cannot turn the gate green.
-
-`.agents/scripts/review-agent.sh` reviews the diff against `origin/main` and is
-advisory — a finding never fails anything. It is not wired into the hook either,
-so run it by hand when you want a second pair of eyes: it is read-only
-(`--tools ""`), budget-capped (`REVIEW_BUDGET`, default `0.25` USD), and skips
-itself unless at least `REVIEW_MIN_LINES` lines of what `REVIEW_PATHS` matches
-changed.
-
-`.agents/scripts/audit-agent.sh` hunts over-engineering — dependencies the
-standard library already ships, single-implementation interfaces, dead flags — and
-writes its report to `AUDIT.md` at the root of the repository (gitignored). It is
-not wired into the hook, so it never delays a push: run it by hand. It gets
-read-only tools (`AUDIT_TOOLS`, default `Read,Grep,Glob`), so it can walk the tree
-but cannot change it, and it is budget-capped (`AUDIT_BUDGET`, default `0.50` USD).
-It skips itself unless at least `AUDIT_MIN_LINES` lines changed against
-`AUDIT_BASE`.
-
-The audit's rulebook is a skill file, `AUDIT_SKILL`, so one file drives the
-script and an editor session that invokes the skill. It defaults to the global
-ponytail-audit skill at `~/.agents/skills/ponytail-audit/SKILL.md`; point it
-somewhere else to audit by different rules. Run it whenever you want a report:
-
-```sh
-AUDIT_MIN_LINES=0 sh .agents/scripts/audit-agent.sh
-```
-
-The scripts read their settings from environment variables, so another repository
-can reuse them by copying the folder somewhere shared and pointing a hook (or a
-manual run) at them:
-
-```sh
-AUDIT_AGENT=/path/to/shared/audit-agent.sh
-INTEGRATION_TEST_AGENT=/path/to/shared/integration-test-agent.sh
-REVIEW_AGENT=/path/to/shared/review-agent.sh
-```
-
-Set `REVIEW_MIN_LINES=0` to review any change, or `REVIEW_CMD=false` to switch the
-review off; `AUDIT_MIN_LINES=0` and `AUDIT_CMD=false` do the same for the audit.
-Each script documents the rest.
-
-Git does not pick up `.githooks/` on its own. Enable it once per clone:
-
-```bash
-git config core.hooksPath .githooks
-```
-
-Bypass the commit hook with `git commit --no-verify`, or the push hook with
-`git push --no-verify`.
-
-## Tests
-
-`go test ./...` runs the unit tests. They need no database or model: chunking,
-document parsing, reranking, answerability, the eval metrics, and RRF fusion are
-pure functions, and `HybridRetrieve` is driven through a fake `Searcher` that
-records the arguments each stage received, so the pipeline's stage order and its
-use of the similarity floor and section deduplication are pinned down.
-
-The SQL needs PostgreSQL, so `internal/retrieval` and `internal/ingestion` have
-integration tests. They connect to `DATABASE_URL`, apply
-`migrations/001_init.sql` (idempotent, like `make db-up`), and cover:
-
-- `internal/retrieval` — `Search`, `KeywordSearch`, `SectionChunks`, and the whole
-  `HybridRetrieve` pipeline against real data, the part a fake cannot check,
-  since column order, scan alignment, and placeholder numbering only fail against
-  a real server.
-- `internal/ingestion` — `ReplaceDocument`'s delete-then-insert transaction:
-  re-running replaces rather than appends, the `$5::vector` cast round-trips, and
-  a failed embedding leaves the stored document untouched. Embeddings come from a
-  stub Ollama server, so no model is needed.
-
-They are skipped unless `RAG_INTEGRATION=1` is set, so the pre-commit hook stays
-fast and database-free. `make integration` brings the database up first:
-
-```bash
-make integration
-```
-
-Both packages use the `documents` table, and `internal/retrieval` truncates it, so
-`make integration` passes `-p 1` to run them one at a time. Because the tests
-truncate, run them against a throwaway database rather than the dev one;
-`DATABASE_URL` is honoured by both the migration step and the tests:
-
-```bash
-psql 'postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable' -c 'CREATE DATABASE rag_test'
-make integration DATABASE_URL='postgres://rag:rag@127.0.0.1:5433/rag_test?sslmode=disable'
-```
+The ingestion → chunking → embedding → retrieval → answer loop is complete, and
+the gap-closure capabilities (RAG-006…RAG-015) are shipped and covered by tests —
+see the [capabilities reference](docs/reference/capabilities.md). PDF text-layer
+ingestion (RAG-007) and page provenance / page-aware citations (RAG-017) are also
+implemented; the [architecture overview](docs/architecture/OVERVIEW.md) records
+what ships today. OCR for scanned PDFs (RAG-008) and genealogy entity extraction
+(RAG-016) are **not** implemented.
 
 ## Learning path
 

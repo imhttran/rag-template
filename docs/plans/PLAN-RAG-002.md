@@ -55,7 +55,7 @@ schema/migrations, provider behavior, RAG-003+, and any genealogy-specific featu
   replacement stays delete-then-insert; a failed embedding leaves the stored document
   untouched (`ingestion.go:29-38`).
 - **No default drift.** Existing defaults are unchanged unless a recorded evaluation
-  supports a change (`docs/experiments.md`; working method in `docs/PLAN.md:333`).
+  supports a change (`docs/reference/experiments.md`; working method in `docs/plans/PLAN.md:333`).
 - **Model/provider independence.** Use the existing `embedding` provider seam; do not
   bind ingestion to Ollama directly.
 
@@ -135,7 +135,7 @@ default changed (still `EMBED_WORKERS=4`, `EMBED_RETRIES=3`).
 ### Wall-clock measurement — limitation recorded
 
 No pre-change wall-clock baseline was recorded for
-`examples/commercial-servicing-manual.md` (searched `docs/`, `docs/experiments.md`, and
+`examples/commercial-servicing-manual.md` (searched `docs/`, `docs/reference/experiments.md`, and
 `.agent-sdlc/runs/RAG-002/`: none), and this environment has no embedding model pulled
 (`ollama` lists chat models only). A before/after comparison is therefore **not
 possible**, and **no improvement is claimed**. The authorized fallback — this recorded

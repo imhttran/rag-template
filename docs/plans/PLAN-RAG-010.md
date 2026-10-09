@@ -10,7 +10,7 @@ the model never exceeds a configured size, allocating the budget across sections
 by fused rank with fairness, while the current chunk-count behaviour remains the
 default (fallback). `ExpandLimit` counts *chunks* (`retrieval.go:244`), not the
 size actually consumed, and expansion can exceed a nominal total when many
-sections each receive at least one chunk (`docs/PLAN.md:223`).
+sections each receive at least one chunk (`docs/plans/PLAN.md:223`).
 
 ## Decision recorded (resolves `PLAN-RAG-Gap-Closure.md` Amendment C / Q-02)
 
@@ -89,7 +89,7 @@ to keep. RRF fusion, section dedup, and section expansion are unchanged.
 
 The gap-closure validation gate also anticipates an **eval run** comparing
 evidence recall, latency, and token usage against the pre-change baseline
-(`docs/PLAN.md:235`). That requires PostgreSQL + a running model and is recorded
+(`docs/plans/PLAN.md:235`). That requires PostgreSQL + a running model and is recorded
 as follow-up evidence, not a code gate. Baseline defaults are unchanged, so the
 default path is byte-identical.
 

@@ -11,7 +11,7 @@ Phase 23b. This document does not activate, schedule, or approve anything.
 That plan's RAG-006/009/010/011/012/013/014/015 tasks have landed (see
 `docs/plans/PLAN-RAG-Gap-Closure.md` Amendment E); this plan covers only what is
 left. The original Phase-23 plan is **preserved unchanged** for history.
-**Product requirements:** `docs/PRD-Phase-23b.md`.
+**Product requirements:** `docs/requirements/PRD-Phase-23b.md`.
 
 ---
 
@@ -31,13 +31,13 @@ default-preserving.
 - **Frozen until authorized.** RAG-007/008/016 stay frozen; RAG-017/018/020 are new
   and equally inactive. Only the operator opening Phase 23b unfreezes them.
 - **PRD non-goal crossings need an explicit decision.** RAG-007 (PDF) and RAG-008
-  (OCR) cross `docs/PRD.md` §5. RAG-018 (Vietnamese/English evaluation) sits within
+  (OCR) cross `docs/requirements/PRD.md` §5. RAG-018 (Vietnamese/English evaluation) sits within
   the multilingual scope already authorized by Amendment D. RAG-017/016/020 add no
   new product surface.
 - **Additive, idempotent migrations only.** Schema changes are `migrations/00N_*.sql`,
   idempotent, and non-destructive. Operator procedures live under `docs/operations/`.
 - **No default drift.** A shipped default changes only with a recorded row in
-  `docs/experiments.md`.
+  `docs/reference/experiments.md`.
 - **Preserve legacy behaviour.** Markdown/plain-text ingestion and existing eval
   cases are byte-identical when the new formats/settings are unused.
 - **No commit / push / merge / approval; human boundary after every batch.**
@@ -74,7 +74,7 @@ graph TD
 ```
 
 **Sequencing note.** RAG-017 (page provenance) **must** land **before** `PDFLoader`
-is written (`docs/PRD-Phase-23b.md` §6): the page contract touches
+is written (`docs/requirements/PRD-Phase-23b.md` §6): the page contract touches
 `document.Section`, `migrations/004`, chunking, ingestion, `FormatContext`, and
 `citations`, and a PDF loader that invents its own page encoding would have to be
 unwound. The dependency therefore runs **RAG-017 → RAG-007** (page contract first,
@@ -101,7 +101,7 @@ extractor second).
 | `migrations/00N_*.sql` | RAG-017 (page column); RAG-018 (only if an embedding change is adopted) |
 | `internal/chunking`, `internal/ingestion` | RAG-017 (carry page through) |
 | `internal/rag/*`, `internal/citations/*` | RAG-017 (page citation form) |
-| `cmd/eval/main.go`, `evals/`, `docs/experiments.md` | RAG-018, RAG-016 |
+| `cmd/eval/main.go`, `evals/`, `docs/reference/experiments.md` | RAG-018, RAG-016 |
 | `README.md`, `docs/*.md` | RAG-020 (and any task that records a decision) |
 
 **Parallel workstreams (file-disjoint ⇒ may run concurrently if each gets an
@@ -111,20 +111,20 @@ isolated working tree; the default is serial):**
 - **WS-B provenance/citations** — RAG-017 (`internal/document`, chunking,
   ingestion, `internal/rag`, `internal/citations`, `migrations/004`).
 - **WS-C evaluation** — RAG-018 → RAG-016 (`evals/`, `cmd/eval`,
-  `docs/experiments.md`).
+  `docs/reference/experiments.md`).
 - **WS-D docs** — RAG-020 (`README.md`, `docs/`).
 
 WS-A and WS-B both touch `internal/loader` and the ingest path ⇒ **serialize** (or
 land the page contract in WS-B first). WS-C and WS-B both touch `cmd/eval` ⇒
-**serialize**. WS-D is disjoint from code but shares `docs/experiments.md` with
+**serialize**. WS-D is disjoint from code but shares `docs/reference/experiments.md` with
 WS-C ⇒ coordinate. The recommended mode remains **serial in wave order**, with a
 human boundary after each batch.
 
 ## 6. Batches
 
 ### Batch 1 — Documentation completion: RAG-020
-- **Tasks:** RAG-020 (README config table + architecture; reconcile `docs/PLAN.md`,
-  `docs/PRD.md`, `PLAN-RAG-Gap-Closure.md`; keep implemented vs proposed distinct).
+- **Tasks:** RAG-020 (README config table + architecture; reconcile `docs/plans/PLAN.md`,
+  `docs/requirements/PRD.md`, `PLAN-RAG-Gap-Closure.md`; keep implemented vs proposed distinct).
 - **Acceptance:** README's config table matches `internal/config`; architecture
   sections name the loader/citations/contextbudget/observability/provider packages;
   plan/PRD status notes are accurate; `PLAN-RAG-Phase-23.md` untouched.
@@ -178,7 +178,7 @@ human boundary after each batch.
   adopted — as an explicit, recorded decision with a migration note, not a default
   change).
 - **Acceptance:** the vi/en corpus ingests and retrieves; English baseline
-  unchanged; the embedding decision is recorded in `docs/experiments.md`.
+  unchanged; the embedding decision is recorded in `docs/reference/experiments.md`.
 - **Validation:** `RAG_INTEGRATION=1` integration + `make eval`; record variance.
 - **Risks:** embedding quality for Vietnamese; nondeterministic metrics.
 - **Rollback:** revert the corpus/case additions; no default changed.
@@ -191,7 +191,7 @@ human boundary after each batch.
   nondeterministic paths; suite runs within the documented budget (or a documented
   subset).
 - **Validation:** `go test ./...` + `RAG_INTEGRATION=1` integration + `make eval` +
-  `make sweep`; rows recorded in `docs/experiments.md`.
+  `make sweep`; rows recorded in `docs/reference/experiments.md`.
 - **Risks:** runtime; nondeterminism.
 - **Rollback:** revert dataset additions; existing cases unaffected.
 - **Boundary:** human review; then the Phase-23b plan is a historicalization candidate.
@@ -204,7 +204,7 @@ human boundary after each batch.
   ./internal/retrieval/ ./internal/ingestion/ -run Integration -p 1 -v` against a
   throwaway database; never the dev database.
 - **Eval / sweep (quality):** `make eval`, `make sweep AXIS=<axis>`; record rows in
-  `docs/experiments.md`.
+  `docs/reference/experiments.md`.
 - **Build/lint/security:** `go build ./...`, `go vet ./...`, `govulncheck ./...`.
 
 ## 8. First batch recommended for approval
