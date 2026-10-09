@@ -580,3 +580,164 @@ func TestIsUpToDateIntegrationPinnedDimension(t *testing.T) {
 		t.Fatal("document with a different stored dimension reported up to date")
 	}
 }
+
+// largeChunks builds count hand-built chunks named "chunk-<index>" so the >5461
+// batching path can be exercised without touching the chunker.
+func largeChunks(count int) []chunking.Chunk {
+	chunks := make([]chunking.Chunk, 0, count)
+
+	for index := 0; index < count; index++ {
+		chunks = append(chunks, chunking.Chunk{
+			Section: "Fees",
+			Index:   index,
+			Content: fmt.Sprintf("chunk-%d", index),
+		})
+	}
+
+	return chunks
+}
+
+// TestReplaceDocumentIntegrationBatchesLargeDocument replaces testSource with
+// more than 5461 chunks, the previous single-statement ceiling of
+// floor(65535/12). Every chunk must be stored exactly once with its chunk_index,
+// proving the batched inserts all run on the caller's transaction.
+func TestReplaceDocumentIntegrationBatchesLargeDocument(t *testing.T) {
+	ctx := context.Background()
+	requireDatabase(t)
+
+	resetTestDocument(t, ctx)
+
+	ingester := newIngester(t)
+
+	t.Cleanup(func() {
+		resetTestDocument(t, ctx)
+
+		// The large replace leaves thousands of dead tuples with one identical
+		// embedding in the HNSW index; vacuum them so later tests' vector searches
+		// are not starved before autovacuum runs.
+		if _, err := testConn.Exec(ctx, "VACUUM documents"); err != nil {
+			t.Errorf("vacuum documents: %v", err)
+		}
+	})
+
+	total := chunksPerBatch + 1
+	chunks := largeChunks(total)
+
+	if err := ingester.ReplaceDocument(ctx, testSource, chunks); err != nil {
+		t.Fatalf("replace a %d-chunk document: %v", total, err)
+	}
+
+	var stored int
+	if err := testConn.QueryRow(
+		ctx,
+		"SELECT COUNT(*) FROM documents WHERE source = $1",
+		testSource,
+	).Scan(&stored); err != nil {
+		t.Fatalf("count the stored chunks: %v", err)
+	}
+
+	if stored != total {
+		t.Fatalf("stored rows = %d, want %d", stored, total)
+	}
+
+	rows, err := testConn.Query(
+		ctx,
+		`
+		SELECT chunk_index, content
+		FROM documents
+		WHERE source = $1
+		ORDER BY chunk_index
+		`,
+		testSource,
+	)
+	if err != nil {
+		t.Fatalf("query the batched chunks: %v", err)
+	}
+	defer rows.Close()
+
+	seen := 0
+
+	for rows.Next() {
+		var (
+			index   int
+			content string
+		)
+
+		if err := rows.Scan(&index, &content); err != nil {
+			t.Fatalf("scan a batched chunk: %v", err)
+		}
+
+		if index != seen {
+			t.Fatalf("chunk_index = %d at position %d, want %d", index, seen, seen)
+		}
+
+		if want := fmt.Sprintf("chunk-%d", index); content != want {
+			t.Fatalf("chunk_index %d content = %q, want %q", index, content, want)
+		}
+
+		seen++
+	}
+
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate the batched chunks: %v", err)
+	}
+
+	if seen != total {
+		t.Fatalf("iterated %d chunks, want %d", seen, total)
+	}
+}
+
+// TestReplaceDocumentIntegrationLargeReplacementRollsBackOnLaterBatchFailure
+// seeds a small document, then replaces it with a >5461-chunk document whose
+// last chunk contains a NUL byte. The fake embedder accepts every chunk, so all
+// chunks embed successfully and the first batch of chunksPerBatch rows inserts
+// inside the replacement transaction. The second batch then fails because
+// PostgreSQL rejects 0x00 in a text column (SQLSTATE 22021), so the transaction
+// rolls back: the previous document's DELETE is undone and the first batch is
+// rolled back, leaving the seeded document unchanged.
+func TestReplaceDocumentIntegrationLargeReplacementRollsBackOnLaterBatchFailure(t *testing.T) {
+	ctx := context.Background()
+	requireDatabase(t)
+
+	resetTestDocument(t, ctx)
+
+	ingester := newIngester(t)
+
+	t.Cleanup(func() {
+		resetTestDocument(t, ctx)
+
+		// The large replace leaves thousands of dead tuples with one identical
+		// embedding in the HNSW index; vacuum them so later tests' vector searches
+		// are not starved before autovacuum runs.
+		if _, err := testConn.Exec(ctx, "VACUUM documents"); err != nil {
+			t.Errorf("vacuum documents: %v", err)
+		}
+	})
+
+	if err := ingester.ReplaceDocument(ctx, testSource, []chunking.Chunk{
+		{Section: "Fees", Index: 0, Content: "keep me"},
+	}); err != nil {
+		t.Fatalf("seed replace: %v", err)
+	}
+
+	chunks := largeChunks(chunksPerBatch + 1)
+
+	// The fake embedder accepts this, so every chunk embeds successfully and
+	// the failure comes from the second INSERT batch rejecting the NUL byte.
+	chunks[len(chunks)-1].Content = "poison\x00byte"
+
+	err := ingester.ReplaceDocument(ctx, testSource, chunks)
+	if err == nil {
+		t.Fatal("expected the later insert batch to fail")
+	}
+
+	if !strings.Contains(err.Error(), "22021") {
+		t.Fatalf("error = %q, want the invalid-byte-sequence SQLSTATE 22021", err)
+	}
+
+	want := []string{"Fees|0|keep me"}
+
+	if got := storedChunks(t, ctx); !slices.Equal(got, want) {
+		t.Fatalf("stored chunks after a failed later batch = %v, want %v", got, want)
+	}
+}
