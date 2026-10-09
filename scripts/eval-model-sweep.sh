@@ -52,6 +52,10 @@
 # model/dimension, internal/retrieval, internal/embedding, internal/ingestion,
 # or the production answer path.
 #
+# A non-zero eval run (for example a missing chat model) is a fatal error: the
+# sweep aborts and prints the eval output instead of recording empty, all-zero
+# metrics.
+#
 # Usage:
 #   scripts/eval-model-sweep.sh 'nomic-embed-text:768' 3
 #   scripts/eval-model-sweep.sh 'nomic-embed-text:768,embeddinggemma:768' 3
@@ -70,6 +74,22 @@
 #   SWEEP_EMBED_PROBE          1 to measure the Ollama /api/embed endpoint latency (opt-in)
 #   SWEEP_KEEP_DB              1 to leave the per-model databases running for inspection
 #   SWEEP_KEEP_UP              1 to leave the shared PostgreSQL instance running
+#   SWEEP_DB_NAMES             comma-separated explicit database name per model
+#                              (one-to-one with the models); when set, every name
+#                              must also be listed in SWEEP_ALLOW_DB
+#   SWEEP_REUSE_DB             1 to operate on pre-created databases: never CREATE
+#                              DATABASE or DROP DATABASE, and require SWEEP_DB_NAMES
+#                              plus SWEEP_ALLOW_DB. Each repeat resets the database
+#                              with TRUNCATE (never dropping it or its extension)
+#   SWEEP_ALLOW_DB             comma-separated allowlist of disposable databases
+#                              this sweep may operate on (required whenever
+#                              SWEEP_DB_NAMES is set); rag_db is always refused
+#   SWEEP_VALIDATE_ONLY        1 to validate the configuration and print the
+#                              resolved plan without any database or model access
+#   SWEEP_QUERY_REWRITE        QUERY_REWRITE for the eval runs (default false). The
+#                              sweep pins it false so the embedding comparison is
+#                              deterministic and needs no chat model; set 1 to keep
+#                              the production default (requires OLLAMA_CHAT_MODEL)
 
 set -eu
 
@@ -87,10 +107,183 @@ SKIP_INGEST=${SWEEP_SKIP_INGEST:-0}
 EMBED_PROBE=${SWEEP_EMBED_PROBE:-0}
 KEEP_DB=${SWEEP_KEEP_DB:-0}
 KEEP_UP=${SWEEP_KEEP_UP:-0}
+DB_NAMES=${SWEEP_DB_NAMES:-}
+REUSE_DB=${SWEEP_REUSE_DB:-0}
+ALLOW_DB=${SWEEP_ALLOW_DB:-}
+VALIDATE_ONLY=${SWEEP_VALIDATE_ONLY:-0}
+QUERY_REWRITE=${SWEEP_QUERY_REWRITE:-false}
 
 # One fixed representative chunk for the opt-in embedding endpoint probe. It has
 # no double quotes so it can be embedded in a JSON payload safely.
 PROBE_TEXT="Payments are applied first to outstanding interest, then to principal, unless otherwise required by the loan agreement."
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+# csv_count returns the number of comma-separated fields in "$1" (0 for an empty
+# string). It is used to compare model and database-name counts before any work.
+csv_count() {
+	printf '%s' "$1" | awk -F, '{ n = NF } END { print n + 0 }'
+}
+
+# valid_db_name NAME returns success only for a safe, unqualified PostgreSQL
+# database identifier this sweep may operate on: 1..63 characters, starting with a
+# letter or underscore and containing only letters, digits, and underscores, and
+# never a reserved system name or the repository's shared dev database (rag_db).
+# Anything else is rejected so a name can never be spliced into a DROP/CREATE/
+# TRUNCATE statement or silently point at a production database.
+valid_db_name() {
+	name=$1
+
+	[ -n "$name" ] || return 1
+	[ "${#name}" -le 63 ] || return 1
+
+	case "$name" in
+	*[!A-Za-z0-9_]*) return 1 ;;
+	[!A-Za-z_]*) return 1 ;;
+	esac
+
+	case "$name" in
+	rag_db | postgres | template0 | template1 | pg_*) return 1 ;;
+	esac
+
+	return 0
+}
+
+# allowlisted NAME returns success when NAME is in SWEEP_ALLOW_DB (read from
+# $work/allow.lst, populated by validate_sweep_config).
+allowlisted() {
+	[ -s "$work/allow.lst" ] || return 1
+
+	grep -Fxq -- "$1" "$work/allow.lst"
+}
+
+# db_name_for_index INDEX prints the database name for model INDEX: the explicit
+# SWEEP_DB_NAMES entry when one was given, otherwise the derived rag_<INDEX>.
+db_name_for_index() {
+	index=$1
+
+	if [ -n "$DB_NAME_LIST" ]; then
+		printf '%s\n' $DB_NAME_LIST | awk -v i=$((index + 1)) 'NR == i { print; exit }'
+	else
+		printf 'rag_%s\n' "$index"
+	fi
+}
+
+# validate_sweep_config validates the model/database mapping and the safety
+# guards before any database or model work, setting MODEL_COUNT and DB_NAME_LIST.
+# It exits non-zero with a clear message on any unsafe or inconsistent input.
+validate_sweep_config() {
+	MODEL_COUNT=$(csv_count "$MODELS")
+	if [ "$MODEL_COUNT" -lt 1 ]; then
+		echo "eval-model-sweep: no models given" >&2
+		exit 2
+	fi
+
+	# Normalise the allowlist, if any, to one exact name per line and validate it.
+	if [ -n "$ALLOW_DB" ]; then
+		printf '%s\n' "$ALLOW_DB" | tr ',' '\n' >"$work/allow.lst"
+
+		line=0
+		while IFS= read -r allowed; do
+			line=$((line + 1))
+			if ! valid_db_name "$allowed"; then
+				echo "eval-model-sweep: SWEEP_ALLOW_DB entry #$line is not a safe database name: '$allowed'" >&2
+				exit 2
+			fi
+		done <"$work/allow.lst"
+	else
+		: >"$work/allow.lst"
+	fi
+
+	# Reuse mode must name its databases explicitly: it never falls back to a
+	# derived or shared database.
+	if [ "$REUSE_DB" = 1 ] && [ -z "$DB_NAMES" ]; then
+		echo "eval-model-sweep: SWEEP_REUSE_DB=1 requires SWEEP_DB_NAMES naming the pre-created databases (never a shared or default database)" >&2
+		exit 2
+	fi
+
+	DB_NAME_LIST=""
+
+	if [ -n "$DB_NAMES" ]; then
+		if [ -z "$ALLOW_DB" ]; then
+			echo "eval-model-sweep: SWEEP_DB_NAMES requires SWEEP_ALLOW_DB, an explicit allowlist of disposable databases" >&2
+			exit 2
+		fi
+
+		names_count=$(csv_count "$DB_NAMES")
+		if [ "$names_count" -ne "$MODEL_COUNT" ]; then
+			echo "eval-model-sweep: SWEEP_DB_NAMES has $names_count names but there are $MODEL_COUNT models; they must match one-to-one" >&2
+			exit 2
+		fi
+
+		printf '%s\n' "$DB_NAMES" | tr ',' '\n' >"$work/dbnames.lst"
+
+		line=0
+		while IFS= read -r name; do
+			line=$((line + 1))
+
+			if ! valid_db_name "$name"; then
+				echo "eval-model-sweep: SWEEP_DB_NAMES entry #$line is not a safe database name: '$name'" >&2
+				exit 2
+			fi
+
+			if ! allowlisted "$name"; then
+				echo "eval-model-sweep: database '$name' is not in SWEEP_ALLOW_DB; refusing to operate on a database that was not explicitly allowlisted" >&2
+				exit 2
+			fi
+
+			DB_NAME_LIST="$DB_NAME_LIST $name"
+		done <"$work/dbnames.lst"
+	fi
+}
+
+# verify_database NAME URL fails closed unless the pre-created database NAME is
+# owned by the connecting role, has the pgvector extension installed, and has the
+# required documents schema. It runs only on the reuse path; the create path
+# builds the schema itself and keeps its prior behavior.
+verify_database() {
+	name=$1
+	url=$2
+
+	if ! command -v psql >/dev/null 2>&1; then
+		echo "eval-model-sweep: psql not found; cannot verify database $name" >&2
+		exit 3
+	fi
+
+	owner_ok=$(psql -w "$url" -tAc "SELECT (SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = current_database()) = current_user;" 2>/dev/null || echo "")
+	if [ "$owner_ok" != "t" ]; then
+		echo "eval-model-sweep: database $name is not owned by the connecting role; refusing to operate on it" >&2
+		exit 3
+	fi
+
+	extension=$(psql -w "$url" -tAc "SELECT coalesce((SELECT extversion FROM pg_extension WHERE extname = 'vector'), '');" 2>/dev/null || echo "")
+	if [ -z "$extension" ]; then
+		echo "eval-model-sweep: database $name does not have the pgvector extension installed" >&2
+		exit 3
+	fi
+
+	schema_ok=$(psql -w "$url" -tAc "SELECT to_regclass('public.documents') IS NOT NULL;" 2>/dev/null || echo "")
+	if [ "$schema_ok" != "t" ]; then
+		echo "eval-model-sweep: database $name is missing the documents table; apply migrations first" >&2
+		exit 3
+	fi
+}
+
+# reset_database NAME URL returns an allowlisted, verified pre-created database to
+# an empty evaluation state WITHOUT dropping the database or its pgvector
+# extension: TRUNCATE clears the vectors while the schema and extension remain, so
+# each repeat starts from an equivalent clean state. It is reached only for a
+# database that passed the allowlist and verification guards.
+reset_database() {
+	name=$1
+	url=$2
+
+	if ! psql -w "$url" -v ON_ERROR_STOP=1 -c "TRUNCATE documents RESTART IDENTITY" >/dev/null 2>&1; then
+		echo "eval-model-sweep: could not reset (truncate) allowlisted database $name" >&2
+		exit 3
+	fi
+}
 
 # Every dataset the run depends on must exist; a missing dataset is a fatal
 # operator error, not a silent fallback to the default run.
@@ -113,6 +306,45 @@ esac
 if [ "$REPEATS" -lt 3 ]; then
 	echo "eval-model-sweep: repeats must be >= 3 (got $REPEATS)" >&2
 	exit 2
+fi
+
+# Validate the model/database mapping and the safety guards before any work.
+validate_sweep_config
+
+# Validate-only mode performs no database or model access: it prints the resolved
+# plan and exits. It exists so argument validation, the safety guards, and the
+# repeat-isolation behavior can be tested without a database.
+if [ "$VALIDATE_ONLY" = 1 ]; then
+	echo "sweep plan (validate-only; no database or model access)"
+
+	if [ "$REUSE_DB" = 1 ]; then
+		echo "mode: reuse (no CREATE DATABASE / DROP DATABASE)"
+	else
+		echo "mode: create (fresh database per model)"
+	fi
+
+	index=0
+	while [ "$index" -lt "$MODEL_COUNT" ]; do
+		name=$(db_name_for_index "$index")
+
+		if [ "$REUSE_DB" = 1 ]; then
+			reset=truncate
+			drop=no
+		else
+			reset=fresh_database
+
+			if [ "$KEEP_DB" = 1 ]; then
+				drop=no
+			else
+				drop=yes
+			fi
+		fi
+
+		echo "model $index db=$name reset=$reset drop_on_exit=$drop"
+		index=$((index + 1))
+	done
+
+	exit 0
 fi
 
 sha256_file() {
@@ -157,9 +389,6 @@ db_url_for() {
 	printf '%s' "$DB_URL_BASE" | sed -E "s#/[^/?]*(\\?.*)?\$#/$1\\1#"
 }
 
-work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
-
 # peak_rss runs a command under GNU /usr/bin/time -v (when it truly supports
 # -v) and reports wall seconds and the child's peak RSS KiB on stdout as
 # "<seconds> <rss>". When /usr/bin/time -v is unavailable it falls back to a
@@ -176,7 +405,8 @@ peak_rss() {
 	shift
 
 	if time_supports_verbose; then
-		/usr/bin/time -v "$@" >"$out" 2>"$work/time.txt" || true
+		child_status=0
+		/usr/bin/time -v "$@" >"$out" 2>"$work/time.txt" || child_status=$?
 
 		seconds=$(sed -n 's/^\s*Elapsed (wall clock) time.*: //p' "$work/time.txt" | head -1)
 		rss=$(awk '/Maximum resident set size/ {print $NF}' "$work/time.txt" | head -1)
@@ -190,12 +420,17 @@ peak_rss() {
 		esac
 
 		printf '%s %s\n' "${seconds:-0}" "${rss:-0}"
+
+		return "$child_status"
 	else
 		start=$(date +%s)
-		"$@" >"$out" 2>&1 || true
+		child_status=0
+		"$@" >"$out" 2>&1 || child_status=$?
 		end=$(date +%s)
 
 		printf '%d 0\n' "$((end - start))"
+
+		return "$child_status"
 	fi
 }
 
@@ -423,6 +658,20 @@ ingest_corpus() {
 # DATABASE_URL, the model, the dimension, MIN_SIMILARITY, and EVAL_DATASET are
 # all passed explicitly so no production default is changed and no command can
 # target the wrong database or the wrong split.
+# fail_eval MODEL FLOOR OUT STATUS aborts the sweep when an eval run exits
+# non-zero. A non-zero eval is an evaluation failure, never a zero score: the
+# sweep must fail loudly rather than record empty metrics.
+fail_eval() {
+	model=$1
+	floor=$2
+	out=$3
+	status=$4
+
+	echo "eval-model-sweep: eval run failed (exit $status) for $model at floor $floor; output follows:" >&2
+	sed 's/^/    /' "$out" >&2
+	exit 3
+}
+
 run_eval() {
 	url=$1
 	model=$2
@@ -431,8 +680,14 @@ run_eval() {
 	dataset=$5
 	out=$6
 
+	eval_status=0
 	env DATABASE_URL="$url" OLLAMA_EMBED_MODEL="$model" EMBED_DIM="$dim" \
-		MIN_SIMILARITY="$floor" EVAL_DATASET="$dataset" go run ./cmd/eval >"$out" 2>&1 || true
+		MIN_SIMILARITY="$floor" EVAL_DATASET="$dataset" QUERY_REWRITE="$QUERY_REWRITE" \
+		go run ./cmd/eval >"$out" 2>&1 || eval_status=$?
+
+	if [ "$eval_status" -ne 0 ]; then
+		fail_eval "$model" "$floor" "$out" "$eval_status"
+	fi
 }
 
 model_index=0
@@ -463,15 +718,22 @@ for model_spec in $(printf '%s' "$MODELS" | tr ',' ' '); do
 		version=${SWEEP_VERSION:-unversioned}
 	fi
 
-	db_name="rag_${model_index}"
+	db_name=$(db_name_for_index "$model_index")
 	db_url=$(db_url_for "$db_name")
 	model_index=$((model_index + 1))
 
 	echo
-	echo "== model: $embed_model (dim $embed_dim, version $version, isolated database $db_name) =="
+	echo "== model: $embed_model (dim $embed_dim, version $version, database $db_name) =="
 
-	# Fresh per-model database so no two models share a vector index.
-	fresh_database "$db_name" "$db_url"
+	if [ "$REUSE_DB" = 1 ]; then
+		# Pre-created, allowlisted database: verify it, then reset it (never drop
+		# or recreate it) so the model starts from an empty vector index.
+		verify_database "$db_name" "$db_url"
+		reset_database "$db_name" "$db_url"
+	else
+		# Fresh per-model database so no two models share a vector index.
+		fresh_database "$db_name" "$db_url"
+	fi
 
 	if [ "$SKIP_INGEST" != 1 ]; then
 		ingest_corpus "$db_url" "$embed_model" "$embed_dim"
@@ -540,14 +802,22 @@ for model_spec in $(printf '%s' "$MODELS" | tr ',' ' '); do
 
 	while [ "$repeat" -le "$REPEATS" ]; do
 		if [ "$SKIP_INGEST" != 1 ]; then
-			fresh_database "$db_name" "$db_url"
+			if [ "$REUSE_DB" = 1 ]; then
+				reset_database "$db_name" "$db_url"
+			else
+				fresh_database "$db_name" "$db_url"
+			fi
 			ingest_corpus "$db_url" "$embed_model" "$embed_dim"
 		fi
 
+		eval_status=0
 		run=$(peak_rss "$work/run.out" \
 			env DATABASE_URL="$db_url" OLLAMA_EMBED_MODEL="$embed_model" \
 			EMBED_DIM="$embed_dim" MIN_SIMILARITY="$best_floor" \
-			EVAL_DATASET="$DATASET" go run ./cmd/eval)
+			EVAL_DATASET="$DATASET" QUERY_REWRITE="$QUERY_REWRITE" go run ./cmd/eval) || eval_status=$?
+		if [ "$eval_status" -ne 0 ]; then
+			fail_eval "$embed_model" "$best_floor" "$work/run.out" "$eval_status"
+		fi
 		latency=$(printf '%s' "$run" | cut -d' ' -f1)
 		rss=$(printf '%s' "$run" | cut -d' ' -f2)
 
@@ -594,8 +864,9 @@ for model_spec in $(printf '%s' "$MODELS" | tr ',' ' '); do
 	# shellcheck disable=SC2086
 	variance_line "client RSS" $rss_values
 
-	# Drop the isolated database unless the operator asked to inspect it.
-	if [ "$KEEP_DB" != 1 ]; then
+	# Drop the isolated database unless the operator asked to inspect it. A
+	# pre-created (reuse) database is never dropped.
+	if [ "$REUSE_DB" != 1 ] && [ "$KEEP_DB" != 1 ]; then
 		if command -v psql >/dev/null 2>&1; then
 			psql "$(db_admin_url)" -v ON_ERROR_STOP=1 \
 				-c "DROP DATABASE IF EXISTS $db_name" >/dev/null 2>&1 || true
