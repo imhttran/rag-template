@@ -83,14 +83,111 @@ scripts/eval-model-sweep.sh 'nomic-embed-text:768' 3
 scripts/eval-model-sweep.sh 'nomic-embed-text:768,embeddinggemma:768' 3
 ```
 
-Useful environment variables: `SWEEP_DATASET` (held-out evaluation split),
-`SWEEP_CALIBRATION_DATASET` (calibration split), `SWEEP_MANIFEST`, `SWEEP_GRID`
-(default `0.30,0.40,0.50,0.60,0.70`), `SWEEP_MIN_REJECTION` (default `1`),
-`SWEEP_DB_URL` (model N uses database `rag_<N>`, so each model is isolated),
-`SWEEP_RESULTS` (default `docs/experiments-eval-sweep.md`),
-`SWEEP_SKIP_INGEST=1` to reuse loaded databases, and `SWEEP_EMBED_PROBE=1` for the
-opt-in embedding endpoint probe. Recorded results live in
-`docs/experiments-eval-sweep.md`.
+### Sweep controls
+
+Every control below is read from the environment by
+`scripts/eval-model-sweep.sh`; the script is the authoritative source for the
+defaults, accepted values, and constraints stated here.
+
+Dataset, grid, and result controls:
+
+- `SWEEP_DATASET` — held-out evaluation split, default
+  `evals/retrieval-vi-en-expanded.json`. The reported metrics come from this
+  split, never from the calibration split.
+- `SWEEP_CALIBRATION_DATASET` — calibration split, default
+  `evals/retrieval-vi-en-calibration.json`.
+- `SWEEP_MANIFEST` — corpus manifest, default `evals/corpus-vi-en.json`. Its
+  hash is recorded in every run record.
+- `SWEEP_GRID` — floor sweep grid, default `0.30,0.40,0.50,0.60,0.70`. It must
+  be a non-empty comma-separated list of numeric floors; a set-but-empty or
+  non-numeric grid is refused (exit 2) before any database access.
+- `SWEEP_MIN_REJECTION` — minimum calibration rejection a floor must reach to be
+  eligible, default `1`.
+- `SWEEP_DB_URL` — base `DATABASE_URL`, default
+  `postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable`. Model N uses database
+  `rag_<N>` (or its `SWEEP_DB_NAMES` entry) on the same server, so each model is
+  isolated.
+- `SWEEP_RESULTS` — results file, default `docs/experiments-eval-sweep.md`. The
+  per-run records and the results header are appended here.
+- `SWEEP_EMBED_PROBE=1` — opt-in client-observed probe of the Ollama `/api/embed`
+  endpoint for one fixed representative chunk; printed as `n/a` when the probe is
+  off or `curl` is unavailable. It measures no server-side memory.
+
+Database and isolation controls:
+
+- `SWEEP_SKIP_INGEST=1` — reuse already-ingested databases (one ingest per model,
+  no fresh ingest per repeat). It **cannot be combined with `SWEEP_REUSE_DB=1`**:
+  reuse mode relies on a separately ingested corpus while skip-ingest assumes the
+  fresh-database ingest already ran, so the combination is refused (exit 2).
+- `SWEEP_KEEP_DB=1` — leave the per-model databases running for inspection
+  instead of dropping them at the end of the model loop. Default `0` (drop).
+- `SWEEP_KEEP_UP=1` — leave the shared PostgreSQL instance (`make db-up`) running
+  at exit instead of running `make db-down`. Default `0` (bring it down).
+- `SWEEP_DB_NAMES` — comma-separated explicit database name per model, one-to-one
+  with the models. When set, it **requires `SWEEP_ALLOW_DB`**, every name must be
+  a safe database identifier, and every name must be listed in the allowlist
+  (otherwise the sweep refuses, exit 2). It is **required when
+  `SWEEP_REUSE_DB=1`**, because reuse mode never falls back to a derived or
+  shared database.
+- `SWEEP_REUSE_DB=1` — operate on pre-created databases: the sweep never issues
+  `CREATE DATABASE` or `DROP DATABASE`, and each repeat resets the database with
+  `TRUNCATE` (never dropping it or its pgvector extension). It requires
+  `SWEEP_DB_NAMES` plus `SWEEP_ALLOW_DB`, and **cannot be combined with
+  `SWEEP_SKIP_INGEST=1`**. Default `0` (create mode).
+- `SWEEP_ALLOW_DB` — comma-separated allowlist of disposable databases this sweep
+  may operate on. It is required whenever `SWEEP_DB_NAMES` is set, and each entry
+  must be a safe database identifier.
+- `SWEEP_VALIDATE_ONLY=1` — validate the configuration, print the resolved plan
+  (mode, and per model: database name, reset strategy, drop-on-exit), and exit
+  **without any database or model access**. Default `0`.
+- `SWEEP_QUERY_REWRITE` — `QUERY_REWRITE` for the eval runs; the sweep pins this
+  value (default `false`) into every calibration and evaluation run so the
+  embedding comparison is deterministic and needs no chat model. Set `1` to keep
+  the production default, which **requires `OLLAMA_CHAT_MODEL`**.
+- `SWEEP_SKIP_DBUP=1` — skip `make db-up`; the operator guarantees the shared
+  PostgreSQL instance is already running. Default `0` (the sweep starts it).
+
+The pre-existing controls keep their documented behavior and defaults: the
+dataset/manifest/grid/rejection/URL/results/probe controls above are unchanged,
+and `SWEEP_SKIP_INGEST=1` still reuses loaded databases.
+
+### Destructive-operation boundary
+
+The sweep has two database modes and they differ in exactly which destructive
+statements they may issue. The boundary is enforced by the script, not merely
+documented:
+
+- **Create mode (default, `SWEEP_REUSE_DB=0`)** — the sweep creates a fresh
+  isolated `rag_<N>` database per model (`DROP DATABASE IF EXISTS` then
+  `CREATE DATABASE`, followed by the schema migrations), so each model starts
+  from an empty vector index and no two models share one. The database is
+  dropped again at the end of the model loop **unless `SWEEP_KEEP_DB=1`**.
+- **Reuse mode (`SWEEP_REUSE_DB=1`)** — the sweep operates only on explicitly
+  named, allowlisted **pre-created** databases. It **never issues
+  `CREATE DATABASE` or `DROP DATABASE`**. Each repeat resets the database with
+  `TRUNCATE` of the `documents` table (`RESTART IDENTITY`), which clears the
+  vectors while the database, its schema, and its pgvector extension remain
+  intact. A pre-created reuse database is never dropped, even without
+  `SWEEP_KEEP_DB`.
+
+Because reuse mode never drops the database, the pgvector extension and the
+`documents` schema survive the sweep; only the rows are cleared. The reset runs
+only for a database that already passed the allowlist and verification guards.
+
+The allowlist is the second half of the boundary:
+
+- `SWEEP_ALLOW_DB` is the explicit allowlist of disposable databases the sweep
+  may operate on. Every `SWEEP_DB_NAMES` entry must appear in it, or the sweep
+  refuses before any work.
+- `rag_db` (the shared development database) and the reserved system names
+  (`postgres`, `template0`, `template1`, `pg_*`) are **always refused** and can
+  never be allowlisted, so no control can point the sweep at the production or
+  default database.
+
+In short: reuse mode resets with `TRUNCATE` and never `DROP`s; create mode
+creates and `DROP`s its own isolated `rag_<N>` database unless `SWEEP_KEEP_DB=1`;
+`SWEEP_ALLOW_DB` bounds the names either mode may touch, and `rag_db` is never a
+valid target.
 
 ### What the resource numbers mean
 

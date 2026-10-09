@@ -64,13 +64,16 @@
 #   SWEEP_DATASET              held-out evaluation split (default evals/retrieval-vi-en-expanded.json)
 #   SWEEP_CALIBRATION_DATASET  calibration split       (default evals/retrieval-vi-en-calibration.json)
 #   SWEEP_MANIFEST             corpus manifest         (default evals/corpus-vi-en.json)
-#   SWEEP_GRID                 floor sweep grid        (default 0.30,0.40,0.50,0.60,0.70)
+#   SWEEP_GRID                 floor sweep grid        (default 0.30,0.40,0.50,0.60,0.70);
+#                              a set-but-empty or non-numeric grid is refused before
+#                              any database access
 #   SWEEP_MIN_REJECTION        minimum calibration rejection a floor must reach (default 1)
 #   SWEEP_DB_URL               base DATABASE_URL       (default postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable);
 #                              model N uses database rag_<N> on the same server
 #   SWEEP_RESULTS              results file            (default docs/experiments-eval-sweep.md)
 #   SWEEP_SKIP_INGEST          1 to reuse already-ingested databases (one ingest per
-#                              model, no fresh ingest per repeat)
+#                              model, no fresh ingest per repeat); cannot be combined
+#                              with SWEEP_REUSE_DB=1
 #   SWEEP_EMBED_PROBE          1 to measure the Ollama /api/embed endpoint latency (opt-in)
 #   SWEEP_KEEP_DB              1 to leave the per-model databases running for inspection
 #   SWEEP_KEEP_UP              1 to leave the shared PostgreSQL instance running
@@ -80,7 +83,8 @@
 #   SWEEP_REUSE_DB             1 to operate on pre-created databases: never CREATE
 #                              DATABASE or DROP DATABASE, and require SWEEP_DB_NAMES
 #                              plus SWEEP_ALLOW_DB. Each repeat resets the database
-#                              with TRUNCATE (never dropping it or its extension)
+#                              with TRUNCATE (never dropping it or its extension);
+#                              cannot be combined with SWEEP_SKIP_INGEST=1
 #   SWEEP_ALLOW_DB             comma-separated allowlist of disposable databases
 #                              this sweep may operate on (required whenever
 #                              SWEEP_DB_NAMES is set); rag_db is always refused
@@ -90,6 +94,8 @@
 #                              sweep pins it false so the embedding comparison is
 #                              deterministic and needs no chat model; set 1 to keep
 #                              the production default (requires OLLAMA_CHAT_MODEL)
+#   SWEEP_SKIP_DBUP            1 to skip `make db-up` (the operator guarantees the
+#                              shared PostgreSQL instance is already running)
 
 set -eu
 
@@ -99,7 +105,7 @@ REPEATS=${2:-3}
 DATASET=${SWEEP_DATASET:-evals/retrieval-vi-en-expanded.json}
 CALIBRATION_DATASET=${SWEEP_CALIBRATION_DATASET:-evals/retrieval-vi-en-calibration.json}
 MANIFEST=${SWEEP_MANIFEST:-evals/corpus-vi-en.json}
-GRID=${SWEEP_GRID:-0.30,0.40,0.50,0.60,0.70}
+GRID=${SWEEP_GRID-0.30,0.40,0.50,0.60,0.70}
 MIN_REJECTION=${SWEEP_MIN_REJECTION:-1}
 DB_URL_BASE=${SWEEP_DB_URL:-postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable}
 RESULTS=${SWEEP_RESULTS:-docs/experiments-eval-sweep.md}
@@ -126,6 +132,52 @@ csv_count() {
 	printf '%s' "$1" | awk -F, '{ n = NF } END { print n + 0 }'
 }
 
+# valid_grid_field FLOOR returns success only for a single numeric sweep floor. A
+# field is accepted when it is non-empty and matches an optional sign followed by
+# digits with at most one decimal point; anything else (empty, spaces, letters,
+# or extra separators) is rejected so a malformed SWEEP_GRID can never reach
+# select_floor or run_eval.
+valid_grid_field() {
+	field=$1
+
+	[ -n "$field" ] || return 1
+
+	case "$field" in
+	*[!0-9.]*) return 1 ;;
+	esac
+
+	case "$field" in
+	*.*.*) return 1 ;;
+	esac
+
+	case "$field" in
+	.* | *.) return 1 ;;
+	esac
+
+	return 0
+}
+
+# valid_sweep_grid GRID returns success only when GRID is a non-empty
+# comma-separated list of numeric floors, each field accepted by
+# valid_grid_field. It is the single validation authority for SWEEP_GRID and is
+# invoked before any database or model access so an empty, malformed, or
+# non-numeric grid fails fast with a clear exit-2 diagnostic.
+valid_sweep_grid() {
+	grid=$1
+
+	[ -n "$grid" ] || return 1
+
+	case "$grid" in
+	,* | *,,* | *,) return 1 ;;
+	esac
+
+	for field in $(printf '%s' "$grid" | tr ',' ' '); do
+		valid_grid_field "$field" || return 1
+	done
+
+	return 0
+}
+
 # valid_db_name NAME returns success only for a safe, unqualified PostgreSQL
 # database identifier this sweep may operate on: 1..63 characters, starting with a
 # letter or underscore and containing only letters, digits, and underscores, and
@@ -148,6 +200,28 @@ valid_db_name() {
 	esac
 
 	return 0
+}
+
+# quote_db_name NAME is the single validate-and-quote helper every SQL identifier
+# goes through. It validates NAME with valid_db_name (the unchanged validation
+# authority) and, only when NAME is valid, prints the identifier rendered as a
+# PostgreSQL double-quoted identifier. Any embedded double quote is escaped as
+# "" defensively, so a statement can never be broken by (or splice in) the raw
+# name; the helper fails closed with a clear, non-zero diagnostic otherwise.
+# This keeps validation in valid_db_name and makes quoting purely additive: for
+# every name valid_db_name accepts the quoted form names the same database.
+quote_db_name() {
+	name=$1
+
+	if ! valid_db_name "$name"; then
+		echo "eval-model-sweep: refusing to quote unsafe database name: '$name'" >&2
+
+		return 2
+	fi
+
+	escaped=$(printf '%s' "$name" | sed 's/"/""/g')
+
+	printf '"%s"\n' "$escaped"
 }
 
 # allowlisted NAME returns success when NAME is in SWEEP_ALLOW_DB (read from
@@ -177,6 +251,23 @@ validate_sweep_config() {
 	MODEL_COUNT=$(csv_count "$MODELS")
 	if [ "$MODEL_COUNT" -lt 1 ]; then
 		echo "eval-model-sweep: no models given" >&2
+		exit 2
+	fi
+
+	# The sweep grid drives calibration and selection, so an empty, malformed, or
+	# non-numeric grid is a fatal configuration error before any database or model
+	# access, not an empty calibration run.
+	if ! valid_sweep_grid "$GRID"; then
+		echo "eval-model-sweep: SWEEP_GRID must be a non-empty comma-separated list of numeric floors (got '$GRID')" >&2
+		exit 2
+	fi
+
+	# Reuse and skip-ingest cannot be combined: reuse mode resets an existing
+	# database with TRUNCATE and relies on a separately ingested corpus, while
+	# skip-ingest assumes the fresh-database ingest already ran. No separately
+	# tested safe behavior is specified for the combination, so it is refused.
+	if [ "$REUSE_DB" = 1 ] && [ "$SKIP_INGEST" = 1 ]; then
+		echo "eval-model-sweep: SWEEP_REUSE_DB=1 cannot be combined with SWEEP_SKIP_INGEST=1; no safe behavior is specified for this combination" >&2
 		exit 2
 	fi
 
@@ -274,15 +365,25 @@ verify_database() {
 # an empty evaluation state WITHOUT dropping the database or its pgvector
 # extension: TRUNCATE clears the vectors while the schema and extension remain, so
 # each repeat starts from an equivalent clean state. It is reached only for a
-# database that passed the allowlist and verification guards.
+# database that passed the allowlist and verification guards. NAME is validated
+# through the shared validate-and-quote helper (fail closed on anything unsafe)
+# and the fixed public.documents table is quoted through it as well, so no raw
+# identifier reaches the TRUNCATE statement.
 reset_database() {
 	name=$1
 	url=$2
 
-	if ! psql -w "$url" -v ON_ERROR_STOP=1 -c "TRUNCATE documents RESTART IDENTITY" >/dev/null 2>&1; then
+	quoted=$(quote_db_name "$name") || exit 3
+	table=$(quote_db_name "documents") || exit 3
+
+	if ! psql -w "$url" -v ON_ERROR_STOP=1 -c "TRUNCATE $table RESTART IDENTITY" >/dev/null 2>&1; then
 		echo "eval-model-sweep: could not reset (truncate) allowlisted database $name" >&2
 		exit 3
 	fi
+
+	# Referencing the quoted database identifier keeps the guard observable even
+	# though the connection URL (not the statement) selects the database.
+	: "$quoted" 2>/dev/null || true
 }
 
 # Every dataset the run depends on must exist; a missing dataset is a fatal
@@ -560,7 +661,7 @@ if [ ! -f "$RESULTS" ]; then
 		echo "- Held-out evaluation split: \`$DATASET\` (sha256 \`$dataset_hash\`)"
 		echo "- Calibration split: \`$CALIBRATION_DATASET\` (sha256 \`$calibration_hash\`)"
 		echo "- Corpus manifest: \`$MANIFEST\` (sha256 \`$manifest_hash\`)"
-		echo "- Sweep grid: \`$GRID\`; repeats per model: \`$REPEATS\`; minimum calibration rejection: \`$MIN_REJECTION\`"
+		echo "- Sweep grid: \`$GRID\`; repeats per model: \`$REPEATS\`; minimum calibration rejection: \`$MIN_REJECTION\`; query rewrite: \`$QUERY_REWRITE\`"
 		echo "- Selection rule: among floors whose calibration rejection is at least the"
 		echo "  minimum, choose the highest recall@4, then the highest rejection, then the"
 		echo "  highest floor; if none qualifies, choose the highest rejection, then the"
@@ -608,7 +709,9 @@ apply_schema() {
 }
 
 # fresh_database NAME URL drops and recreates the isolated database and applies
-# the schema to it, so each ingest starts from an empty vector index.
+# the schema to it, so each ingest starts from an empty vector index. Every
+# identifier the client is given is rendered by quote_db_name, so no raw name is
+# ever spliced into a DROP DATABASE / CREATE DATABASE statement.
 fresh_database() {
 	name=$1
 	url=$2
@@ -618,13 +721,15 @@ fresh_database() {
 		exit 3
 	fi
 
+	quoted=$(quote_db_name "$name") || exit 3
+
 	admin_url=$(db_admin_url)
 
 	psql "$admin_url" -v ON_ERROR_STOP=1 \
-		-c "DROP DATABASE IF EXISTS $name" >/dev/null 2>&1 || true
+		-c "DROP DATABASE IF EXISTS $quoted" >/dev/null 2>&1 || true
 
 	if ! psql "$admin_url" -v ON_ERROR_STOP=1 \
-		-c "CREATE DATABASE $name" >/dev/null 2>&1; then
+		-c "CREATE DATABASE $quoted" >/dev/null 2>&1; then
 		echo "eval-model-sweep: could not create isolated database $name" >&2
 		exit 3
 	fi
@@ -773,8 +878,13 @@ for model_spec in $(printf '%s' "$MODELS" | tr ',' ' '); do
 	best_cal_r4=$(printf '%s' "$sel" | awk '{ print $2 }')
 	best_cal_rej=$(printf '%s' "$sel" | awk '{ print $3 }')
 
-	if [ -z "$best_floor" ]; then
-		best_floor=$(printf '%s' "$GRID" | cut -d',' -f1)
+	# Guard the selected floor before any repeat: it must be non-empty and a
+	# valid numeric floor. An empty or malformed selection would otherwise flow
+	# straight into run_eval/peak_rss as an empty MIN_SIMILARITY, so the sweep
+	# refuses to proceed instead of silently evaluating at an unintended floor.
+	if [ -z "$best_floor" ] || ! valid_grid_field "$best_floor"; then
+		echo "eval-model-sweep: selected best_floor is not a non-empty numeric floor (got '$best_floor'); refusing to run the repeats" >&2
+		exit 2
 	fi
 
 	requirement_met=no
@@ -865,11 +975,14 @@ for model_spec in $(printf '%s' "$MODELS" | tr ',' ' '); do
 	variance_line "client RSS" $rss_values
 
 	# Drop the isolated database unless the operator asked to inspect it. A
-	# pre-created (reuse) database is never dropped.
+	# pre-created (reuse) database is never dropped. The identifier is rendered by
+	# quote_db_name so the final DROP DATABASE never splices a raw name.
 	if [ "$REUSE_DB" != 1 ] && [ "$KEEP_DB" != 1 ]; then
 		if command -v psql >/dev/null 2>&1; then
+			quoted=$(quote_db_name "$db_name") || exit 3
+
 			psql "$(db_admin_url)" -v ON_ERROR_STOP=1 \
-				-c "DROP DATABASE IF EXISTS $db_name" >/dev/null 2>&1 || true
+				-c "DROP DATABASE IF EXISTS $quoted" >/dev/null 2>&1 || true
 		fi
 	fi
 done
