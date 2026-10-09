@@ -75,6 +75,13 @@ const (
 	// Off by default: the K baselines are reported on their own.
 	DefaultLexicalRerank = false
 
+	// DefaultRerankTimeout bounds how long the LLM reranker may wait for the
+	// chat model before falling back to the fused order. It is deliberately 0
+	// (guard disabled), so an unset RERANK_TIMEOUT preserves the current
+	// behavior and introduces no default drift. It is scoped to the reranker
+	// call only; REQUEST_TIMEOUT still bounds the whole request.
+	DefaultRerankTimeout = time.Duration(0)
+
 	// DefaultAnswerabilityGate is whether cmd/eval asks the chat model whether
 	// the retrieved evidence can answer each question. Off by default: it adds
 	// one chat-model call per case.
@@ -100,6 +107,12 @@ const (
 	// the chat model before answering. On by default.
 	DefaultRagAnswerabilityGate = true
 
+	// DefaultRagCitationValidation is whether cmd/rag validates the model's
+	// [source - section] citations against the retrieved documents and repairs an
+	// answer whose citations do not resolve. Off by default, so the default
+	// cmd/rag output is byte-identical to the answer path without validation.
+	DefaultRagCitationValidation = false
+
 	// DefaultFinalK is how many fused candidates cmd/rag keeps after hybrid
 	// retrieval, before the matched sections are expanded.
 	DefaultFinalK = 3
@@ -107,37 +120,83 @@ const (
 	// DefaultExpandLimit caps how many section chunks cmd/rag sends as context.
 	DefaultExpandLimit = 20
 
+	// DefaultContextBudget caps the estimated size of the context cmd/rag sends
+	// to the model. The size is a provider-neutral byte-based estimate (chunk
+	// content length in bytes plus a fixed per-chunk overhead), not
+	// tokenizer-accurate token counting. It is deliberately 0 (disabled), so an
+	// unset CONTEXT_BUDGET keeps the current chunk-count behaviour and no default
+	// drift is introduced.
+	DefaultContextBudget = 0
+
+	// DefaultMaxQuestionBytes caps the size in bytes of the user question the
+	// commands accept. It is deliberately 0 (disabled), so an unset
+	// MAX_QUESTION_BYTES keeps the current behavior and introduces no default
+	// drift: an oversized question is only rejected when a limit is explicitly
+	// opt-in via the environment.
+	DefaultMaxQuestionBytes = 0
+
+	// DefaultMaxInputBytes caps the size in bytes of the untrusted retrieved
+	// context sent to the model. Like DefaultMaxQuestionBytes it is deliberately
+	// 0 (disabled) so an unset MAX_INPUT_BYTES preserves the current behavior and
+	// introduces no default drift.
+	DefaultMaxInputBytes = 0
+
+	// DefaultLanguage is the corpus language used to select the PostgreSQL
+	// full-text search configuration for ingestion and retrieval. It is empty by
+	// default, which keeps the baseline 'english' configuration, so an unset
+	// CORPUS_LANGUAGE introduces no retrieval behavior change.
+	DefaultLanguage = ""
+
 	// DefaultRequestTimeout bounds every network call the commands make.
 	DefaultRequestTimeout = 5 * time.Minute
+
+	// OutputHuman and OutputJSON are the accepted values of the OBSERVABILITY_FORMAT
+	// setting. OutputHuman is the default: existing human-readable stage output is
+	// preserved unchanged. OutputJSON is opt-in and emits one structured record per
+	// run via log/slog instead of the human-readable lines.
+	OutputHuman = "human"
+	OutputJSON  = "json"
+
+	// DefaultObservabilityFormat selects the human-readable output. An unset or
+	// blank OBSERVABILITY_FORMAT keeps the current output and introduces no
+	// default drift; JSON must be requested explicitly.
+	DefaultObservabilityFormat = OutputHuman
 )
 
 // Config holds the runtime settings.
 type Config struct {
-	OllamaURL            string
-	EmbedModel           string
-	EmbedDim             int
-	ChatModel            string
-	DatabaseURL          string
-	Question             string
-	EmbedProvider        string
-	GenProvider          string
-	ChunkSize            int
-	ChunkOverlap         int
-	TopK                 int
-	FinalK               int
-	ExpandLimit          int
-	EmbedWorkers         int
-	EmbedRetries         int
-	MinSimilarity        float64
-	LexicalRerank        bool
-	LLMRerank            bool
-	RagLLMRerank         bool
-	AnswerabilityGate    bool
-	FactJudge            bool
-	RewriteOnly          bool
-	RagAnswerabilityGate bool
-	RequestTimeout       time.Duration
-	QueryRewrite         bool
+	OllamaURL             string
+	EmbedModel            string
+	EmbedDim              int
+	ChatModel             string
+	DatabaseURL           string
+	Question              string
+	EmbedProvider         string
+	GenProvider           string
+	Language              string
+	ChunkSize             int
+	ChunkOverlap          int
+	TopK                  int
+	FinalK                int
+	ExpandLimit           int
+	ContextBudget         int
+	MaxQuestionBytes      int
+	MaxInputBytes         int
+	EmbedWorkers          int
+	EmbedRetries          int
+	MinSimilarity         float64
+	LexicalRerank         bool
+	LLMRerank             bool
+	RagLLMRerank          bool
+	RerankTimeout         time.Duration
+	AnswerabilityGate     bool
+	FactJudge             bool
+	RewriteOnly           bool
+	RagAnswerabilityGate  bool
+	RagCitationValidation bool
+	RequestTimeout        time.Duration
+	QueryRewrite          bool
+	ObservabilityFormat   string
 }
 
 // Load reads the settings from the environment, falling back to the defaults
@@ -154,6 +213,9 @@ func Load() (Config, error) {
 		DatabaseURL:   envOrDefault("DATABASE_URL", DefaultDatabaseURL),
 		EmbedProvider: envOrDefault("EMBED_PROVIDER", DefaultEmbedProvider),
 		GenProvider:   envOrDefault("GEN_PROVIDER", DefaultGenProvider),
+		// Language selects the corpus's full-text search configuration. Empty keeps
+		// the baseline 'english' configuration.
+		Language: envOrDefault("CORPUS_LANGUAGE", DefaultLanguage),
 		// Question has no default: the rag command requires one.
 		Question: envOrDefault("QUESTION", ""),
 	}
@@ -184,6 +246,18 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	if cfg.ContextBudget, err = envNonNegativeInt("CONTEXT_BUDGET", DefaultContextBudget); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.MaxQuestionBytes, err = envNonNegativeInt("MAX_QUESTION_BYTES", DefaultMaxQuestionBytes); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.MaxInputBytes, err = envNonNegativeInt("MAX_INPUT_BYTES", DefaultMaxInputBytes); err != nil {
+		return Config{}, err
+	}
+
 	if cfg.EmbedWorkers, err = envPositiveInt("EMBED_WORKERS", DefaultEmbedWorkers); err != nil {
 		return Config{}, err
 	}
@@ -208,6 +282,12 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	// The reranker latency guard. 0 (the default) disables the guard; an
+	// explicit positive duration bounds the reranker call.
+	if cfg.RerankTimeout, err = envNonNegativeDuration("RERANK_TIMEOUT", DefaultRerankTimeout); err != nil {
+		return Config{}, err
+	}
+
 	if cfg.AnswerabilityGate, err = envBool("EVAL_ANSWERABILITY_GATE", DefaultAnswerabilityGate); err != nil {
 		return Config{}, err
 	}
@@ -224,11 +304,19 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	if cfg.RagCitationValidation, err = envBool("RAG_CITATION_VALIDATION", DefaultRagCitationValidation); err != nil {
+		return Config{}, err
+	}
+
 	if cfg.RequestTimeout, err = envPositiveDuration("REQUEST_TIMEOUT", DefaultRequestTimeout); err != nil {
 		return Config{}, err
 	}
 
 	if cfg.QueryRewrite, err = envBool("QUERY_REWRITE", DefaultQueryRewrite); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.ObservabilityFormat, err = envOutputFormat("OBSERVABILITY_FORMAT", DefaultObservabilityFormat); err != nil {
 		return Config{}, err
 	}
 
@@ -243,6 +331,12 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// ObservabilityJSON reports whether the configured output format selects the
+// opt-in JSON structured record instead of the human-readable stream.
+func (c Config) ObservabilityJSON() bool {
+	return c.ObservabilityFormat == OutputJSON
 }
 
 // chunkerConfigVersion identifies the serialization format of ChunkerConfig.
@@ -338,7 +432,7 @@ func envPositiveInt(key string, fallback int) (int, error) {
 }
 
 // envNonNegativeInt is envPositiveInt but accepts zero, for settings where zero
-// is a valid value rather than an absent one (chunk overlap).
+// is a valid value rather than an absent one (chunk overlap, disabled limits).
 func envNonNegativeInt(key string, fallback int) (int, error) {
 	raw, ok := envValue(key)
 	if !ok {
@@ -395,6 +489,26 @@ func envPositiveDuration(key string, fallback time.Duration) (time.Duration, err
 	return value, nil
 }
 
+// envNonNegativeDuration is envPositiveDuration but accepts zero, for settings
+// where zero means disabled rather than absent (the reranker latency guard).
+func envNonNegativeDuration(key string, fallback time.Duration) (time.Duration, error) {
+	raw, ok := envValue(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	value, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a duration such as 30s or 5m, got %q", key, raw)
+	}
+
+	if value < 0 {
+		return 0, fmt.Errorf("%s must be 0 or greater, got %q", key, raw)
+	}
+
+	return value, nil
+}
+
 // envBool reads a boolean setting.
 func envBool(key string, fallback bool) (bool, error) {
 	raw, ok := envValue(key)
@@ -408,4 +522,29 @@ func envBool(key string, fallback bool) (bool, error) {
 	}
 
 	return value, nil
+}
+
+// envOutputFormat reads the observability output-format setting. It accepts only
+// the enumerated values (human, json); a present but unknown value is an error
+// naming the variable, never a silent fallback to the default.
+func envOutputFormat(key, fallback string) (string, error) {
+	raw, ok := envValue(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	switch strings.ToLower(raw) {
+	case OutputHuman:
+		return OutputHuman, nil
+	case OutputJSON:
+		return OutputJSON, nil
+	default:
+		return "", fmt.Errorf(
+			"%s must be %q or %q, got %q",
+			key,
+			OutputHuman,
+			OutputJSON,
+			raw,
+		)
+	}
 }

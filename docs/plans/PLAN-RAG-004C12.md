@@ -1,9 +1,7 @@
 # PLAN — RAG-004C1/C2: Provider registry + config factories, and stub-provider pipeline tests
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** Approved decomposition of RAG-004C. Supersedes `plan-rag-004abc`
-(RAG-004A/B done and committed at `07aca78`; RAG-004C was BLOCKED/NO_PROGRESS; that
-plan's history is preserved under `.agent-sdlc/archive/`).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-004c12/`). The original plan is preserved below.**
 
 ## Objective
 

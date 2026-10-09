@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -583,5 +584,477 @@ func TestHybridRetrieveIntegration(t *testing.T) {
 	wantExpanded := []int64{refund, missed[0], missed[1], missed[2]}
 	if got := ids(result.Expanded); !slices.Equal(got, wantExpanded) {
 		t.Fatalf("expected expanded results %v, got %v", wantExpanded, got)
+	}
+}
+
+// insertDocumentWithMetadata stores one chunk with an explicit language and
+// ingested_at, so the language and metadata-filter integration tests can control
+// the columns migration 003 adds. An empty language is stored as NULL, matching
+// what ingestion writes for an unset language.
+func insertDocumentWithMetadata(
+	t *testing.T,
+	ctx context.Context,
+	conn *pgx.Conn,
+	document Document,
+	embedding []float64,
+	language string,
+	ingestedAt time.Time,
+) int64 {
+	t.Helper()
+
+	var id int64
+
+	err := conn.QueryRow(
+		ctx,
+		`
+		INSERT INTO documents
+		    (content, source, section, chunk_index, embedding, language, ingested_at)
+		VALUES ($1, $2, $3, $4, $5::vector, NULLIF($6, ''), $7)
+		RETURNING id
+		`,
+		document.Content,
+		document.Source,
+		document.Section,
+		document.ChunkIndex,
+		VectorToString(embedding),
+		language,
+		ingestedAt,
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("insert document with metadata: %v", err)
+	}
+
+	return id
+}
+
+// sortedIDs returns the document IDs in ascending order, so a test can compare
+// result sets without depending on the tie order of ORDER BY.
+func sortedIDs(documents []Document) []int64 {
+	out := ids(documents)
+	slices.Sort(out)
+
+	return out
+}
+
+// TestKeywordSearchIntegrationMultilingual asserts a document retrieves under a
+// language-appropriate full-text search configuration. German's stemmer matches
+// the query "Mietvertrag" to the stored "Mietverträge"; the baseline 'english'
+// configuration does not stem German, so it does not match. This is the
+// difference the language selection exists to make.
+func TestKeywordSearchIntegrationMultilingual(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	now := time.Now().UTC()
+
+	german := insertDocumentWithMetadata(t, ctx, conn, Document{
+		Source:  "mietvertrag.md",
+		Section: "Zahlung",
+		Content: "Mietverträge regeln die monatliche Zahlung",
+	}, unitVector(0), "de", now)
+
+	english := insertDocumentWithMetadata(t, ctx, conn, Document{
+		Source:  "lease.md",
+		Section: "Payment",
+		Content: "Leases govern the monthly payment",
+	}, unitVector(1), "en", now)
+
+	retriever := New(conn)
+
+	// German configuration stems the plural to the singular, so the query matches.
+	germanHits, err := retriever.KeywordSearchFiltered(ctx, "Mietvertrag", 10, "de", Filter{})
+	if err != nil {
+		t.Fatalf("german keyword search: %v", err)
+	}
+
+	if !slices.Contains(ids(germanHits), german) {
+		t.Fatalf("german query did not retrieve the german document: %v", ids(germanHits))
+	}
+
+	// The baseline english configuration does not stem German, so the same query
+	// does not match the german document.
+	englishHits, err := retriever.KeywordSearchFiltered(ctx, "Mietvertrag", 10, "en", Filter{})
+	if err != nil {
+		t.Fatalf("english keyword search: %v", err)
+	}
+
+	if slices.Contains(ids(englishHits), german) {
+		t.Fatalf("english config unexpectedly stemmed the german document: %v", ids(englishHits))
+	}
+
+	// The english document still retrieves under the english configuration.
+	enHits, err := retriever.KeywordSearchFiltered(ctx, "payment", 10, "en", Filter{})
+	if err != nil {
+		t.Fatalf("english keyword search: %v", err)
+	}
+
+	if !slices.Contains(ids(enHits), english) {
+		t.Fatalf("english query did not retrieve the english document: %v", ids(enHits))
+	}
+}
+
+// TestHybridRetrieveIntegrationThreadsLanguage asserts the pipeline applies the
+// language to keyword retrieval: a german query finds the german document through
+// HybridRetrieve with PipelineOptions.Language set, and not with it unset.
+func TestHybridRetrieveIntegrationThreadsLanguage(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	now := time.Now().UTC()
+
+	german := insertDocumentWithMetadata(t, ctx, conn, Document{
+		Source:  "mietvertrag.md",
+		Section: "Zahlung",
+		Content: "Mietverträge regeln die monatliche Zahlung",
+	}, unitVector(1), "de", now)
+
+	retriever := New(conn)
+
+	withLanguage, err := HybridRetrieve(
+		ctx,
+		retriever,
+		"Mietvertrag",
+		unitVector(0),
+		PipelineOptions{CandidateK: 10, FinalK: 5, ExpandLimit: 20, MinSimilarity: 0.6, Language: "de"},
+	)
+	if err != nil {
+		t.Fatalf("hybrid retrieve (de): %v", err)
+	}
+
+	if !slices.Contains(ids(withLanguage.Keyword), german) {
+		t.Fatalf("german keyword stage missed the document: %v", ids(withLanguage.Keyword))
+	}
+
+	withoutLanguage, err := HybridRetrieve(
+		ctx,
+		retriever,
+		"Mietvertrag",
+		unitVector(0),
+		PipelineOptions{CandidateK: 10, FinalK: 5, ExpandLimit: 20, MinSimilarity: 0.6},
+	)
+	if err != nil {
+		t.Fatalf("hybrid retrieve (baseline): %v", err)
+	}
+
+	if slices.Contains(ids(withoutLanguage.Keyword), german) {
+		t.Fatalf("baseline config unexpectedly matched the german document: %v", ids(withoutLanguage.Keyword))
+	}
+}
+
+// TestSearchIntegrationFilterBySourcePrefix asserts a source-prefix filter
+// narrows vector search to matching sources only.
+func TestSearchIntegrationFilterBySourcePrefix(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	query := unitVector(0)
+
+	policiesA := insertDocument(t, ctx, conn, Document{Source: "policies/a.md", Section: "Fees"}, query)
+	policiesB := insertDocument(t, ctx, conn, Document{Source: "policies/b.md", Section: "Fees"}, unitVector(1))
+	guides := insertDocument(t, ctx, conn, Document{Source: "guides/c.md", Section: "Fees"}, unitVector(2))
+
+	retriever := New(conn)
+
+	got, err := retriever.SearchFiltered(ctx, query, 10, Filter{SourcePrefix: "policies/"})
+	if err != nil {
+		t.Fatalf("source-prefix search: %v", err)
+	}
+
+	want := []int64{policiesA, policiesB}
+	slices.Sort(want)
+
+	if !slices.Equal(sortedIDs(got), want) {
+		t.Fatalf("source-prefix search = %v, want %v (guides excluded)", ids(got), want)
+	}
+
+	// The unfiltered query is unchanged.
+	all, err := retriever.Search(ctx, query, 10)
+	if err != nil {
+		t.Fatalf("unfiltered search: %v", err)
+	}
+
+	if len(all) != 3 {
+		t.Fatalf("unfiltered search returned %d documents, want 3", len(all))
+	}
+
+	_ = guides
+}
+
+// TestSearchIntegrationSourcePrefixEscapesWildcards asserts LIKE metacharacters
+// in a prefix are matched literally: a prefix containing "%" or "_" does not act
+// as a wildcard and does not over-match.
+func TestSearchIntegrationSourcePrefixEscapesWildcards(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	query := unitVector(0)
+
+	literalPercent := insertDocument(t, ctx, conn, Document{Source: "100%_match.md", Section: "S"}, query)
+	insertDocument(t, ctx, conn, Document{Source: "100percent.md", Section: "S"}, unitVector(1))
+
+	literalUnderscore := insertDocument(t, ctx, conn, Document{Source: "a_b.md", Section: "S"}, unitVector(2))
+	insertDocument(t, ctx, conn, Document{Source: "aXb.md", Section: "S"}, unitVector(3))
+
+	retriever := New(conn)
+
+	percentHits, err := retriever.SearchFiltered(ctx, query, 10, Filter{SourcePrefix: "100%"})
+	if err != nil {
+		t.Fatalf("percent search: %v", err)
+	}
+
+	if !slices.Equal(sortedIDs(percentHits), []int64{literalPercent}) {
+		t.Fatalf("prefix %% matched %v, want only the literal match", ids(percentHits))
+	}
+
+	underscoreHits, err := retriever.SearchFiltered(ctx, query, 10, Filter{SourcePrefix: "a_"})
+	if err != nil {
+		t.Fatalf("underscore search: %v", err)
+	}
+
+	if !slices.Equal(sortedIDs(underscoreHits), []int64{literalUnderscore}) {
+		t.Fatalf("prefix a_ matched %v, want only the literal match", ids(underscoreHits))
+	}
+}
+
+// TestSearchIntegrationFilterByLanguage asserts a language filter matches the
+// stored language exactly and excludes documents with no language.
+func TestSearchIntegrationFilterByLanguage(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	query := unitVector(0)
+	now := time.Now().UTC()
+
+	german := insertDocumentWithMetadata(t, ctx, conn, Document{Source: "de.md", Section: "S"}, query, "de", now)
+	english := insertDocumentWithMetadata(t, ctx, conn, Document{Source: "en.md", Section: "S"}, unitVector(1), "en", now)
+	unset := insertDocumentWithMetadata(t, ctx, conn, Document{Source: "none.md", Section: "S"}, unitVector(2), "", now)
+
+	retriever := New(conn)
+
+	germanHits, err := retriever.SearchFiltered(ctx, query, 10, Filter{Language: "de"})
+	if err != nil {
+		t.Fatalf("language filter: %v", err)
+	}
+
+	if !slices.Equal(sortedIDs(germanHits), []int64{german}) {
+		t.Fatalf("language=de matched %v, want only %d", ids(germanHits), german)
+	}
+
+	englishHits, err := retriever.SearchFiltered(ctx, query, 10, Filter{Language: "en"})
+	if err != nil {
+		t.Fatalf("language filter: %v", err)
+	}
+
+	if !slices.Equal(sortedIDs(englishHits), []int64{english}) {
+		t.Fatalf("language=en matched %v, want only %d (unset excluded)", ids(englishHits), english)
+	}
+
+	_ = unset
+}
+
+// TestSearchIntegrationFilterByDateRange asserts an ingested-at range narrows
+// results to the documents ingested within it.
+func TestSearchIntegrationFilterByDateRange(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	query := unitVector(0)
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	old := insertDocumentWithMetadata(t, ctx, conn, Document{Source: "old.md", Section: "S"}, query, "", base)
+	recent := insertDocumentWithMetadata(t, ctx, conn, Document{Source: "new.md", Section: "S"}, unitVector(1), "", base.Add(time.Hour))
+
+	midpoint := base.Add(30 * time.Minute)
+
+	retriever := New(conn)
+
+	from := Filter{IngestedFrom: &midpoint}
+	fromHits, err := retriever.SearchFiltered(ctx, query, 10, from)
+	if err != nil {
+		t.Fatalf("date-from filter: %v", err)
+	}
+
+	if !slices.Equal(sortedIDs(fromHits), []int64{recent}) {
+		t.Fatalf("ingested_from matched %v, want only %d", ids(fromHits), recent)
+	}
+
+	to := Filter{IngestedTo: &midpoint}
+	toHits, err := retriever.SearchFiltered(ctx, query, 10, to)
+	if err != nil {
+		t.Fatalf("date-to filter: %v", err)
+	}
+
+	if !slices.Equal(sortedIDs(toHits), []int64{old}) {
+		t.Fatalf("ingested_to matched %v, want only %d", ids(toHits), old)
+	}
+}
+
+// TestSearchIntegrationFilterCombined asserts source, language, and date-range
+// predicates combine (AND) so only a document satisfying all of them matches.
+func TestSearchIntegrationFilterCombined(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	query := unitVector(0)
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	match := insertDocumentWithMetadata(t, ctx, conn, Document{Source: "policies/de.md", Section: "S"}, query, "de", base.Add(time.Hour))
+	insertDocumentWithMetadata(t, ctx, conn, Document{Source: "policies/en.md", Section: "S"}, unitVector(1), "en", base.Add(time.Hour))
+	insertDocumentWithMetadata(t, ctx, conn, Document{Source: "guides/de.md", Section: "S"}, unitVector(2), "de", base.Add(time.Hour))
+	insertDocumentWithMetadata(t, ctx, conn, Document{Source: "policies/de-old.md", Section: "S"}, unitVector(3), "de", base)
+
+	midpoint := base.Add(30 * time.Minute)
+	filter := Filter{SourcePrefix: "policies/", Language: "de", IngestedFrom: &midpoint}
+
+	retriever := New(conn)
+
+	got, err := retriever.SearchFiltered(ctx, query, 10, filter)
+	if err != nil {
+		t.Fatalf("combined filter: %v", err)
+	}
+
+	if !slices.Equal(sortedIDs(got), []int64{match}) {
+		t.Fatalf("combined filter matched %v, want only %d", ids(got), match)
+	}
+}
+
+// TestSearchIntegrationNoFilterMatchesBaseline asserts a zero-value filter yields
+// exactly the same rows and order as the unfiltered query.
+func TestSearchIntegrationNoFilterMatchesBaseline(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	query := unitVector(0)
+
+	insertDocument(t, ctx, conn, Document{Source: "a.md", Section: "S"}, query)
+	insertDocument(t, ctx, conn, Document{Source: "b.md", Section: "S"}, unitVector(1))
+
+	retriever := New(conn)
+
+	baseline, err := retriever.Search(ctx, query, 10)
+	if err != nil {
+		t.Fatalf("baseline search: %v", err)
+	}
+
+	filtered, err := retriever.SearchFiltered(ctx, query, 10, Filter{})
+	if err != nil {
+		t.Fatalf("zero-filter search: %v", err)
+	}
+
+	if !slices.Equal(ids(baseline), ids(filtered)) {
+		t.Fatalf("zero filter changed the result: %v vs %v", ids(baseline), ids(filtered))
+	}
+}
+
+// insertDocumentPaged stores one chunk with an explicit page, so the page
+// round-trip test can control documents.page. page 0 is stored as NULL (unset),
+// matching what ingestion writes for page-less formats.
+func insertDocumentPaged(
+	t *testing.T,
+	ctx context.Context,
+	conn *pgx.Conn,
+	document Document,
+	embedding []float64,
+	page int,
+) int64 {
+	t.Helper()
+
+	var id int64
+
+	err := conn.QueryRow(
+		ctx,
+		`
+		INSERT INTO documents
+		    (content, source, section, chunk_index, embedding, page)
+		VALUES ($1, $2, $3, $4, $5::vector, NULLIF($6, 0))
+		RETURNING id
+		`,
+		document.Content,
+		document.Source,
+		document.Section,
+		document.ChunkIndex,
+		VectorToString(embedding),
+		page,
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("insert paged document: %v", err)
+	}
+
+	return id
+}
+
+// TestPageProvenanceIntegration asserts a page number persists and round-trips
+// through vector search and section expansion, and that a page-less (legacy) row
+// reads back as page 0.
+func TestPageProvenanceIntegration(t *testing.T) {
+	ctx := context.Background()
+	conn := requireDatabase(t)
+
+	resetDocuments(t, ctx, conn)
+
+	query := unitVector(0)
+
+	paged := insertDocumentPaged(t, ctx, conn, Document{
+		Source:  "manual.pdf",
+		Section: "Intro",
+		Content: "page two content",
+	}, query, 2)
+
+	legacy := insertDocumentPaged(t, ctx, conn, Document{
+		Source:  "policy.md",
+		Section: "Fees",
+		Content: "page-less content",
+	}, unitVector(1), 0)
+
+	retriever := New(conn)
+
+	found, err := retriever.SearchFiltered(ctx, query, 10, Filter{})
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+
+	pages := map[int64]int{}
+
+	for _, doc := range found {
+		pages[doc.ID] = doc.Page
+	}
+
+	if pages[paged] != 2 {
+		t.Fatalf("paged document Page = %d, want 2", pages[paged])
+	}
+
+	if pages[legacy] != 0 {
+		t.Fatalf("legacy document Page = %d, want 0 (unset)", pages[legacy])
+	}
+
+	// Section expansion carries the page too.
+	expanded, err := retriever.SectionChunksFiltered(
+		ctx,
+		[]SectionKey{{Source: "manual.pdf", Section: "Intro"}},
+		20,
+		Filter{},
+	)
+	if err != nil {
+		t.Fatalf("section chunks: %v", err)
+	}
+
+	if len(expanded) != 1 || expanded[0].Page != 2 {
+		t.Fatalf("expanded page = %+v, want one document with Page 2", expanded)
 	}
 }

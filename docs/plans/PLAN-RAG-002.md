@@ -1,8 +1,7 @@
 # PLAN — RAG-002: Ingestion reliability (batching, concurrency, retry)
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** Proposed — awaiting activation. Not started. RAG-001 is already complete
-(commit `70296a3`); this plan intentionally does **not** contain it.
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-002/`). The original plan is preserved below.**
 
 > **RAG-002 only.** This plan carries a single work item so that
 > `sop plan activate` / `sop run` compile exactly one task and can never

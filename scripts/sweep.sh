@@ -39,8 +39,13 @@ report() {
 
 	hybrid=$(printf '%s\n' "$overall" | sed -n '/^Hybrid retrieval:/,$p' | grep '^K=' | tr '\n' ' ' | tr -s ' ' || true)
 	extra=$(printf '%s\n' "$overall" | grep -E '^(Rerank |LLM Rerank |Answerability gate:|Avg Evidence Recall:|Generated Fact Recall:|Similarity-only rejection=|Groundedness:|Citation Validity:|Citation Entailment:)' | tr '\n' ' ' | tr -s ' ' || true)
+	latency=$(printf '%s\n' "$overall" | sed -n '/^Rerank latency:/,$p' | grep -E '^  (off|lexical|llm|cross-encoder)' | tr '\n' ' ' | tr -s ' ' || true)
 
 	printf '%-28s %s%s\n' "$1" "$hybrid" "$extra"
+
+	if [ -n "$latency" ]; then
+		printf '%-28s latency: %s\n' "$1" "$latency"
+	fi
 }
 
 # ingest_all chunks every example document with the current chunk settings.
@@ -104,16 +109,41 @@ if [ "$AXIS" = all ] || [ "$AXIS" = rewrite ]; then
 	unset QUERY_REWRITE
 fi
 
+# The rerank axis compares the strategies on recall, precision, evidence recall,
+# and latency. The off row is the baseline (no rerank call, zero rerank latency);
+# lexical and LLM rows report their measured rerank wall time. A cross-encoder
+# row is emitted only if a cross-encoder provider is registered (none is today),
+# and cmd/eval marks the variant unavailable otherwise.
 if [ "$AXIS" = all ] || [ "$AXIS" = rerank ]; then
 	echo
-	echo "== LLM rerank (eval) =="
+	echo "== rerank strategies (off / lexical / llm) =="
 
-	for value in false true; do
-		export EVAL_LLM_RERANK=$value
-		report "llm_rerank=$value"
-	done
+	# off: both rerankers disabled, the baseline row. Every value that shapes a
+	# row is set explicitly (never left to the ambient environment) so results do
+	# not depend on variables exported by the caller.
+	export EVAL_LEXICAL_RERANK=false
+	export EVAL_LLM_RERANK=false
+	export RERANK_TIMEOUT=0s
+	report "rerank=off"
 
-	unset EVAL_LLM_RERANK
+	# lexical only.
+	export EVAL_LEXICAL_RERANK=true
+	export EVAL_LLM_RERANK=false
+	export RERANK_TIMEOUT=0s
+	report "rerank=lexical"
+
+	# llm only, guard disabled.
+	export EVAL_LEXICAL_RERANK=false
+	export EVAL_LLM_RERANK=true
+	export RERANK_TIMEOUT=0s
+	report "rerank=llm"
+
+	# llm with a bounded latency guard, so a slow reranker falls back to the
+	# fused order instead of stalling the run.
+	export RERANK_TIMEOUT=10s
+	report "rerank=llm+guard"
+
+	unset EVAL_LEXICAL_RERANK EVAL_LLM_RERANK RERANK_TIMEOUT
 fi
 
 if [ "$AXIS" = all ] || [ "$AXIS" = minsim ]; then

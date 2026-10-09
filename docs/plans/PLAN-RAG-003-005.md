@@ -1,10 +1,7 @@
 # PLAN — RAG-003–005: Remaining M1–M2 (provenance, provider interfaces, dimension decoupling)
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** Approved for governed execution. RAG-001 (`70296a3`) and RAG-002 (`0f832b0`)
-are complete; RAG-002's plan is historicalized. Scope and acceptance below are
-preserved from `docs/plans/PLAN-RAG-Gap-Closure.md` (§6, Milestones 1–2); no PRD
-non-goal is altered and no provider-specific behavior changes beyond the approved scope.
+**Status:** **Historicalized — archived as `SUPERSEDED` (see `.agent-sdlc/archive/plan-rag-003-005/`). The original plan is preserved below.**
 
 ## Objective
 

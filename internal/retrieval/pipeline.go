@@ -4,24 +4,30 @@ import "context"
 
 // Searcher is the retrieval work the hybrid pipeline needs. *Retriever
 // implements it; tests supply a fake to exercise the pipeline without a
-// database.
+// database. Every stage takes the pipeline's Filter so metadata filtering is
+// applied consistently across vector search, keyword search, and section
+// expansion.
 type Searcher interface {
-	Search(
+	SearchFiltered(
 		ctx context.Context,
 		vector []float64,
 		topK int,
+		filter Filter,
 	) ([]Document, error)
 
-	KeywordSearch(
+	KeywordSearchFiltered(
 		ctx context.Context,
 		query string,
 		topK int,
+		language string,
+		filter Filter,
 	) ([]Document, error)
 
-	SectionChunks(
+	SectionChunksFiltered(
 		ctx context.Context,
 		keys []SectionKey,
 		limit int,
+		filter Filter,
 	) ([]Document, error)
 }
 
@@ -31,6 +37,18 @@ type PipelineOptions struct {
 	FinalK        int
 	ExpandLimit   int
 	MinSimilarity float64
+
+	// Language is the document/query language used to select the full-text
+	// search configuration for keyword retrieval. An empty value (the zero
+	// value) uses the baseline configuration ('english'), so callers that do not
+	// set it keep the current behavior.
+	Language string
+
+	// Filter is the optional metadata filter applied to every retrieval path
+	// (vector search, keyword search, and section expansion). The zero value
+	// applies no filtering, so callers that do not set it keep the current
+	// behavior exactly.
+	Filter Filter
 }
 
 // PipelineResult exposes the major retrieval stages so callers can inspect
@@ -56,7 +74,7 @@ type MultiQueryResult struct {
 }
 
 // searchOne runs the vector and keyword search for one query, applying the
-// similarity floor to the vector results.
+// similarity floor to the vector results and the pipeline filter to both paths.
 func searchOne(
 	ctx context.Context,
 	searcher Searcher,
@@ -64,10 +82,11 @@ func searchOne(
 	vector []float64,
 	options PipelineOptions,
 ) ([]Document, []Document, error) {
-	vectorDocuments, err := searcher.Search(
+	vectorDocuments, err := searcher.SearchFiltered(
 		ctx,
 		vector,
 		options.CandidateK,
+		options.Filter,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -80,10 +99,12 @@ func searchOne(
 		options.MinSimilarity,
 	)
 
-	keywordDocuments, err := searcher.KeywordSearch(
+	keywordDocuments, err := searcher.KeywordSearchFiltered(
 		ctx,
 		query,
 		options.CandidateK,
+		options.Language,
+		options.Filter,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -93,7 +114,7 @@ func searchOne(
 }
 
 // fuseAndExpand fuses rankings at CandidateK and FinalK, deduplicates sections,
-// and expands the final fused sections.
+// and expands the final fused sections under the pipeline filter.
 func fuseAndExpand(
 	ctx context.Context,
 	searcher Searcher,
@@ -106,10 +127,11 @@ func fuseAndExpand(
 	candidates := FuseRankings(rankings, options.CandidateK)
 	candidates = DeduplicateSections(candidates)
 
-	expanded, err := searcher.SectionChunks(
+	expanded, err := searcher.SectionChunksFiltered(
 		ctx,
 		SectionKeys(fused),
 		options.ExpandLimit,
+		options.Filter,
 	)
 	if err != nil {
 		return nil, nil, nil, err

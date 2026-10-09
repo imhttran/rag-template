@@ -277,6 +277,13 @@ chat model; run `QUERY_REWRITE=false make sweep AXIS=…` to sweep without it, a
 every axis still needs the database up and the corpora ingested. Recorded
 results live in `docs/experiments.md`.
 
+For a controlled **embedding-model** comparison, `scripts/eval-model-sweep.sh`
+sweeps `MIN_SIMILARITY` per model on a **calibration split** and reports the
+disjoint **held-out split**, one isolated database per model, three repeats per
+model (see `docs/operations/embedding-models.md`). Its eval runs default to
+`QUERY_REWRITE=false`, so the comparison is deterministic and needs no chat
+model; recorded results live in `docs/experiments-eval-sweep.md`.
+
 ## Configuration
 
 All three commands read the same settings from the environment. The defaults
@@ -290,32 +297,72 @@ cp .env.example .env
 set -a; source .env; set +a
 ```
 
-| Variable                  | Default                                                 | Used by   |
-| ------------------------- | ------------------------------------------------------- | --------- |
-| `OLLAMA_URL`              | `http://localhost:11434`                                | all       |
-| `OLLAMA_EMBED_MODEL`      | `nomic-embed-text`                                      | all       |
-| `OLLAMA_CHAT_MODEL`       | `qwen3.8:27b-mlx`                                       | rag, eval |
-| `DATABASE_URL`            | `postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable` | all       |
-| `EMBED_DIM`               | `768`                                                   | all       |
-| `CHUNK_SIZE`              | `50`                                                    | ingest    |
-| `CHUNK_OVERLAP`           | `20`                                                    | ingest    |
-| `TOP_K`                   | `4`                                                     | rag, eval |
-| `FINAL_K`                 | `3`                                                     | rag, eval |
-| `EXPAND_LIMIT`            | `20`                                                    | rag, eval |
-| `MIN_SIMILARITY`          | `0.6`                                                   | rag, eval |
-| `EVAL_LEXICAL_RERANK`     | `false`                                                 | eval      |
-| `EVAL_LLM_RERANK`         | `false`                                                 | eval      |
-| `RAG_LLM_RERANK`          | `false`                                                 | rag       |
-| `EVAL_ANSWERABILITY_GATE` | `false`                                                 | eval      |
-| `EVAL_FACT_JUDGE`         | `false`                                                 | eval      |
-| `QUERY_REWRITE`           | `true`                                                  | rag, eval |
-| `EVAL_REWRITE_ONLY`       | `false`                                                 | eval      |
-| `RAG_ANSWERABILITY_GATE`  | `true`                                                  | rag       |
-| `REQUEST_TIMEOUT`         | `5m`                                                    | all       |
-| `QUESTION`                | _(none — pass it as an argument, or type it)_           | rag       |
+| Variable                  | Default                                                 | Used by        |
+| ------------------------- | ------------------------------------------------------- | -------------- |
+| `OLLAMA_URL`              | `http://localhost:11434`                                | all            |
+| `OLLAMA_EMBED_MODEL`      | `nomic-embed-text`                                      | all            |
+| `OLLAMA_CHAT_MODEL`       | `qwen3.8:27b-mlx`                                       | rag, eval      |
+| `DATABASE_URL`            | `postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable` | all            |
+| `EMBED_DIM`               | `768`                                                   | all            |
+| `EMBED_PROVIDER`          | `ollama`                                                | all            |
+| `GEN_PROVIDER`            | `ollama`                                                | all            |
+| `CHUNK_SIZE`              | `50`                                                    | ingest         |
+| `CHUNK_OVERLAP`           | `20`                                                    | ingest         |
+| `EMBED_WORKERS`           | `4`                                                     | ingest         |
+| `EMBED_RETRIES`           | `3`                                                     | ingest         |
+| `CORPUS_LANGUAGE`         | _(empty — baseline `english` FTS)_                      | ingest, rag    |
+| `TOP_K`                   | `4`                                                     | rag, eval      |
+| `FINAL_K`                 | `3`                                                     | rag, eval      |
+| `EXPAND_LIMIT`            | `20`                                                    | rag, eval      |
+| `MIN_SIMILARITY`          | `0.6`                                                   | rag, eval      |
+| `CONTEXT_BUDGET`          | `0` (disabled)                                          | rag            |
+| `MAX_QUESTION_BYTES`      | `0` (disabled)                                          | rag            |
+| `MAX_INPUT_BYTES`         | `0` (disabled)                                          | rag            |
+| `REQUEST_TIMEOUT`         | `5m`                                                    | all            |
+| `RAG_ANSWERABILITY_GATE`  | `true`                                                  | rag            |
+| `RAG_LLM_RERANK`          | `false`                                                 | rag            |
+| `RAG_CITATION_VALIDATION` | `false`                                                 | rag            |
+| `RERANK_TIMEOUT`          | `0s` (disabled)                                         | rag, eval      |
+| `OBSERVABILITY_FORMAT`    | `human`                                                 | rag            |
+| `QUERY_REWRITE`           | `true`                                                  | rag, eval      |
+| `EVAL_LEXICAL_RERANK`     | `false`                                                 | eval           |
+| `EVAL_LLM_RERANK`         | `false`                                                 | eval           |
+| `EVAL_ANSWERABILITY_GATE` | `false`                                                 | eval           |
+| `EVAL_FACT_JUDGE`         | `false`                                                 | eval           |
+| `EVAL_REWRITE_ONLY`       | `false`                                                 | eval           |
+| `QUESTION`                | _(none — pass it as an argument, or type it)_           | rag            |
 
 `all` = every command; `rag` = `cmd/rag` only; `eval` = `cmd/eval` only;
 `ingest` = `cmd/ingest` only; `rag, eval` = both commands.
+
+### Post-gap-closure settings
+
+The settings below were added by the RAG gap-closure work (RAG-006…RAG-015).
+Each defaults to the pre-change behaviour, so an unset value changes nothing:
+
+- **`CORPUS_LANGUAGE`** (`ingest`, `rag`) — BCP-47 tag selecting the PostgreSQL
+  full-text search configuration for keyword retrieval and stored per document.
+  Empty (default) keeps `english`; a supported language uses its configuration;
+  an unsupported one falls back to `simple` (see `internal/retrieval.NormalizeFTSConfig`).
+- **`CONTEXT_BUDGET`** (`rag`) — byte-based cap on the context sent to the model.
+  `0` (default) keeps the chunk-count behaviour. See
+  [`internal/contextbudget`](internal/contextbudget).
+- **`RAG_CITATION_VALIDATION`** (`rag`) — validates the model's `[source - section]`
+  citations against the retrieved documents and repairs an answer whose citations
+  do not resolve (one bounded re-prompt, then strip). Off by default; when off the
+  answer path is unchanged. See [`internal/citations`](internal/citations).
+- **`MAX_QUESTION_BYTES` / `MAX_INPUT_BYTES`** (`rag`) — fail-fast size limits for
+  the question and the assembled retrieved context. `0` (default) disables each
+  check; an oversized input errors before any model call, naming the variable.
+- **`RERANK_TIMEOUT`** (`rag`, `eval`) — bounds the LLM reranker; `0s` (default)
+  disables the guard. A malformed, slow, or failed reranker degrades to the fused
+  order instead of failing the request.
+- **`OBSERVABILITY_FORMAT`** (`rag`) — `human` (default) keeps the existing stage
+  output; `json` emits one correlated `log/slog` record per run with a run ID,
+  stage timings, retrieved/filtered counts, and context usage. See
+  [`internal/observability`](internal/observability).
+- **`EMBED_PROVIDER` / `GEN_PROVIDER`** (`all`) — provider-registry selectors
+  (`ollama` by default). See [`internal/provider`](internal/provider).
 
 `EMBED_DIM` must match the stored `documents.embedding` column. The guard
 `ingestion.CheckEmbeddingDim` fails fast otherwise and points at
@@ -334,23 +381,32 @@ rag-template/
 ├── internal/
 │   ├── answerability/     # ask the chat model whether the evidence answers the question
 │   ├── chunking/          # sections -> chunks
+│   ├── citations/         # parse/validate/repair [source - section] citations (RAG-013)
 │   ├── config/            # settings + Ollama/Postgres setup
+│   ├── contextbudget/     # deterministic byte-estimate context budget (RAG-010)
 │   ├── document/          # parse markdown into sections
 │   ├── embedding/         # text -> vector (Ollama /api/embed)
 │   ├── generation/        # prompt -> answer (Ollama /api/generate)
 │   ├── ingestion/         # replace a source's chunks + embeddings atomically
+│   ├── loader/            # pluggable format loaders + Registry/Dispatch (RAG-006)
+│   ├── observability/     # per-run reporter: human output or JSON slog (RAG-014)
 │   ├── ollama/            # shared JSON client for the Ollama server
+│   ├── provider/          # embedder/generator provider registry (RAG-004)
 │   ├── rag/               # rewrite the question, build the answer prompt
-│   ├── reranking/         # lexical + LLM rerankers
-│   └── retrieval/         # pgvector search, RRF fusion, section expansion
+│   ├── reranking/         # lexical + LLM rerankers (with fallback + guard, RAG-012)
+│   └── retrieval/         # pgvector search, RRF fusion, section expansion, filters
 ├── migrations/
-│   └── 001_init.sql       # pgvector extension + documents table + index
+│   ├── 001_init.sql       # pgvector extension + documents table + index
+│   ├── 002_ingestion_metadata.sql  # provenance columns (hash/model/dim/chunker/ingested_at) (RAG-003)
+│   └── 003_add_language.sql        # nullable per-document language (RAG-009)
 ├── evals/
 │   └── retrieval.json     # questions + expected source/section
 ├── docs/
 │   ├── experiments.md     # sweep results and the decisions they drove
+│   ├── plans/             # focused, SOP-compatible task plans (RAG-*) + phase plans
 │   └── operations/
-│       └── embedding-dimension.md  # operator-run EMBED_DIM change procedure
+│       ├── embedding-dimension.md  # operator-run EMBED_DIM change procedure
+│       └── prompt-injection.md     # prompt-injection risk + mitigations (RAG-015)
 ├── examples/
 │   ├── loan-policy.md                  # sample corpus for cmd/ingest
 │   ├── large-loan-policy.md            # longer corpus; several chunks per section
@@ -375,12 +431,62 @@ rag-template/
 
 The commands only wire these packages together.
 
+## Implemented capabilities (gap-closure RAG-006…RAG-015)
+
+These are shipped and covered by unit tests (and, where noted, the PostgreSQL
+integration suite). They are recorded here so the code and this document agree:
+
+- **Pluggable document loader (RAG-006)** — `internal/loader` exposes a
+  `Loader` interface plus a `Registry`/`Dispatch`; Markdown and plain-text
+  loaders ship today. `cmd/ingest` dispatches by loader, so a new format is added
+  by registering a loader, not by editing the ingest path. Unknown formats return
+  a clear `no loader for <path>` error.
+- **Ingestion provenance and idempotent re-index (RAG-003)** — every chunk stores
+  a content hash, embed model, dimension, chunker config, ingest time, and
+  language; re-ingesting an unchanged file is a no-op (migrations 002/003).
+- **Model/provider independence (RAG-004/RAG-005)** — embedder and generator are
+  resolved through `internal/provider` (`EMBED_PROVIDER`/`GEN_PROVIDER`);
+  `EMBED_DIM` is validated against the stored column before any write.
+- **Multilingual retrieval (RAG-009)** — `CORPUS_LANGUAGE` selects the FTS
+  configuration (`NormalizeFTSConfig`; unset → `english`, unsupported → `simple`)
+  and is stored per document; the FTS config is a bound SQL parameter.
+- **Metadata filtering (RAG-011)** — an optional parameterized `Filter` (source
+  prefix with LIKE-escaping, language, ingested-date range) narrows vector search,
+  keyword search, and section expansion; a zero filter is byte-identical to the
+  unfiltered query.
+- **Deterministic context budget (RAG-010)** — `internal/contextbudget` selects a
+  subset of ranked documents whose byte-estimated size fits `CONTEXT_BUDGET`
+  (higher-rank priority, round-robin fairness, oversize chunks excluded); `0`
+  disables it and keeps the chunk-count behaviour.
+- **Reranking hardening (RAG-012)** — a malformed, slow, or failed LLM reranker
+  degrades to the fused order (bounded by `RERANK_TIMEOUT`) instead of aborting the
+  request; the default stays off.
+- **Structured citation validation (RAG-013)** — `internal/citations` parses,
+  validates, and repairs `[source - section]` citations; `RAG_CITATION_VALIDATION`
+  runs it in `cmd/rag` (off by default), reusing the parser that `cmd/eval`
+  already used.
+- **Structured observability (RAG-014)** — `OBSERVABILITY_FORMAT=json` emits one
+  correlated `log/slog` record per run (run ID, stage timings, counts, context
+  usage); the default `human` output is unchanged.
+- **Security hardening (RAG-015)** — `MAX_QUESTION_BYTES`/`MAX_INPUT_BYTES` fail
+  fast with actionable errors; the answer prompt separates trusted instructions
+  from untrusted retrieved text (see
+  [`docs/operations/prompt-injection.md`](docs/operations/prompt-injection.md));
+  the pre-commit hook runs `govulncheck` when it is installed.
+
+The proposed but **not yet implemented** work (PDF text layer, page-level
+provenance, OCR, genealogy entity extraction) is described in
+[`docs/PRD-Phase-23b.md`](docs/PRD-Phase-23b.md) and
+[`docs/plans/PLAN-RAG-Phase-23b.md`](docs/plans/PLAN-RAG-Phase-23b.md).
+
 ## Git hooks
 
 `.githooks/pre-commit` runs `go mod tidy`, `go fmt ./...`, `go vet ./...`,
 `staticcheck ./...`, `go test ./...`, and `go build ./...`, and aborts the commit
 if any step fails. It also aborts when `go mod tidy` or `go fmt` changed a file
 that is part of the commit, so the fix can be staged before committing again.
+When `govulncheck` is on `PATH` it also runs `govulncheck ./...` (skipped with an
+install hint otherwise).
 
 It also runs `jq empty` over every tracked `*.json`, so a malformed
 `evals/retrieval.json` or `.zed/settings.json` fails the commit instead of the

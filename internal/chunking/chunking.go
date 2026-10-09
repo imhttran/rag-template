@@ -6,14 +6,19 @@ import (
 	"rag-template/internal/document"
 )
 
+// Chunk is a chunk of a section. Page is copied from the source section, so it
+// carries the same 1-based page provenance; it is 0 when the section had no
+// page information.
 type Chunk struct {
 	Section string
 	Content string
 	Index   int
+	Page    int
 }
 
 // FromSections splits each section into chunks of at most chunkSize words,
-// overlapping consecutive chunks by overlap words.
+// overlapping consecutive chunks by overlap words. Each chunk records the
+// source section's Page.
 func FromSections(
 	sections []document.Section,
 	chunkSize int,
@@ -39,6 +44,7 @@ func FromSections(
 				Section: section.Title,
 				Content: part,
 				Index:   index,
+				Page:    section.Page,
 			})
 		}
 	}

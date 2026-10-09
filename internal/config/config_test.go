@@ -20,11 +20,15 @@ func clearEnv(t *testing.T) {
 		"QUESTION",
 		"EMBED_PROVIDER",
 		"GEN_PROVIDER",
+		"CORPUS_LANGUAGE",
 		"CHUNK_SIZE",
 		"CHUNK_OVERLAP",
 		"TOP_K",
 		"FINAL_K",
 		"EXPAND_LIMIT",
+		"CONTEXT_BUDGET",
+		"MAX_QUESTION_BYTES",
+		"MAX_INPUT_BYTES",
 		"EMBED_WORKERS",
 		"EMBED_RETRIES",
 		"MIN_SIMILARITY",
@@ -35,8 +39,10 @@ func clearEnv(t *testing.T) {
 		"EVAL_FACT_JUDGE",
 		"EVAL_REWRITE_ONLY",
 		"RAG_ANSWERABILITY_GATE",
+		"RAG_CITATION_VALIDATION",
 		"REQUEST_TIMEOUT",
 		"QUERY_REWRITE",
+		"OBSERVABILITY_FORMAT",
 	} {
 		t.Setenv(key, "")
 	}
@@ -49,29 +55,35 @@ func TestLoadDefaults(t *testing.T) {
 	clearEnv(t)
 
 	want := Config{
-		OllamaURL:            DefaultOllamaURL,
-		EmbedModel:           DefaultEmbedModel,
-		EmbedDim:             DefaultEmbedDim,
-		ChatModel:            DefaultChatModel,
-		DatabaseURL:          DefaultDatabaseURL,
-		EmbedProvider:        DefaultEmbedProvider,
-		GenProvider:          DefaultGenProvider,
-		ChunkSize:            DefaultChunkSize,
-		ChunkOverlap:         DefaultChunkOverlap,
-		TopK:                 DefaultTopK,
-		FinalK:               DefaultFinalK,
-		ExpandLimit:          DefaultExpandLimit,
-		EmbedWorkers:         DefaultEmbedWorkers,
-		EmbedRetries:         DefaultEmbedRetries,
-		MinSimilarity:        DefaultMinSimilarity,
-		LexicalRerank:        DefaultLexicalRerank,
-		LLMRerank:            DefaultLLMRerank,
-		AnswerabilityGate:    DefaultAnswerabilityGate,
-		FactJudge:            DefaultFactJudge,
-		RewriteOnly:          DefaultRewriteOnly,
-		RagAnswerabilityGate: DefaultRagAnswerabilityGate,
-		RequestTimeout:       DefaultRequestTimeout,
-		QueryRewrite:         DefaultQueryRewrite,
+		OllamaURL:             DefaultOllamaURL,
+		EmbedModel:            DefaultEmbedModel,
+		EmbedDim:              DefaultEmbedDim,
+		ChatModel:             DefaultChatModel,
+		DatabaseURL:           DefaultDatabaseURL,
+		EmbedProvider:         DefaultEmbedProvider,
+		GenProvider:           DefaultGenProvider,
+		Language:              DefaultLanguage,
+		ChunkSize:             DefaultChunkSize,
+		ChunkOverlap:          DefaultChunkOverlap,
+		TopK:                  DefaultTopK,
+		FinalK:                DefaultFinalK,
+		ExpandLimit:           DefaultExpandLimit,
+		ContextBudget:         DefaultContextBudget,
+		MaxQuestionBytes:      DefaultMaxQuestionBytes,
+		MaxInputBytes:         DefaultMaxInputBytes,
+		EmbedWorkers:          DefaultEmbedWorkers,
+		EmbedRetries:          DefaultEmbedRetries,
+		MinSimilarity:         DefaultMinSimilarity,
+		LexicalRerank:         DefaultLexicalRerank,
+		LLMRerank:             DefaultLLMRerank,
+		AnswerabilityGate:     DefaultAnswerabilityGate,
+		FactJudge:             DefaultFactJudge,
+		RewriteOnly:           DefaultRewriteOnly,
+		RagAnswerabilityGate:  DefaultRagAnswerabilityGate,
+		RagCitationValidation: DefaultRagCitationValidation,
+		RequestTimeout:        DefaultRequestTimeout,
+		QueryRewrite:          DefaultQueryRewrite,
+		ObservabilityFormat:   DefaultObservabilityFormat,
 	}
 
 	got, err := Load()
@@ -96,6 +108,105 @@ func TestEmbedDimDefaultsTo768(t *testing.T) {
 
 	if cfg.EmbedDim != 768 {
 		t.Fatalf("EmbedDim = %d, want 768", cfg.EmbedDim)
+	}
+}
+
+// TestContextBudgetDefaultsToDisabled pins the default budget: an unset or
+// blank CONTEXT_BUDGET must keep the current chunk-count behaviour (0/disabled)
+// and must not drift to a non-zero default.
+func TestContextBudgetDefaultsToDisabled(t *testing.T) {
+	clearEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if DefaultContextBudget != 0 {
+		t.Fatalf("DefaultContextBudget = %d, want 0", DefaultContextBudget)
+	}
+
+	if cfg.ContextBudget != DefaultContextBudget {
+		t.Fatalf("ContextBudget = %d, want %d", cfg.ContextBudget, DefaultContextBudget)
+	}
+}
+
+// TestInputSizeLimitsDefaultToDisabled pins the default of the two new size
+// limits: an unset or blank MAX_QUESTION_BYTES / MAX_INPUT_BYTES must keep the
+// current behavior (0/disabled) and must not drift to a non-zero default.
+func TestInputSizeLimitsDefaultToDisabled(t *testing.T) {
+	clearEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if DefaultMaxQuestionBytes != 0 {
+		t.Fatalf("DefaultMaxQuestionBytes = %d, want 0", DefaultMaxQuestionBytes)
+	}
+
+	if DefaultMaxInputBytes != 0 {
+		t.Fatalf("DefaultMaxInputBytes = %d, want 0", DefaultMaxInputBytes)
+	}
+
+	if cfg.MaxQuestionBytes != 0 || cfg.MaxInputBytes != 0 {
+		t.Fatalf("limits = %d/%d, want 0/0", cfg.MaxQuestionBytes, cfg.MaxInputBytes)
+	}
+}
+
+// TestObservabilityFormatDefaultsToHuman pins the observability default: an
+// unset or blank OBSERVABILITY_FORMAT must keep the current human-readable
+// output and must not drift to JSON, which is opt-in.
+func TestObservabilityFormatDefaultsToHuman(t *testing.T) {
+	clearEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if DefaultObservabilityFormat != OutputHuman {
+		t.Fatalf("DefaultObservabilityFormat = %q, want %q", DefaultObservabilityFormat, OutputHuman)
+	}
+
+	if cfg.ObservabilityFormat != OutputHuman {
+		t.Fatalf("ObservabilityFormat = %q, want %q", cfg.ObservabilityFormat, OutputHuman)
+	}
+
+	if cfg.ObservabilityJSON() {
+		t.Fatalf("ObservabilityJSON() = true for the default, want false")
+	}
+}
+
+// TestCorpusLanguage pins the language default and override: an unset or blank
+// CORPUS_LANGUAGE keeps the baseline 'english' configuration (empty), and an
+// explicit value is loaded verbatim.
+func TestCorpusLanguage(t *testing.T) {
+	clearEnv(t)
+
+	if DefaultLanguage != "" {
+		t.Fatalf("DefaultLanguage = %q, want empty (baseline english)", DefaultLanguage)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if cfg.Language != DefaultLanguage {
+		t.Fatalf("Language = %q, want %q", cfg.Language, DefaultLanguage)
+	}
+
+	t.Setenv("CORPUS_LANGUAGE", "de")
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if cfg.Language != "de" {
+		t.Fatalf("CORPUS_LANGUAGE = %q, want %q", cfg.Language, "de")
 	}
 }
 
@@ -130,6 +241,14 @@ func TestLoad(t *testing.T) {
 					t.Fatalf("k = %d/%d/%d, want %d/%d/%d", c.TopK, c.FinalK, c.ExpandLimit, DefaultTopK, DefaultFinalK, DefaultExpandLimit)
 				}
 
+				if c.ContextBudget != DefaultContextBudget {
+					t.Fatalf("CONTEXT_BUDGET = %d, want %d", c.ContextBudget, DefaultContextBudget)
+				}
+
+				if c.MaxQuestionBytes != DefaultMaxQuestionBytes || c.MaxInputBytes != DefaultMaxInputBytes {
+					t.Fatalf("limits = %d/%d, want %d/%d", c.MaxQuestionBytes, c.MaxInputBytes, DefaultMaxQuestionBytes, DefaultMaxInputBytes)
+				}
+
 				if c.EmbedWorkers != DefaultEmbedWorkers || c.EmbedRetries != DefaultEmbedRetries {
 					t.Fatalf("embed = %d/%d, want %d/%d", c.EmbedWorkers, c.EmbedRetries, DefaultEmbedWorkers, DefaultEmbedRetries)
 				}
@@ -141,7 +260,187 @@ func TestLoad(t *testing.T) {
 				if c.EmbedProvider != DefaultEmbedProvider || c.GenProvider != DefaultGenProvider {
 					t.Fatalf("providers = %q/%q, want %q/%q", c.EmbedProvider, c.GenProvider, DefaultEmbedProvider, DefaultGenProvider)
 				}
+
+				if c.ObservabilityFormat != DefaultObservabilityFormat {
+					t.Fatalf("OBSERVABILITY_FORMAT = %q, want %q", c.ObservabilityFormat, DefaultObservabilityFormat)
+				}
 			},
+		},
+		{
+			name: "valid context budget override",
+			env:  map[string]string{"CONTEXT_BUDGET": "4096"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ContextBudget != 4096 {
+					t.Fatalf("CONTEXT_BUDGET = %d, want 4096", c.ContextBudget)
+				}
+			},
+		},
+		{
+			name: "zero context budget is kept (disabled)",
+			env:  map[string]string{"CONTEXT_BUDGET": "0"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ContextBudget != 0 {
+					t.Fatalf("CONTEXT_BUDGET = %d, want 0", c.ContextBudget)
+				}
+			},
+		},
+		{
+			name: "blank context budget counts as missing",
+			env:  map[string]string{"CONTEXT_BUDGET": ""},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ContextBudget != DefaultContextBudget {
+					t.Fatalf("blank CONTEXT_BUDGET = %d, want %d", c.ContextBudget, DefaultContextBudget)
+				}
+			},
+		},
+		{
+			name: "valid max question bytes override",
+			env:  map[string]string{"MAX_QUESTION_BYTES": "2048"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxQuestionBytes != 2048 {
+					t.Fatalf("MAX_QUESTION_BYTES = %d, want 2048", c.MaxQuestionBytes)
+				}
+			},
+		},
+		{
+			name: "valid max input bytes override",
+			env:  map[string]string{"MAX_INPUT_BYTES": "65536"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxInputBytes != 65536 {
+					t.Fatalf("MAX_INPUT_BYTES = %d, want 65536", c.MaxInputBytes)
+				}
+			},
+		},
+		{
+			name: "zero max question bytes is kept (disabled)",
+			env:  map[string]string{"MAX_QUESTION_BYTES": "0"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxQuestionBytes != 0 {
+					t.Fatalf("MAX_QUESTION_BYTES = %d, want 0", c.MaxQuestionBytes)
+				}
+			},
+		},
+		{
+			name: "zero max input bytes is kept (disabled)",
+			env:  map[string]string{"MAX_INPUT_BYTES": "0"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxInputBytes != 0 {
+					t.Fatalf("MAX_INPUT_BYTES = %d, want 0", c.MaxInputBytes)
+				}
+			},
+		},
+		{
+			name: "blank max question bytes counts as missing",
+			env:  map[string]string{"MAX_QUESTION_BYTES": ""},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxQuestionBytes != DefaultMaxQuestionBytes {
+					t.Fatalf("blank MAX_QUESTION_BYTES = %d, want %d", c.MaxQuestionBytes, DefaultMaxQuestionBytes)
+				}
+			},
+		},
+		{
+			name: "blank max input bytes counts as missing",
+			env:  map[string]string{"MAX_INPUT_BYTES": ""},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.MaxInputBytes != DefaultMaxInputBytes {
+					t.Fatalf("blank MAX_INPUT_BYTES = %d, want %d", c.MaxInputBytes, DefaultMaxInputBytes)
+				}
+			},
+		},
+		{
+			name:    "invalid max question bytes text names the variable",
+			env:     map[string]string{"MAX_QUESTION_BYTES": "lots"},
+			wantErr: "MAX_QUESTION_BYTES",
+		},
+		{
+			name:    "negative max question bytes names the variable",
+			env:     map[string]string{"MAX_QUESTION_BYTES": "-1"},
+			wantErr: "MAX_QUESTION_BYTES",
+		},
+		{
+			name:    "invalid max input bytes text names the variable",
+			env:     map[string]string{"MAX_INPUT_BYTES": "lots"},
+			wantErr: "MAX_INPUT_BYTES",
+		},
+		{
+			name:    "negative max input bytes names the variable",
+			env:     map[string]string{"MAX_INPUT_BYTES": "-4"},
+			wantErr: "MAX_INPUT_BYTES",
+		},
+		{
+			name: "valid observability format human",
+			env:  map[string]string{"OBSERVABILITY_FORMAT": "human"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ObservabilityFormat != OutputHuman {
+					t.Fatalf("OBSERVABILITY_FORMAT = %q, want %q", c.ObservabilityFormat, OutputHuman)
+				}
+
+				if c.ObservabilityJSON() {
+					t.Fatalf("ObservabilityJSON() = true, want false")
+				}
+			},
+		},
+		{
+			name: "valid observability format json",
+			env:  map[string]string{"OBSERVABILITY_FORMAT": "json"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ObservabilityFormat != OutputJSON {
+					t.Fatalf("OBSERVABILITY_FORMAT = %q, want %q", c.ObservabilityFormat, OutputJSON)
+				}
+
+				if !c.ObservabilityJSON() {
+					t.Fatalf("ObservabilityJSON() = false, want true")
+				}
+			},
+		},
+		{
+			name: "observability format is case-insensitive",
+			env:  map[string]string{"OBSERVABILITY_FORMAT": "JSON"},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if !c.ObservabilityJSON() {
+					t.Fatalf("ObservabilityJSON() = false for %q, want true", c.ObservabilityFormat)
+				}
+			},
+		},
+		{
+			name: "blank observability format counts as missing",
+			env:  map[string]string{"OBSERVABILITY_FORMAT": ""},
+			check: func(t *testing.T, c Config) {
+				t.Helper()
+
+				if c.ObservabilityFormat != DefaultObservabilityFormat {
+					t.Fatalf("blank OBSERVABILITY_FORMAT = %q, want %q", c.ObservabilityFormat, DefaultObservabilityFormat)
+				}
+			},
+		},
+		{
+			name:    "invalid observability format",
+			env:     map[string]string{"OBSERVABILITY_FORMAT": "xml"},
+			wantErr: "OBSERVABILITY_FORMAT",
 		},
 		{
 			name: "valid embedding dimension override",
@@ -383,6 +682,16 @@ func TestLoad(t *testing.T) {
 			name:    "invalid chunk size negative",
 			env:     map[string]string{"CHUNK_SIZE": "-5"},
 			wantErr: "CHUNK_SIZE",
+		},
+		{
+			name:    "invalid context budget text",
+			env:     map[string]string{"CONTEXT_BUDGET": "lots"},
+			wantErr: "CONTEXT_BUDGET",
+		},
+		{
+			name:    "invalid context budget negative",
+			env:     map[string]string{"CONTEXT_BUDGET": "-1"},
+			wantErr: "CONTEXT_BUDGET",
 		},
 		{
 			name:    "invalid embedding dimension text",

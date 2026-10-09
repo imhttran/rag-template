@@ -15,9 +15,9 @@ import (
 
 	"rag-template/internal/chunking"
 	"rag-template/internal/config"
-	"rag-template/internal/document"
 	"rag-template/internal/embedding"
 	"rag-template/internal/ingestion"
+	"rag-template/internal/loader"
 )
 
 func main() {
@@ -88,6 +88,7 @@ func run(ctx context.Context, path string) error {
 		ContentHash:   contentFingerprint(data, chunkerConfig),
 		EmbedModel:    cfg.EmbedModel,
 		ChunkerConfig: chunkerConfig,
+		Language:      cfg.Language,
 		IngestedAt:    time.Now().UTC(),
 	}
 
@@ -111,15 +112,17 @@ func run(ctx context.Context, path string) error {
 	return nil
 }
 
-// loadChunks reads the corpus and splits it into chunks.
+// loadChunks reads the corpus and splits it into chunks. The document's format
+// is detected by the loader registry, which returns []document.Section;
+// unknown formats yield an explicit "no loader" error naming the path.
 func loadChunks(path string, cfg config.Config) ([]chunking.Chunk, error) {
-	data, err := os.ReadFile(path)
+	sections, err := loader.Dispatch(path)
 	if err != nil {
-		return nil, fmt.Errorf("read %s: %w", path, err)
+		return nil, err
 	}
 
 	return chunking.FromSections(
-		document.ParseSections(string(data)),
+		sections,
 		cfg.ChunkSize,
 		cfg.ChunkOverlap,
 	), nil

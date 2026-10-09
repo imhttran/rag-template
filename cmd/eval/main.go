@@ -8,8 +8,10 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"rag-template/internal/answerability"
+	"rag-template/internal/citations"
 	"rag-template/internal/config"
 	"rag-template/internal/embedding"
 	"rag-template/internal/generation"
@@ -29,6 +31,10 @@ type EvalCase struct {
 	Expected      []ExpectedDocument `json:"expected"`
 	ExpectedFacts []string           `json:"expected_facts,omitempty"`
 }
+
+// defaultDatasetPath is the dataset scored when EVAL_DATASET is unset or empty.
+// It is the pre-existing default and must not change.
+const defaultDatasetPath = "evals/retrieval.json"
 
 // stats accumulates the per-case metrics for the final summary.
 type stats struct {
@@ -62,6 +68,16 @@ type stats struct {
 	totalCitations    int
 	entailedCitations int
 	judgedCitations   int
+
+	// Rerank latency and outcome tracking. off has no rerank call, so it adds
+	// no latency; lexical and LLM measure wall time around their rerank calls,
+	// and fallback counts how often the hardened reranker degraded to the
+	// fused order instead of returning a model ordering.
+	llmLatencyTotal     time.Duration
+	llmLatencyCases     int
+	llmFallbacks        int
+	lexicalLatencyTotal time.Duration
+	lexicalLatencyCases int
 }
 
 type citedClaim struct {
@@ -86,6 +102,7 @@ type evaluator struct {
 	expandLimit       int
 	candidateK        int
 	finalK            int
+	rerankTimeout     time.Duration
 	ks                []int
 }
 
@@ -127,6 +144,7 @@ func run(ctx context.Context) error {
 		expandLimit:       cfg.ExpandLimit,
 		candidateK:        cfg.TopK,
 		finalK:            cfg.FinalK,
+		rerankTimeout:     cfg.RerankTimeout,
 		ks:                retrievalKs(cfg.TopK),
 	}
 
@@ -170,17 +188,33 @@ func retrievalKs(topK int) []int {
 	return slices.Compact(ks)
 }
 
-// loadCases reads and parses the evaluation cases.
+// datasetPath selects the evaluation dataset path from EVAL_DATASET. An unset or
+// empty variable keeps the pre-existing default (evals/retrieval.json), so the
+// bundled run is unchanged; any other value selects that file so a bilingual or
+// candidate dataset can be scored without editing code.
+func datasetPath() string {
+	if path := strings.TrimSpace(os.Getenv("EVAL_DATASET")); path != "" {
+		return path
+	}
+
+	return defaultDatasetPath
+}
+
+// loadCases reads and parses the evaluation cases selected by EVAL_DATASET.
+// Both the read and the parse failure name the selected path so a mistaken
+// EVAL_DATASET is actionable in the log.
 func loadCases() ([]EvalCase, error) {
-	data, err := os.ReadFile("evals/retrieval.json")
+	path := datasetPath()
+
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read evaluation dataset %s: %w", path, err)
 	}
 
 	var cases []EvalCase
 
 	if err := json.Unmarshal(data, &cases); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse evaluation dataset %s: %w", path, err)
 	}
 
 	fmt.Printf("Loaded %d evaluation cases\n", len(cases))
@@ -528,7 +562,7 @@ func (e evaluator) reportEvidenceAndJudge(
 			fmt.Println("Grounded: NO")
 		}
 
-		valid, total := citationValidity(answer, expanded)
+		valid, total := citations.Validity(answer, expanded)
 
 		stats.validCitations += valid
 		stats.totalCitations += total
@@ -589,19 +623,19 @@ func (e evaluator) checkAnswerability(
 	switch {
 	case expectedAnswerable && predictedAnswerable:
 		stats.gateCorrectAccepts++
-		fmt.Println("Answerability: ANSWERABLE ✓")
+		fmt.Println("Answerability: ANSWERABLE \u2713")
 
 	case expectedAnswerable && !predictedAnswerable:
 		stats.gateFalseRejects++
-		fmt.Println("Answerability: NOT_ANSWERABLE ✗ false rejection")
+		fmt.Println("Answerability: NOT_ANSWERABLE \u2717 false rejection")
 
 	case !expectedAnswerable && predictedAnswerable:
 		stats.gateFalseAccepts++
-		fmt.Println("Answerability: ANSWERABLE ✗ false acceptance")
+		fmt.Println("Answerability: ANSWERABLE \u2717 false acceptance")
 
 	default:
 		stats.gateCorrectRejects++
-		fmt.Println("Answerability: NOT_ANSWERABLE ✓")
+		fmt.Println("Answerability: NOT_ANSWERABLE \u2713")
 	}
 
 	return nil
@@ -683,6 +717,11 @@ func (e evaluator) reportBaseline(
 
 // rerank reports the reranked result for an answerable case. diverse is the
 // deduplicated candidate set.
+//
+// Each strategy's wall time is measured around its rerank call so sweep rows can
+// compare off / lexical / LLM (and any future cross-encoder) on latency as well
+// as recall, precision, and evidence recall. A hardened reranker that degrades
+// to the fused order is recorded as a fallback rather than aborting evaluation.
 func (e evaluator) rerank(
 	ctx context.Context,
 	evalCase EvalCase,
@@ -690,11 +729,18 @@ func (e evaluator) rerank(
 	stats *stats,
 ) error {
 	if e.lexicalRerank {
+		start := time.Now()
+
+		reranked := reranking.Rerank(evalCase.Question, diverse)
+
+		stats.lexicalLatencyTotal += time.Since(start)
+		stats.lexicalLatencyCases++
+
 		recall, precision := e.report(
 			"Rerank",
 			"Reranked",
 			evalCase.Expected,
-			topK(reranking.Rerank(evalCase.Question, diverse), e.finalK),
+			topK(reranked, e.finalK),
 		)
 
 		stats.rerankRecall += recall
@@ -705,21 +751,48 @@ func (e evaluator) rerank(
 		return nil
 	}
 
-	llmReranked, err := reranking.RerankLLM(
+	start := time.Now()
+
+	result, err := reranking.RerankLLMWithTimeout(
 		ctx,
 		e.generator,
 		evalCase.Question,
 		diverse,
+		e.rerankTimeout,
 	)
+
+	stats.llmLatencyTotal += time.Since(start)
+	stats.llmLatencyCases++
+
 	if err != nil {
-		return err
+		// The hardened reranker degrades internally; a returned error is only
+		// possible for programming errors and should not abort the whole run.
+		fmt.Printf("LLM Rerank: fell back to fused order (%v)\n", err)
+
+		stats.llmFallbacks++
+
+		return nil
+	}
+
+	// The hardened reranker reports its own outcome, so a model that happens to
+	// return the fused order is not misclassified as a fallback. The disabled
+	// case (no candidates to rank) is not a reranker failure and is not counted
+	// as a fallback either.
+	switch {
+	case !result.FellBack:
+		fmt.Println("LLM Rerank: used model ordering")
+	case result.Reason == reranking.FallbackDisabled:
+		fmt.Println("LLM Rerank: no candidates to rank")
+	default:
+		stats.llmFallbacks++
+		fmt.Printf("LLM Rerank: used fused order (fallback: %s)\n", result.Reason)
 	}
 
 	llmRecall, llmPrecision := e.report(
 		"LLM Rerank",
 		"LLM Reranked",
 		evalCase.Expected,
-		topK(llmReranked, e.finalK),
+		topK(result.Documents, e.finalK),
 	)
 
 	stats.llmRecall += llmRecall
@@ -768,9 +841,14 @@ func printOverall(e evaluator, stats stats) {
 		)
 	}
 
+	// Latency comparison row, always printed so the off baseline is reported
+	// even on an off-only run. Off makes no rerank call, so it contributes zero
+	// rerank latency; lexical/LLM report their measured wall time.
+	printLatencyComparison(e, stats)
+
 	if e.lexicalRerank {
 		fmt.Printf(
-			"Rerank %d→%d  Avg Recall=%.2f  Avg Precision=%.2f\n",
+			"Rerank %d\u2192%d  Avg Recall=%.2f  Avg Precision=%.2f\n",
 			e.candidateK,
 			e.finalK,
 			average(stats.rerankRecall, stats.answerable),
@@ -780,7 +858,7 @@ func printOverall(e evaluator, stats stats) {
 
 	if e.llmRerank {
 		fmt.Printf(
-			"LLM Rerank %d→%d  Avg Recall=%.2f  Avg Precision=%.2f\n",
+			"LLM Rerank %d\u2192%d  Avg Recall=%.2f  Avg Precision=%.2f\n",
 			e.candidateK,
 			e.finalK,
 			average(stats.llmRecall, stats.answerable),
@@ -854,6 +932,51 @@ func printOverall(e evaluator, stats stats) {
 	}
 }
 
+// printLatencyComparison reports the per-strategy rerank latency row so sweep
+// output compares off / lexical / LLM (and any future cross-encoder) on latency
+// alongside recall, precision, and evidence recall. The off strategy makes no
+// rerank call, so its contribution is reported as zero with a clear marker.
+// It is always printed so an off-only run still reports the baseline.
+func printLatencyComparison(e evaluator, stats stats) {
+	fmt.Println("Rerank latency:")
+
+	fmt.Println("  off      avg=0s  (baseline, no rerank call)")
+
+	if e.lexicalRerank {
+		fmt.Printf(
+			"  lexical  avg=%s  calls=%d\n",
+			averageDuration(stats.lexicalLatencyTotal, stats.lexicalLatencyCases),
+			stats.lexicalLatencyCases,
+		)
+	} else {
+		fmt.Println("  lexical  unavailable (EVAL_LEXICAL_RERANK=false)")
+	}
+
+	if e.llmRerank {
+		fmt.Printf(
+			"  llm      avg=%s  calls=%d  fallbacks=%d\n",
+			averageDuration(stats.llmLatencyTotal, stats.llmLatencyCases),
+			stats.llmLatencyCases,
+			stats.llmFallbacks,
+		)
+	} else {
+		fmt.Println("  llm      unavailable (EVAL_LLM_RERANK=false)")
+	}
+
+	fmt.Println(
+		"  cross-encoder  unavailable (no cross-encoder provider registered)",
+	)
+}
+
+// averageDuration returns sum/count as a rounded duration, or 0 when count is 0.
+func averageDuration(sum time.Duration, count int) time.Duration {
+	if count == 0 {
+		return 0
+	}
+
+	return sum / time.Duration(count)
+}
+
 // average returns sum/count, or 0 when count is 0 so the report never shows NaN.
 func average(sum float64, count int) float64 {
 	if count == 0 {
@@ -900,7 +1023,7 @@ func (e evaluator) report(
 	precision := precisionAtK(expected, documents)
 
 	fmt.Printf(
-		"%s %d→%d  Recall=%.2f  Precision=%.2f\n",
+		"%s %d\u2192%d  Recall=%.2f  Precision=%.2f\n",
 		metrics,
 		e.candidateK,
 		e.finalK,
@@ -976,52 +1099,6 @@ func printRetrieved(documents []retrieval.Document) {
 	}
 }
 
-// citationValidity counts the [source - section] citations in answer and how
-// many of them name a retrieved document.
-func citationValidity(
-	answer string,
-	documents []retrieval.Document,
-) (valid int, total int) {
-	remaining := answer
-
-	for {
-		_, rest, found := strings.Cut(remaining, "[")
-		if !found {
-			break
-		}
-
-		citation, rest, found := strings.Cut(rest, "]")
-		citation = normalizeCitation(citation)
-		if !found {
-			break
-		}
-
-		remaining = rest
-
-		// Only [source - section] counts as a citation.
-		source, section, found := strings.Cut(citation, " - ")
-		if !found {
-			continue
-		}
-
-		total++
-
-		source = strings.TrimSpace(source)
-		section = strings.TrimSpace(section)
-
-		for _, doc := range documents {
-			if normalizeSource(doc.Source) == normalizeSource(source) &&
-				doc.Section == section {
-				valid++
-
-				break
-			}
-		}
-	}
-
-	return valid, total
-}
-
 func evidenceRecall(
 	expected []ExpectedDocument,
 	actual []retrieval.Document,
@@ -1082,7 +1159,7 @@ func extractCitedClaims(answer string) []citedClaim {
 			end += start
 
 			citation := remaining[start+1 : end]
-			citation = normalizeCitation(citation)
+			citation = citations.NormalizeCitation(citation)
 
 			source, section, found := strings.Cut(citation, " - ")
 			if !found {
@@ -1127,14 +1204,14 @@ func (e evaluator) checkCitationEntailment(
 		var evidence strings.Builder
 
 		for _, doc := range documents {
-			if normalizeSource(doc.Source) == normalizeSource(claim.Source) &&
+			if citations.NormalizeSource(doc.Source) == citations.NormalizeSource(claim.Source) &&
 				doc.Section == claim.Section {
 				evidence.WriteString(doc.Content)
 				evidence.WriteString("\n")
 			}
 		}
 
-		// Invalid citations are already measured by citationValidity().
+		// Invalid citations are already measured by citations.Validity().
 		if evidence.Len() == 0 {
 			continue
 		}
@@ -1156,18 +1233,4 @@ func (e evaluator) checkCitationEntailment(
 	}
 
 	return entailed, judged, nil
-}
-
-func normalizeCitation(citation string) string {
-	citation = strings.ReplaceAll(citation, "–", "-")
-	citation = strings.ReplaceAll(citation, "—", "-")
-
-	return citation
-}
-
-// normalizeSource makes a citation's source comparable to a document's source.
-// Models tend to drop the ".md" suffix and vary capitalization; neither
-// changes which document a citation points at.
-func normalizeSource(source string) string {
-	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(source)), ".md")
 }

@@ -1,10 +1,7 @@
 # PLAN — RAG-005A/B/C: Embedding-dimension correctness, procedure, and verification
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** Approved supersession of blocked RAG-005. Supersedes `plan-rag-005`
-(RAG-005 was BLOCKED/NEEDS_HUMAN-DECLINED; its history is preserved under
-`.agent-sdlc/archive/`). Prerequisites complete: RAG-003 (`bd89a96`), RAG-004C
-(`1787417`).
+**Status:** **Historicalized — archived as `SUPERSEDED` (see `.agent-sdlc/archive/plan-rag-005abc/`). The original plan is preserved below.**
 
 ## Objective
 
