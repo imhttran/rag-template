@@ -1,9 +1,7 @@
 # PLAN — RAG-005: Embedding-dimension decoupling and schema guard
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** Approved (Milestone 2, gap G-06). Prerequisites complete: RAG-003
-(`bd89a96`) and RAG-004C (`1787417`) committed. Supersedes/hands off from
-`plan-rag-004c12` (RAG-004C1/C2 complete).
+**Status:** **Historicalized — archived as `SUPERSEDED` (see `.agent-sdlc/archive/plan-rag-005/`). The original plan is preserved below.**
 
 ## Objective
 

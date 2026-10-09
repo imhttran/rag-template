@@ -1,11 +1,7 @@
 # PLAN — RAG-018: Vietnamese/English retrieval evaluation and embedding decision
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — ACTIVE (authorized).** Phase 23b evaluation task. RAG-008 and
-RAG-016 remain frozen; the production embedding model and dimension are unchanged.
-**Supersedes:** none.
-**Prerequisites:** RAG-009 (language-aware FTS, `LOCAL_DONE`); RAG-016 is the later
-capstone and is **not** required here.
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-018/`). The original plan is preserved below.**
 
 ## Objective
 

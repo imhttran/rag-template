@@ -1,12 +1,7 @@
 # PLAN — RAG-017: Page provenance and page-aware citations
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — ACTIVE (authorized).** The operator authorized opening
-Phase 23b for RAG-017 (page contract) and RAG-007. RAG-008 and RAG-016 remain
-frozen.
-**Supersedes:** none. First task of `docs/plans/PLAN-RAG-Phase-23b.md` (Batch 2).
-**Prerequisites:** RAG-013 (citation validation, `LOCAL_DONE`, committed).
-**Contract:** `docs/operations/page-provenance.md` (normative; implement exactly).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-017/`). The original plan is preserved below.**
 
 ## Objective
 

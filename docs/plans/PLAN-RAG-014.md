@@ -1,11 +1,7 @@
 # PLAN — RAG-014: Structured observability and accounting
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — NOT ACTIVE.** Awaiting the operator's authorization.
-**Supersedes:** none. Extracted from `docs/plans/PLAN-RAG-Phase-23.md`, which
-sequences M5 of `docs/plans/PLAN-RAG-Gap-Closure.md` (Amendment B).
-**Prerequisites:** RAG-010 (deterministic context budget, `LOCAL_DONE`, committed
-— for token/context accounting).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-014/`). The original plan is preserved below.**
 
 ## Objective
 

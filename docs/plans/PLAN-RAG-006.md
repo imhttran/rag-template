@@ -1,12 +1,7 @@
 # PLAN — RAG-006: Pluggable document loader interface
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — NOT ACTIVE.** Awaiting the operator's decision to open
-Phase 23+ and authorize this batch. RAG-006 remains **frozen** until then.
-**Supersedes:** none. First batch extracted from
-`docs/plans/PLAN-RAG-Phase-23.md` (Batch 1), which sequences M3–M6 of
-`docs/plans/PLAN-RAG-Gap-Closure.md` (Amendment B).
-**Prerequisites:** RAG-003 (source identity, `LOCAL_DONE`).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-006/`). The original plan is preserved below.**
 
 ## Objective
 

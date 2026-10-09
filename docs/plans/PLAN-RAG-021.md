@@ -1,13 +1,7 @@
 # PLAN — RAG-021: Expanded bilingual retrieval evaluation and embedding-model selection
 
 **Type:** Proposed evaluation plan (planning only; makes no runtime change).
-**Status:** **PROPOSED — ACTIVE (authorized this batch).** Operator-authorized to run
-through SOP for the harness/validation work; RAG-008 and RAG-016 remain frozen, and
-no production embedding default changes.
-**Supersedes:** none. Follows `docs/plans/PLAN-RAG-018.md` and
-`docs/operations/embedding-models.md`.
-**Prerequisites:** RAG-018 (`LOCAL_DONE`, committed — `EVAL_DATASET` selection,
-`evals/retrieval-vi-en.json`, `examples/vi/`).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-021/`). The original plan is preserved below.**
 
 ## 1. Why this is needed
 

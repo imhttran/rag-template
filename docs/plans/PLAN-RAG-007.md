@@ -1,13 +1,7 @@
 # PLAN — RAG-007: PDF text-layer loader
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — ACTIVE (authorized).** Operator-authorized Phase 23b task.
-RAG-008 (OCR) and RAG-016 remain frozen.
-**Supersedes:** none. Batch 3 of `docs/plans/PLAN-RAG-Phase-23b.md`.
-**Prerequisites:** RAG-006 (loader seam, `LOCAL_DONE`, committed); **RAG-017 (page
-provenance contract, must land first)**; `docs/operations/page-provenance.md`.
-**Scope expansion:** PDF ingestion crosses `docs/PRD.md` §5 — **explicitly authorized**
-by the operator for this task.
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-007/`). The original plan is preserved below.**
 
 ## Objective
 

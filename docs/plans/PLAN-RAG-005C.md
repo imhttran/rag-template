@@ -1,10 +1,7 @@
 # PLAN — RAG-005C: Isolated non-768 end-to-end verification
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** Approved focused replacement of the blocked RAG-005C. Supersedes
-`plan-rag-005abc` (RAG-005A/B `LOCAL_DONE`; RAG-005C `BLOCKED`/`NO_PROGRESS`; history
-preserved under `.agent-sdlc/archive/`). Prerequisites: RAG-005A (`019e67e`),
-RAG-005B (`dfb861b`).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-005c/`). The original plan is preserved below.**
 
 ## Objective
 

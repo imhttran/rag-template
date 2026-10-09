@@ -1,9 +1,7 @@
 # PLAN — RAG-004A/B/C: Provider-independent embedder & generator interfaces
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** Approved decomposition of RAG-004. Supersedes `plan-rag-003-005`
-(RAG-003 done and committed at `bd89a96`; RAG-004 was BLOCKED/NO_PROGRESS; that plan's
-history is preserved under `.agent-sdlc/archive/`).
+**Status:** **Historicalized — archived as `SUPERSEDED` (see `.agent-sdlc/archive/plan-rag-004abc/`). The original plan is preserved below.**
 
 ## Objective
 

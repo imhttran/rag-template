@@ -1,13 +1,7 @@
 # PLAN — RAG-010: Deterministic token/context budget
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — NOT ACTIVE.** Awaiting the operator's authorization. RAG-010
-is unfrozen for planning and focused execution only; RAG-007–009 and RAG-011–016
-remain frozen.
-**Supersedes:** none. Extracted from `docs/plans/PLAN-RAG-Phase-23.md` (Batch 3),
-which sequences M4 of `docs/plans/PLAN-RAG-Gap-Closure.md` (Amendment B).
-Corresponds to open `docs/PLAN.md` Phase 19 ("True Context Budgeting").
-**Prerequisites:** RAG-004 (provider-neutral seams, `LOCAL_DONE`).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-010/`). The original plan is preserved below.**
 
 ## Objective
 

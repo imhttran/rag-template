@@ -1,13 +1,7 @@
 # PLAN — RAG-012: Reranking hardening and evaluation
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — NOT ACTIVE.** Awaiting the operator's authorization.
-RAG-012 remains frozen until then; its dependencies are already satisfied.
-**Supersedes:** none. Extracted from `docs/plans/PLAN-RAG-Phase-23.md` (Batch 3),
-which sequences M4 of `docs/plans/PLAN-RAG-Gap-Closure.md` (Amendment B).
-**Prerequisites:** RAG-004 (provider interface, `LOCAL_DONE`); RAG-010
-(deterministic context budget, `LOCAL_DONE`, committed — for the budget
-interaction).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-012/`). The original plan is preserved below.**
 
 ## Objective
 

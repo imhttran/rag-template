@@ -280,18 +280,20 @@ latency, and context/token usage.
 
 # Phase 21 --- Larger Corpus Validation
 
-**Status: Future**
-
-Add more realistic documents and evaluation cases to determine whether
-conclusions hold as corpus size, vocabulary, ambiguity, and document
-length increase.
+**Status: Implemented** (RAG-018, RAG-021). The example corpus was expanded with
+long-section and Vietnamese documents, the evaluation dataset grew to a bilingual
+set with unanswerable and misleading-context cases, and a calibrated
+embedding-model comparison was recorded (see `docs/plans/PLAN-RAG-018.md`,
+`docs/plans/PLAN-RAG-021.md`, and `docs/experiments-eval-sweep.md`).
 
 # Phase 22 --- Production-Oriented Concerns
 
 **Status: Partly implemented.** Idempotent re-indexing and schema migrations
 (RAG-003), provider abstraction (RAG-004/005), observability (RAG-014), and
-failure handling and security limits (RAG-012/015) have landed; deployment and
-access controls remain future/optional.
+failure handling and security limits (RAG-012/015) have landed, as have page
+provenance (RAG-017), the expanded bilingual evaluation harness (RAG-018), and the
+calibrated embedding-model comparison (RAG-021); deployment and access controls
+remain future/optional.
 
 Only after learning and optimization objectives are satisfied, consider
 ingestion lifecycle, idempotent re-indexing, schema migrations,

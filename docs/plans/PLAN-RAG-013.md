@@ -1,12 +1,7 @@
 # PLAN — RAG-013: Structured citations with runtime validation and repair
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — NOT ACTIVE.** Awaiting the operator's authorization to
-run. Third task of the authorized RAG-009 → RAG-011 → RAG-013 → RAG-015 chain.
-**Supersedes:** none. Extracted from `docs/plans/PLAN-RAG-Phase-23.md`, which
-sequences M4 of `docs/plans/PLAN-RAG-Gap-Closure.md`.
-**Prerequisites:** RAG-010 (final context, `LOCAL_DONE`, committed); RAG-011
-(metadata filters, predecessor in this chain).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-013/`). The original plan is preserved below.**
 
 ## Objective
 

@@ -277,6 +277,13 @@ chat model; run `QUERY_REWRITE=false make sweep AXIS=…` to sweep without it, a
 every axis still needs the database up and the corpora ingested. Recorded
 results live in `docs/experiments.md`.
 
+For a controlled **embedding-model** comparison, `scripts/eval-model-sweep.sh`
+sweeps `MIN_SIMILARITY` per model on a **calibration split** and reports the
+disjoint **held-out split**, one isolated database per model, three repeats per
+model (see `docs/operations/embedding-models.md`). Its eval runs default to
+`QUERY_REWRITE=false`, so the comparison is deterministic and needs no chat
+model; recorded results live in `docs/experiments-eval-sweep.md`.
+
 ## Configuration
 
 All three commands read the same settings from the environment. The defaults

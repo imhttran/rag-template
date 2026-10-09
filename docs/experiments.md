@@ -16,8 +16,11 @@ and the similarity-only rejection rate on the unanswerable cases.
 - Corpus: `examples/loan-policy.md`, `large-loan-policy.md`,
   `member-services-guide.md`, `commercial-servicing-manual.md`.
 - Cases: `evals/retrieval.json` — 43 cases, 37 answerable, 6 unanswerable.
-- Models: `nomic-embed-text` for embeddings, `qwen3.8:27b-mlx` for the chat
-  model. Both local, so reruns are free but the chat model is slow.
+- Models: `nomic-embed-text` for embeddings (the default), `qwen3.8:27b-mlx` for
+  the chat model. The chat model is needed only for query rewriting and the
+  answer-level metrics (answerability gate, fact judge, LLM rerank); the
+  embedding-model comparison runs with `QUERY_REWRITE=false` and needs no chat
+  model (see "Calibrated embedding-model comparison" below).
 
 ## Chunk size and overlap
 
@@ -195,6 +198,27 @@ sections also raise evidence recall _before_ expansion, because a section is
 fewer chunks so the retrieved chunk is more likely to carry the evidence. The
 `50/20` default was promoted from the `QUERY_REWRITE=false` table above; on the
 shipped configuration it is not the best choice.
+
+## Calibrated embedding-model comparison: nomic-embed-text vs embeddinggemma (RAG-021)
+
+A controlled two-model comparison of the embedding model itself, run with
+`scripts/eval-model-sweep.sh` (embeddings-only: `QUERY_REWRITE=false`, no chat
+model). It selects `MIN_SIMILARITY` on a **calibration split**
+(`evals/retrieval-vi-en-calibration.json`, 21 cases) and reports metrics on a
+disjoint **held-out split** (`evals/retrieval-vi-en-expanded.json`, 39 cases),
+three repeats per model, at a jointly-selected floor (rejection first, then
+recall@4). Both models selected floor `0.70`; on the held-out split the means are:
+
+| model | R@1 | R@4 | P@4 | evidence (bef → aft) | rejection |
+| ----- | --- | --- | --- | -------------------- | --------- |
+| **nomic-embed-text** | **0.42** | **0.52** | 0.22 | 0.42 → **0.48** | 1.00 |
+| embeddinggemma | 0.27 | 0.27 | 0.22 | 0.24 → 0.27 | 1.00 |
+
+`nomic-embed-text` wins on recall@1/@4 and evidence recall at equal precision and
+rejection; `embeddinggemma`'s higher raw recall appears only at a zero-rejection
+floor, which the selection rule excludes. Decision: **retain `nomic-embed-text`**.
+The full protocol, thresholds, per-run records, and the defect that this run
+exposed live in [`experiments-eval-sweep.md`](experiments-eval-sweep.md).
 
 ## Still open
 

@@ -1,15 +1,7 @@
 # PLAN — RAG-009: Multilingual ingestion and retrieval
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — NOT ACTIVE.** Awaiting the operator's authorization to
-run. The multilingual **scope expansion is authorized** (`PLAN-RAG-Gap-Closure.md`
-Amendment D); this plan is the first task of the authorized RAG-009 → RAG-011 →
-RAG-013 → RAG-015 chain.
-**Supersedes:** none. Extracted from `docs/plans/PLAN-RAG-Phase-23.md`, which
-sequences M3 of `docs/plans/PLAN-RAG-Gap-Closure.md`.
-**Prerequisites:** RAG-003 (metadata columns, `LOCAL_DONE`, committed); RAG-006
-(loader interface, `LOCAL_DONE`, committed); RAG-005 (model/dim decoupling,
-`LOCAL_DONE`).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-009/`). The original plan is preserved below.**
 
 ## Objective
 

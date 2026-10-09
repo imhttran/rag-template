@@ -1,16 +1,7 @@
 # PLAN — RAG-011: Metadata filtering across retrieval
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — NOT ACTIVE.** Awaiting the operator's authorization to
-run. Part of the authorized RAG-009 → RAG-011 → RAG-013 → RAG-015 chain; it runs
-only after RAG-009's acceptance criteria are met. The multilingual scope
-expansion that supplies the language dimension is authorized
-(`PLAN-RAG-Gap-Closure.md` Amendment D).
-**Supersedes:** none. Extracted from `docs/plans/PLAN-RAG-Phase-23.md` (Batch 3),
-which sequences M4 of `docs/plans/PLAN-RAG-Gap-Closure.md` (Amendment B).
-**Prerequisites:** RAG-003 (ingestion metadata columns, `LOCAL_DONE`, committed);
-RAG-009 (per-document `language` metadata — **authorized**, predecessor in this
-chain).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-011/`). The original plan is preserved below.**
 
 ## Objective
 

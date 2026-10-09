@@ -1,12 +1,7 @@
 # PLAN — RAG-015: Security hardening
 
 **Type:** Implementation plan (normative for the work it describes).
-**Status:** **PROPOSED — NOT ACTIVE.** Awaiting the operator's authorization to
-run. Fourth task of the authorized RAG-009 → RAG-011 → RAG-013 → RAG-015 chain.
-**Supersedes:** none. Extracted from `docs/plans/PLAN-RAG-Phase-23.md`, which
-sequences M5 of `docs/plans/PLAN-RAG-Gap-Closure.md`.
-**Prerequisites:** RAG-004 (provider seam, `LOCAL_DONE`, committed); RAG-013
-(citation trust, predecessor in this chain).
+**Status:** **Historicalized — archived as `COMPLETE` (see `.agent-sdlc/archive/plan-rag-015/`). The original plan is preserved below.**
 
 ## Objective
 
