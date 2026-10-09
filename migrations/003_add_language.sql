@@ -4,7 +4,7 @@
 -- Applied after 002_ingestion_metadata.sql. Every statement is idempotent
 -- (IF NOT EXISTS), so re-running it against a database already at 003 is a
 -- no-op.
---   psql 'postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable' \
+--   psql 'postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable' \
 --     -f migrations/003_add_language.sql
 
 -- language records the document language as a BCP-47 tag (for example "en",

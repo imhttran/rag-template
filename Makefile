@@ -1,3 +1,4 @@
+.PHONY: db-up db-down db-schema test fmt-json integration ingest ask eval sweep
 # Convenience targets for the ingest/query workflow.
 #
 #   make db-up        start PostgreSQL and apply the schema
@@ -16,13 +17,11 @@
 
 # Load local .env if present
 -include .env
-DATABASE_URL ?= postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable
+DATABASE_URL ?= postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable
 export DATABASE_URL
 FILE ?= examples/loan-policy.md
 Q ?=
 AXIS ?= all
-
-.PHONY: db-up db-down db-schema test fmt-json integration ingest ask eval sweep
 
 # Start the database and make sure the schema is applied.
 db-up:

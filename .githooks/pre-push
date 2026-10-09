@@ -23,17 +23,17 @@
 # instead, a throwaway database that has to exist:
 #
 #   RAG_TEST_DATABASE_URL
-#     default: postgres://rag:rag@127.0.0.1:5433/rag_test?sslmode=disable
+#     default: postgres://rag:rag@127.0.0.1:5434/rag_test?sslmode=disable
 #
 # Create it once:
-#   psql 'postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable' -c 'CREATE DATABASE rag_test'
+#   psql 'postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable' -c 'CREATE DATABASE rag_test'
 #
 # A missing database is skipped with a note, so a stopped Docker daemon never
 # blocks a push.
 
 set -e
 
-test_url="${RAG_TEST_DATABASE_URL:-postgres://rag:rag@127.0.0.1:5433/rag_test?sslmode=disable}"
+test_url="${RAG_TEST_DATABASE_URL:-postgres://rag:rag@127.0.0.1:5434/rag_test?sslmode=disable}"
 
 integration_test_agent="${INTEGRATION_TEST_AGENT:-.agents/scripts/integration-test-agent.sh}"
 

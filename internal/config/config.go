@@ -30,7 +30,7 @@ const (
 	DefaultOllamaURL   = "http://localhost:11434"
 	DefaultEmbedModel  = "nomic-embed-text"
 	DefaultChatModel   = "qwen3.8:27b-mlx"
-	DefaultDatabaseURL = "postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable"
+	DefaultDatabaseURL = "postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable"
 	DefaultTopK        = 4
 
 	// DefaultEmbedDim is the embedding dimension the documents.embedding column

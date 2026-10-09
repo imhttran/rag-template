@@ -3,7 +3,7 @@
 --
 -- Applied automatically on first start by docker-compose (mounted into
 -- /docker-entrypoint-initdb.d). To apply it manually:
---   psql 'postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable' -f migrations/001_init.sql
+--   psql 'postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable' -f migrations/001_init.sql
 
 -- pgvector adds the `vector` type and the distance operators, e.g. `<=>`.
 CREATE EXTENSION IF NOT EXISTS vector;

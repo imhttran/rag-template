@@ -3,7 +3,7 @@
 --
 -- Applied after 001_init.sql. Every statement is idempotent (IF NOT EXISTS),
 -- so re-running it against a database already at 002 is a no-op.
---   psql 'postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable' \
+--   psql 'postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable' \
 --     -f migrations/002_ingestion_metadata.sql
 
 -- content_hash is a fingerprint of the ingested file's bytes combined with the

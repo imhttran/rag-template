@@ -66,7 +66,7 @@
 #   SWEEP_MANIFEST             corpus manifest         (default evals/corpus-vi-en.json)
 #   SWEEP_GRID                 floor sweep grid        (default 0.30,0.40,0.50,0.60,0.70)
 #   SWEEP_MIN_REJECTION        minimum calibration rejection a floor must reach (default 1)
-#   SWEEP_DB_URL               base DATABASE_URL       (default postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable);
+#   SWEEP_DB_URL               base DATABASE_URL       (default postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable);
 #                              model N uses database rag_<N> on the same server
 #   SWEEP_RESULTS              results file            (default docs/experiments-eval-sweep.md)
 #   SWEEP_SKIP_INGEST          1 to reuse already-ingested databases (one ingest per
@@ -101,7 +101,7 @@ CALIBRATION_DATASET=${SWEEP_CALIBRATION_DATASET:-evals/retrieval-vi-en-calibrati
 MANIFEST=${SWEEP_MANIFEST:-evals/corpus-vi-en.json}
 GRID=${SWEEP_GRID:-0.30,0.40,0.50,0.60,0.70}
 MIN_REJECTION=${SWEEP_MIN_REJECTION:-1}
-DB_URL_BASE=${SWEEP_DB_URL:-postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable}
+DB_URL_BASE=${SWEEP_DB_URL:-postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable}
 RESULTS=${SWEEP_RESULTS:-docs/experiments-eval-sweep.md}
 SKIP_INGEST=${SWEEP_SKIP_INGEST:-0}
 EMBED_PROBE=${SWEEP_EMBED_PROBE:-0}

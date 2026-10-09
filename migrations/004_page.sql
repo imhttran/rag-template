@@ -5,7 +5,7 @@
 -- Applied after 003_add_language.sql. The statement is idempotent
 -- (IF NOT EXISTS), so re-running it against a database already at 004 is a
 -- no-op.
---   psql 'postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable' \
+--   psql 'postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable' \
 --     -f migrations/004_page.sql
 
 -- page records the 1-based page number a chunk came from (PDF loaders set

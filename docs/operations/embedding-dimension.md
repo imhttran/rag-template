@@ -36,7 +36,7 @@ documentation, or embed one string and read the vector length.
 3. Stop `cmd/ingest` and `cmd/rag` while the change is in progress: they read
    `documents.embedding` and will fail against a column of the wrong width.
 4. Have a `psql` connection to the database, e.g.
-   `postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable`.
+   `postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable`.
 
 ## Step 1 — Change the column dimension
 

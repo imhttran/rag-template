@@ -136,7 +136,7 @@ the results header, so the configuration a run used is auditable.
 2. Start the first isolated database and load the default model's environment:
 
    ```bash
-   export DATABASE_URL='postgres://rag:rag@127.0.0.1:5433/rag?sslmode=disable'
+   export DATABASE_URL='postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable'
    export OLLAMA_EMBED_MODEL=nomic-embed-text
    export EMBED_DIM=768
    make db-up
