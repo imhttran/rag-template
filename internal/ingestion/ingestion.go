@@ -30,6 +30,23 @@ const (
 
 	// maxRetryBackoff caps a single backoff delay.
 	maxRetryBackoff = 5 * time.Second
+
+	// maxBindParams is PostgreSQL's hard limit on bind parameters in a single
+	// statement. A multi-row INSERT must stay strictly below it.
+	maxBindParams = 65535
+
+	// paramsPerChunk is how many bind parameters one inserted chunk row
+	// contributes (source, section, chunk_index, content, embedding,
+	// content_hash, embed_model, embedding_dim, chunker_config, ingested_at,
+	// language, page).
+	paramsPerChunk = 12
+
+	// chunksPerBatch is the maximum number of chunk rows written by a single
+	// INSERT statement. It is derived from the parameter budget so the batch
+	// size shrinks automatically if paramsPerChunk ever grows: with 12
+	// parameters per row this is floor(65535/12) = 5461, and 5461*12 = 65532
+	// bind parameters stays strictly below the limit.
+	chunksPerBatch = maxBindParams / paramsPerChunk
 )
 
 // Provenance records where a chunk came from and how it was produced. It is
@@ -116,6 +133,110 @@ func NewWithOptions(
 type embeddedChunk struct {
 	chunk  chunking.Chunk
 	vector []float64
+}
+
+// chunkInsertBatch is one multi-row INSERT statement and the arguments that
+// bind it. It is a plain value so the batch boundaries are testable without a
+// database.
+type chunkInsertBatch struct {
+	// sql is the complete INSERT statement, with placeholders numbered from
+	// $1 in this batch.
+	sql string
+
+	// args are the bind arguments, twelve per row, in chunk order.
+	args []any
+
+	// rows is how many chunk rows the statement inserts. It equals
+	// len(args)/paramsPerChunk.
+	rows int
+}
+
+// chunkInsertBatches splits embedded into batches whose bind-parameter count
+// never reaches PostgreSQL's limit, returning one chunkInsertBatch per batch.
+//
+// The row value construction is shared by every batch, so a document at or
+// below the limit produces exactly the rows and placeholder shape the previous
+// single-statement insert wrote, just split across statements. An empty input
+// yields no batches.
+func chunkInsertBatches(
+	source string,
+	provenance Provenance,
+	embedded []embeddedChunk,
+) []chunkInsertBatch {
+	batches := make(
+		[]chunkInsertBatch,
+		0,
+		(len(embedded)+chunksPerBatch-1)/chunksPerBatch,
+	)
+
+	for start := 0; start < len(embedded); start += chunksPerBatch {
+		end := start + chunksPerBatch
+		if end > len(embedded) {
+			end = len(embedded)
+		}
+
+		rowCount := end - start
+
+		var builder strings.Builder
+		builder.WriteString(
+			`INSERT INTO documents (source, section, chunk_index, content, ` +
+				`embedding, content_hash, embed_model, embedding_dim, ` +
+				`chunker_config, ingested_at, language, page) VALUES `,
+		)
+
+		args := make([]any, 0, rowCount*paramsPerChunk)
+
+		for index := start; index < end; index++ {
+			item := embedded[index]
+
+			if index > start {
+				builder.WriteString(", ")
+			}
+
+			base := (index - start) * paramsPerChunk
+
+			fmt.Fprintf(
+				&builder,
+				"($%d, $%d, $%d, $%d, $%d::vector, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+				base+1,
+				base+2,
+				base+3,
+				base+4,
+				base+5,
+				base+6,
+				base+7,
+				base+8,
+				base+9,
+				base+10,
+				base+11,
+				base+12,
+			)
+
+			args = append(
+				args,
+				source,
+				item.chunk.Section,
+				item.chunk.Index,
+				item.chunk.Content,
+				retrieval.VectorToString(item.vector),
+				nullableString(provenance.ContentHash),
+				nullableString(provenance.EmbedModel),
+				nullableInt(provenance.Dimension),
+				nullableString(provenance.ChunkerConfig),
+				provenance.IngestedAt,
+				nullableString(provenance.Language),
+				nullableInt(item.chunk.Page),
+			)
+		}
+
+		batches = append(batches, chunkInsertBatch{
+			sql:  builder.String(),
+			args: args,
+			rows: rowCount,
+		})
+	}
+
+	return batches
 }
 
 // ReplaceDocument replaces all stored chunks for source with no provenance.
@@ -296,10 +417,13 @@ func (i *Ingester) embedAll(
 	)
 }
 
-// insertChunks writes every embedded chunk with one batched statement inside tx.
-// It constructs a single multi-row INSERT so the delete-then-insert replacement
-// stays atomic and the round trips do not scale with the chunk count. The chunk's
-// page is written as NULL when 0 (unset) so page-less formats store no page.
+// insertChunks writes every embedded chunk inside tx, splitting the rows across
+// as many multi-row INSERT statements as the bind-parameter budget requires so a
+// document of any size can be stored without exceeding PostgreSQL's 65535
+// parameter limit. Every batch runs on the caller's transaction, so the
+// delete-then-insert replacement stays atomic and a failing batch rolls the
+// whole replacement back. The chunk's page is written as NULL when 0 (unset) so
+// page-less formats store no page.
 func (i *Ingester) insertChunks(
 	ctx context.Context,
 	tx pgx.Tx,
@@ -307,62 +431,12 @@ func (i *Ingester) insertChunks(
 	provenance Provenance,
 	embedded []embeddedChunk,
 ) error {
-	if len(embedded) == 0 {
-		return nil
-	}
+	batches := chunkInsertBatches(source, provenance, embedded)
 
-	var builder strings.Builder
-	builder.WriteString(
-		`INSERT INTO documents (source, section, chunk_index, content, ` +
-			`embedding, content_hash, embed_model, embedding_dim, ` +
-			`chunker_config, ingested_at, language, page) VALUES `,
-	)
-
-	args := make([]any, 0, len(embedded)*12)
-
-	for index, item := range embedded {
-		if index > 0 {
-			builder.WriteString(", ")
+	for _, batch := range batches {
+		if _, err := tx.Exec(ctx, batch.sql, batch.args...); err != nil {
+			return fmt.Errorf("insert %d chunks: %w", len(embedded), err)
 		}
-
-		base := index * 12
-
-		fmt.Fprintf(
-			&builder,
-			"($%d, $%d, $%d, $%d, $%d::vector, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
-			base+1,
-			base+2,
-			base+3,
-			base+4,
-			base+5,
-			base+6,
-			base+7,
-			base+8,
-			base+9,
-			base+10,
-			base+11,
-			base+12,
-		)
-
-		args = append(
-			args,
-			source,
-			item.chunk.Section,
-			item.chunk.Index,
-			item.chunk.Content,
-			retrieval.VectorToString(item.vector),
-			nullableString(provenance.ContentHash),
-			nullableString(provenance.EmbedModel),
-			nullableInt(provenance.Dimension),
-			nullableString(provenance.ChunkerConfig),
-			provenance.IngestedAt,
-			nullableString(provenance.Language),
-			nullableInt(item.chunk.Page),
-		)
-	}
-
-	if _, err := tx.Exec(ctx, builder.String(), args...); err != nil {
-		return fmt.Errorf("insert %d chunks: %w", len(embedded), err)
 	}
 
 	return nil
