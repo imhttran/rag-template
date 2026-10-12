@@ -160,10 +160,16 @@ func run(ctx context.Context) error {
 	}
 	defer conn.Close(context.Background())
 
-	client := cfg.OllamaClient()
+	// Resolve the embedder through the provider registry so EMBED_PROVIDER
+	// selects the implementation. An empty provider keeps the ollama default; an
+	// unregistered provider is an error, never a silent fallback.
+	embedder, err := cfg.Embedder()
+	if err != nil {
+		return err
+	}
 
 	eval := evaluator{
-		embedder:          embedding.New(client, cfg.EmbedModel),
+		embedder:          embedder,
 		retriever:         retrieval.New(conn),
 		lexicalRerank:     cfg.LexicalRerank,
 		llmRerank:         cfg.LLMRerank,
@@ -186,7 +192,15 @@ func run(ctx context.Context) error {
 		cfg.LLMRerank ||
 		cfg.QueryRewrite {
 
-		eval.generator = generation.New(client, cfg.ChatModel)
+		// Resolve the generator through the provider registry, preserving the
+		// existing condition under which it is built. An unregistered
+		// GEN_PROVIDER is an error, never a silent fallback.
+		generator, err := cfg.Generator()
+		if err != nil {
+			return err
+		}
+
+		eval.generator = generator
 
 		if cfg.AnswerabilityGate || cfg.FactJudge {
 			eval.judge = answerability.New(eval.generator)

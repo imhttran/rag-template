@@ -55,6 +55,26 @@ func ResolveName(name string) string {
 	return name
 }
 
+// HasEmbedder reports whether name resolves to a registered embed provider.
+// An empty name resolves to Default, matching ResolveName. It lets callers
+// (for example internal/config) validate a configured provider name against
+// the registry without constructing a client.
+func HasEmbedder(name string) bool {
+	_, ok := embedders[ResolveName(name)]
+
+	return ok
+}
+
+// HasGenerator reports whether name resolves to a registered generate provider.
+// An empty name resolves to Default, matching ResolveName. It lets callers (for
+// example internal/config) validate a configured provider name against the
+// registry without constructing a client.
+func HasGenerator(name string) bool {
+	_, ok := generators[ResolveName(name)]
+
+	return ok
+}
+
 // Embedder returns an embedding.Embedder for the named provider. An empty name
 // resolves to Default. An unregistered name is an error, never a nil success.
 func Embedder(name string, client Client) (embedding.Embedder, error) {

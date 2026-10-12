@@ -15,7 +15,6 @@ import (
 
 	"rag-template/internal/chunking"
 	"rag-template/internal/config"
-	"rag-template/internal/embedding"
 	"rag-template/internal/ingestion"
 	"rag-template/internal/loader"
 )
@@ -65,9 +64,17 @@ func run(ctx context.Context, path string) error {
 		return err
 	}
 
+	// Resolve the embedder through the provider registry so EMBED_PROVIDER
+	// selects the implementation. An empty provider keeps the ollama default; an
+	// unregistered provider is an error, never a silent fallback.
+	embedder, err := cfg.Embedder()
+	if err != nil {
+		return err
+	}
+
 	service := ingestion.NewWithOptions(
 		conn,
-		embedding.New(cfg.OllamaClient(), cfg.EmbedModel),
+		embedder,
 		cfg.EmbedWorkers,
 		cfg.EmbedRetries,
 	)

@@ -203,8 +203,10 @@ type Config struct {
 // when a setting is absent.
 //
 // It returns an error naming the offending variable when a present setting
-// cannot be parsed or is out of range, and when CHUNK_OVERLAP is not smaller than
-// CHUNK_SIZE. Invalid values are never silently replaced with defaults.
+// cannot be parsed or is out of range, when CHUNK_OVERLAP is not smaller than
+// CHUNK_SIZE, and when EMBED_PROVIDER / GEN_PROVIDER names a provider that is
+// not registered (a present-but-unknown provider fails fast, never a silent
+// ignore). Invalid values are never silently replaced with defaults.
 func Load() (Config, error) {
 	cfg := Config{
 		OllamaURL:     envOrDefault("OLLAMA_URL", DefaultOllamaURL),
@@ -218,6 +220,19 @@ func Load() (Config, error) {
 		Language: envOrDefault("CORPUS_LANGUAGE", DefaultLanguage),
 		// Question has no default: the rag command requires one.
 		Question: envOrDefault("QUESTION", ""),
+	}
+
+	// Provider names are validated here so an unknown EMBED_PROVIDER / GEN_PROVIDER
+	// fails fast at Load with an error naming the variable and the value, rather
+	// than surfacing later (or being silently ignored) when an embedder or
+	// generator is resolved. An unset or blank variable keeps the default and is
+	// not an error.
+	if err := validateEmbedProvider(cfg.EmbedProvider); err != nil {
+		return Config{}, err
+	}
+
+	if err := validateGenProvider(cfg.GenProvider); err != nil {
+		return Config{}, err
 	}
 
 	var err error
@@ -331,6 +346,28 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// validateEmbedProvider rejects an EMBED_PROVIDER value that is not registered
+// in the provider registry. An empty value resolves to the registry default and
+// is always valid. The error names both the variable and the offending value.
+func validateEmbedProvider(name string) error {
+	if provider.HasEmbedder(name) {
+		return nil
+	}
+
+	return fmt.Errorf("EMBED_PROVIDER=%q is not a registered provider", name)
+}
+
+// validateGenProvider rejects a GEN_PROVIDER value that is not registered in
+// the provider registry. An empty value resolves to the registry default and is
+// always valid. The error names both the variable and the offending value.
+func validateGenProvider(name string) error {
+	if provider.HasGenerator(name) {
+		return nil
+	}
+
+	return fmt.Errorf("GEN_PROVIDER=%q is not a registered provider", name)
 }
 
 // ObservabilityJSON reports whether the configured output format selects the

@@ -8,9 +8,10 @@ rather than restating them.
 ## Purpose
 
 The project exposes the major mechanics of Retrieval-Augmented Generation (RAG)
-instead of hiding them behind a framework. It is deliberately small: three
-commands wire a set of single-responsibility packages, and the retrieval pipeline
-is one concrete implementation used by both answering and evaluation. See the
+instead of hiding them behind a framework. It is deliberately small: four
+commands (`cmd/ingest`, `cmd/rag`, `cmd/eval`, `cmd/expbilingual`) wire a set of
+single-responsibility packages, and the retrieval pipeline is one concrete
+implementation used by both answering and evaluation. See the
 [project structure](../reference/project-structure.md) for the full layout.
 
 ## The RAG loop
@@ -79,8 +80,20 @@ Ingestion and querying are the two directions of that loop.
    and repair runs in [`internal/citations`](../../internal/citations) (RAG-013).
 
 `cmd/eval` reuses steps 3–6 from the same `internal/retrieval` pipeline and scores
-the result against `evals/retrieval.json` — see the
+the result against `evals/retrieval.json` (override with `EVAL_DATASET`) — see the
 [evaluation guide](../guides/evaluation.md).
+
+`cmd/expbilingual` is the RAG-024 bilingual evaluation harness. It is
+**evaluation-only**: it does not modify production retrieval. It runs retrieval
+arms over a frozen evaluation split against an already-ingested database and
+prints per-case and aggregate metrics, selecting an arm with `ARM` (`A`, `B`,
+`C`, `D1`, `D2`, `E`, or `all`; default `all` runs `A`, `D1`, `D2`). Query
+generation is pinned (temperature 0, fixed seed, bounded output) and cached by
+case id and configuration (`QUERY_CACHE`) so repeated evaluations isolate
+retrieval determinism from generation variability. It reads its cases from
+`EVAL_DATASET` (default `evals/retrieval-vi-en-expanded.json`) and honours
+`REPEATS`, `DIAG`, `GEN_TIMEOUT`, `OLLAMA_CHAT_MODEL`, `OLLAMA_EMBED_MODEL`, and
+`MIN_SIMILARITY`.
 
 ## Package responsibilities
 
@@ -105,11 +118,16 @@ the result against `evals/retrieval.json` — see the
 
 ## Boundaries and ownership
 
-- **Commands are thin.** `cmd/ingest`, `cmd/rag`, and `cmd/eval` wire packages
-  together and own no retrieval or storage logic.
-- **Provider seam.** Embedding and generation go through `internal/provider`
-  interfaces (`EMBED_PROVIDER` / `GEN_PROVIDER`), so a non-Ollama provider is a
-  registry entry, not an edit to the pipeline.
+- **Commands are thin.** `cmd/ingest`, `cmd/rag`, `cmd/eval`, and
+  `cmd/expbilingual` wire packages together and own no retrieval or storage logic.
+  `cmd/expbilingual` is an evaluation harness over `internal/retrieval` and is not
+  part of the answering path.
+- **Provider seam (wired).** `cmd/ingest`, `cmd/rag`, and `cmd/eval` resolve the
+  embedder and generator through `config.Config.Embedder()` / `Generator()`, which
+  dispatch on `EMBED_PROVIDER` / `GEN_PROVIDER` via `internal/provider`. An
+  unregistered provider **fails fast at `config.Load`** (naming the variable and
+  value); only `ollama` is registered today, so a non-Ollama provider is a registry
+  entry, not an edit to the pipeline.
 - **Storage contract.** The schema is owned by `migrations/*.sql`; the
   `documents.embedding` column dimension must match `EMBED_DIM`, enforced before
   any write by the schema guard in `internal/ingestion`
@@ -117,8 +135,8 @@ the result against `evals/retrieval.json` — see the
 - **Loader seam.** A new format is added by registering a `loader.Loader`, not by
   editing the ingest path.
 - **One retrieval pipeline.** `internal/retrieval.HybridRetrieve` is the single
-  implementation; `cmd/rag` and `cmd/eval` both call it, so evaluation measures
-  what the command runs.
+  implementation; `cmd/rag` and `cmd/eval` both call it, and `cmd/expbilingual`
+  calls it per evaluation arm, so evaluation measures what the command runs.
 - **Untrusted text.** Retrieved content is treated as untrusted and separated from
   instructions in the answer prompt
   ([risk model](../operations/prompt-injection.md)).
@@ -146,7 +164,7 @@ column's path from loader through citation rendering is specified in the
   answer loop; the gap-closure capabilities RAG-006…RAG-015
   ([capabilities reference](../reference/capabilities.md)); PDF text-layer
   ingestion (RAG-007) and page provenance / page-aware citations (RAG-017); and
-  the bilingual evaluation harness (RAG-018/RAG-021).
+  the bilingual evaluation harness `cmd/expbilingual` (RAG-018/RAG-021/RAG-024).
 - **Not implemented:** OCR for scanned PDFs (RAG-008 — a scanned PDF is rejected
   explicitly), and genealogy entity extraction (RAG-016).
 

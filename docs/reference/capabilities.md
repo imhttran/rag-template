@@ -11,9 +11,13 @@ integration suite). They are recorded here so the code and this document agree:
 - **Ingestion provenance and idempotent re-index (RAG-003)** — every chunk stores
   a content hash, embed model, dimension, chunker config, ingest time, and
   language; re-ingesting an unchanged file is a no-op (migrations 002/003).
-- **Model/provider independence (RAG-004/RAG-005)** — embedder and generator are
-  resolved through `internal/provider` (`EMBED_PROVIDER`/`GEN_PROVIDER`);
-  `EMBED_DIM` is validated against the stored column before any write.
+- **Model/provider independence (RAG-004/RAG-005; wired by RAG-025A)** — the commands
+  (`cmd/ingest`, `cmd/rag`, `cmd/eval`) resolve the embedder and generator through
+  `internal/provider` via `config.Config.Embedder()` / `Generator()`
+  (`EMBED_PROVIDER` / `GEN_PROVIDER`), so a non-default provider is a registry entry,
+  not a code edit. An unregistered provider name fails fast at `config.Load` (naming
+  the variable and the value). `EMBED_DIM` is validated against the stored column
+  before any write.
 - **Multilingual retrieval (RAG-009)** — `CORPUS_LANGUAGE` selects the FTS
   configuration (`NormalizeFTSConfig`; unset → `english`, unsupported → `simple`)
   and is stored per document; the FTS config is a bound SQL parameter.

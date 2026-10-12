@@ -76,7 +76,16 @@ Each defaults to the pre-change behaviour, so an unset value changes nothing:
   stage timings, retrieved/filtered counts, and context usage. See
   [`internal/observability`](../../internal/observability).
 - **`EMBED_PROVIDER` / `GEN_PROVIDER`** (`all`) — provider-registry selectors
-  (`ollama` by default). See [`internal/provider`](../../internal/provider).
+  (`ollama` by default), **honoured by the commands**: `cmd/ingest`, `cmd/rag`, and
+  `cmd/eval` resolve the embedder/generator through
+  `config.Config.Embedder()` / `Generator()` (dispatching via `internal/provider`)
+  rather than constructing a vendor client directly. An **unregistered name fails
+  fast at `config.Load`** with an error naming the variable and the value — it is
+  never silently ignored. `GEN_PROVIDER` is consulted only when a generator is
+  actually built (`cmd/rag` always; `cmd/eval` only when `EVAL_ANSWERABILITY_GATE`,
+  `EVAL_FACT_JUDGE`, `EVAL_LLM_RERANK`, or `QUERY_REWRITE` is enabled). Only
+  `ollama` is registered today; adding another provider means registering a
+  constructor in [`internal/provider`](../../internal/provider).
 
 `EMBED_DIM` must match the stored `documents.embedding` column. The guard
 `ingestion.CheckEmbeddingDim` fails fast otherwise and points at

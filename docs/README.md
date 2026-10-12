@@ -27,6 +27,24 @@ requirements/  ->  architecture/  ->  operations/ (contracts)  ->  plans/  ->  e
 A requirement constrains the architecture, which the operator contracts
 implement, which a plan delivers.
 
+## Start here: setup, architecture, and smoke test
+
+Three entry points cover the common tasks; follow them rather than duplicating
+their content here.
+
+- **Setup** — [guides/usage.md](guides/usage.md) walks through starting the
+  database, loading `.env`, ingesting a document, and asking a question.
+- **Architecture** — [architecture/OVERVIEW.md](architecture/OVERVIEW.md)
+  describes the ingest and query paths, package responsibilities, boundaries, and
+  the shipped-vs-proposed status. The command set is in
+  [reference/commands.md](reference/commands.md).
+- **Platform support** — [operations/platform-support.md](operations/platform-support.md)
+  classifies macOS, Linux, and Windows (incl. WSL2) and lists prerequisites and gaps.
+- **Smoke test** — [rag-025b-e2e-evidence.md](rag-025b-e2e-evidence.md) records an
+  end-to-end run of the retrieval→answer loop and the evaluation harness; the
+  procedures are in [guides/evaluation.md](guides/evaluation.md) and
+  [reference/testing.md](reference/testing.md).
+
 ## Documents
 
 | Document                                                               | Read it when                                                                        |
@@ -48,11 +66,17 @@ implement, which a plan delivers.
 | [operations/page-provenance.md](operations/page-provenance.md)         | You need the page-provenance contract.                                              |
 | [operations/prompt-injection.md](operations/prompt-injection.md)       | You need the prompt-injection risk model and mitigations.                           |
 | [operations/defect-recovery.md](operations/defect-recovery.md)         | You are recovering from a suspected `agentic-sop` defect during a RAG task.         |
+| [operations/platform-support.md](operations/platform-support.md)       | You need the supported platforms, prerequisites, and known gaps.                   |
 | [plans/PLAN.md](plans/PLAN.md)                                         | You want the engineering and learning plan.                                         |
 | [plans/PLAN-RAG-Gap-Closure.md](plans/PLAN-RAG-Gap-Closure.md)         | You want the gap-closure governance and audit record.                               |
 | [plans/PLAN-RAG-Phase-23b.md](plans/PLAN-RAG-Phase-23b.md)             | You want the phase-23b execution plan; task plans are `plans/PLAN-RAG-*.md`.        |
+| [plans/PLAN-RAG-025-closure.md](plans/PLAN-RAG-025-closure.md)         | You want the RAG-025 final acceptance and closure record.                           |
 | [lessons.md](lessons.md)                                               | You want the lessons-learned retrospective (non-normative).                         |
 | [experiments-eval-sweep.md](experiments-eval-sweep.md)                 | You want the recorded embedding-model sweep (`scripts/eval-model-sweep.sh` output). |
+| [rq-024-operator-recovery-evidence.md](rq-024-operator-recovery-evidence.md) | You want the RAG-024 operator-recovery evidence record.                       |
+| [rag-025a-recovery-evidence.md](rag-025a-recovery-evidence.md)         | You want the RAG-025A recovery evidence record.                                     |
+| [rag-025b-e2e-evidence.md](rag-025b-e2e-evidence.md)                   | You want the RAG-025B end-to-end (smoke-test) evidence record.                     |
+| [rag-025e-recovery-evidence.md](rag-025e-recovery-evidence.md)         | You want the RAG-025E recovery evidence record.                                     |
 
 ## Where a new document belongs
 
@@ -64,6 +88,8 @@ implement, which a plan delivers.
 - A new implementation plan → `plans/`.
 - A retrospective of completed work → [`lessons.md`](lessons.md) (or a new `history/`
   directory once several accumulate).
+- A task-specific evidence record (RAG-* run output) → at the root of `docs/`,
+  as with the `rq-*` / `rag-*` evidence files above.
 
 ## Paths kept in place (operational exceptions)
 

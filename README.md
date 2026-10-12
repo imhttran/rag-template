@@ -3,13 +3,13 @@
 A small Go project for learning Retrieval-Augmented Generation (RAG) from first
 principles. It chunks a document, embeds the chunks with a local Ollama server,
 stores them in PostgreSQL with pgvector, retrieves the closest chunks for a
-question, and asks a local model to answer using only those chunks. A separate
-command scores retrieval quality and compares a lexical reranker against plain
-vector search.
+question, and asks a local model to answer using only those chunks. Separate
+commands score retrieval quality and run a bilingual evaluation harness.
 
-Three commands drive it — `cmd/ingest` loads a document, `cmd/rag` answers a
-question, and `cmd/eval` scores retrieval. The full list, including the `make`
-shortcuts, is in the [command reference](docs/reference/commands.md).
+Four commands drive it — `cmd/ingest` loads a document, `cmd/rag` answers a
+question, `cmd/eval` scores retrieval, and `cmd/expbilingual` runs the RAG-024
+bilingual evaluation arms. The full list, including the `make` shortcuts, is in
+the [command reference](docs/reference/commands.md).
 
 ## Architecture
 
@@ -29,12 +29,17 @@ flowchart TD
 
 Retrieval is hybrid: vector search and PostgreSQL full-text search are fused with
 reciprocal rank fusion, the top sections are deduplicated and expanded, and an
-optional answerability gate decides whether the evidence can answer at all. See
-the [architecture overview](docs/architecture/OVERVIEW.md) for the full picture.
+optional answerability gate decides whether the evidence can answer at all. The
+embedder and generator are resolved through a provider registry (`EMBED_PROVIDER`
+/ `GEN_PROVIDER`); an unregistered provider fails fast at `config.Load` and only
+`ollama` is registered today. See the
+[architecture overview](docs/architecture/OVERVIEW.md) for the full picture.
 
 ## Requirements
 
-- Go 1.26 or newer
+- Go 1.26 or newer (the module's `go` directive is `go 1.26.0`). For a clean
+  `govulncheck ./...`, use a current patch toolchain — this repository's validation
+  used `GOTOOLCHAIN=go1.27.2`.
 - Ollama running locally, with an embedding model and a chat model:
 
   ```bash
@@ -68,6 +73,25 @@ set -a; source .env; set +a
 For running the commands directly, changing the embedding dimension, and the full
 setup details, see the [usage guide](docs/guides/usage.md).
 
+## Commands
+
+| Command | What it does | Make target |
+| ------- | ------------ | ----------- |
+| `cmd/ingest <file>` | Chunk a file and store its embeddings (safe to re-run) | `make ingest FILE=…` |
+| `cmd/rag "question"` | Answer a question from the stored chunks | `make ask Q="…"` |
+| `cmd/eval` | Score retrieval against `evals/retrieval.json` | `make eval` |
+| `cmd/expbilingual` | Run the RAG-024 bilingual evaluation arms over a frozen split | — (run directly) |
+
+Supporting `make` targets: `db-up`, `db-down`, `db-schema`, `test`,
+`fmt-json`, `integration`, and `sweep` (compares `cmd/eval` metrics across a
+settings matrix). See the [command reference](docs/reference/commands.md) for
+flags and environment settings.
+
+`cmd/expbilingual` is evaluation-only: it does **not** modify production
+retrieval. It selects an arm with `ARM` (`A`, `B`, `C`, `D1`, `D2`, `E`, or
+`all`), reads its cases from `EVAL_DATASET`, pins generation (temperature 0,
+fixed seed, bounded output) and caches results by case id and configuration.
+
 ## Documentation
 
 The full index — with a one-line "when to read it" for every document — lives in
@@ -79,7 +103,7 @@ The full index — with a one-line "when to read it" for every document — live
 | [Architecture](docs/architecture/OVERVIEW.md)        | The RAG loop, package responsibilities, and boundaries                                                                                                                                                                                                          |
 | [Reference](docs/reference/commands.md)              | Commands, [configuration](docs/reference/configuration.md), [capabilities](docs/reference/capabilities.md), [project structure](docs/reference/project-structure.md), [testing](docs/reference/testing.md), [experiments](docs/reference/experiments.md)        |
 | [Guides](docs/guides/usage.md)                       | Task-oriented how-tos: [usage](docs/guides/usage.md), [evaluation](docs/guides/evaluation.md), [git hooks and agent scripts](docs/guides/agent-scripts.md)                                                                                                      |
-| [Operations](docs/operations/embedding-dimension.md) | Operator-run procedures: [embedding dimension](docs/operations/embedding-dimension.md), [embedding models](docs/operations/embedding-models.md), [page provenance](docs/operations/page-provenance.md), [prompt injection](docs/operations/prompt-injection.md) |
+| [Operations](docs/operations/embedding-dimension.md) | Operator-run procedures: [embedding dimension](docs/operations/embedding-dimension.md), [embedding models](docs/operations/embedding-models.md), [page provenance](docs/operations/page-provenance.md), [prompt injection](docs/operations/prompt-injection.md), [platform support](docs/operations/platform-support.md) |
 | [Plans](docs/plans/PLAN.md)                          | The [engineering and learning plan](docs/plans/PLAN.md) and focused, SOP-compatible task plans (RAG-*)                                                                                                                                                          |
 | [Lessons](docs/lessons.md)                           | The [lessons-learned](docs/lessons.md) retrospective (non-normative)                                                                                                                                                                                            |
 

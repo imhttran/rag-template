@@ -1,6 +1,7 @@
 package config
 
 import (
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -43,8 +44,176 @@ func clearEnv(t *testing.T) {
 		"REQUEST_TIMEOUT",
 		"QUERY_REWRITE",
 		"OBSERVABILITY_FORMAT",
+		RAGTestDBMarker,
 	} {
 		t.Setenv(key, "")
+	}
+}
+
+// RAGTestDBMarker is the explicit test-DB marker a destructive database test
+// must set to be allowed to run against a database named rag_db. Without it the
+// guard requireDisposableDB skips the test, so a destructive test can never
+// silently target the production database.
+const RAGTestDBMarker = "RAG_TEST_DB"
+
+// requireDisposableDB is a test-only guard for destructive database tests. It
+// refuses (skips) a test whose configured database is named rag_db unless the
+// explicit test-DB marker RAGTestDBMarker is set. A non-rag_db name is treated
+// as disposable enough to proceed.
+//
+// DATABASE_URL is read with the same semantics as Load: an unset or blank value
+// falls back to DefaultDatabaseURL, so the guard refuses the default production
+// target too. To opt in explicitly when a destructive test really must run
+// against rag_db, set RAGTestDBMarker (RAG_TEST_DB) to any non-blank value, for
+// example RAG_TEST_DB=1; a blank or whitespace value counts as unset, matching
+// envValue semantics.
+//
+// The guard is test-only: it never opens a database connection and never
+// changes production behavior. It mirrors the disposable-PostgreSQL guard used
+// by the rag integration harness (internal/rag/e2e_db_test.go).
+func requireDisposableDB(t *testing.T) {
+	t.Helper()
+
+	if _, ok := envValue(RAGTestDBMarker); ok {
+		return
+	}
+
+	databaseURL := envOrDefault("DATABASE_URL", DefaultDatabaseURL)
+
+	if name := databaseNameFromURL(databaseURL); name == "rag_db" {
+		t.Skipf(
+			"refusing a destructive database test against %q; set DATABASE_URL to a "+
+				"disposable database (for example rag_test) or set %s to opt in "+
+				"explicitly",
+			name,
+			RAGTestDBMarker,
+		)
+	}
+}
+
+// databaseNameFromURL extracts the database name from a PostgreSQL connection
+// URL, ignoring any query string. It returns "" for an unparseable URL.
+func databaseNameFromURL(raw string) string {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimPrefix(parsed.Path, "/")
+}
+
+// TestRequireDisposableDBRefusesRagDB proves tests cannot silently target
+// rag_db: the guard skips when DATABASE_URL names rag_db and no test-DB marker
+// is set. Remove the guard (return without checking) and this test fails
+// because the inner test body runs instead of skipping.
+func TestRequireDisposableDBRefusesRagDB(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("DATABASE_URL", "postgres://rag:rag@127.0.0.1:5434/rag_db?sslmode=disable")
+
+	ran := false
+	t.Run("guarded", func(t *testing.T) {
+		requireDisposableDB(t)
+		ran = true
+	})
+
+	if ran {
+		t.Fatal("requireDisposableDB allowed a destructive test against rag_db without the marker")
+	}
+}
+
+// TestRequireDisposableDBMarkerOptsIn proves the explicit test-DB marker lets a
+// destructive test opt in to rag_db: with RAG_TEST_DB set the guard does not
+// skip.
+func TestRequireDisposableDBMarkerOptsIn(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("DATABASE_URL", "postgres://rag:rag@127.0.0.1:5434/rag_db?sslmode=disable")
+	t.Setenv(RAGTestDBMarker, "1")
+
+	ran := false
+	t.Run("guarded", func(t *testing.T) {
+		requireDisposableDB(t)
+		ran = true
+	})
+
+	if !ran {
+		t.Fatalf("requireDisposableDB skipped despite %s being set", RAGTestDBMarker)
+	}
+}
+
+// TestRequireDisposableDBAllowsNonRagDB proves a non-rag_db database name is
+// considered disposable and the guard proceeds without a marker.
+func TestRequireDisposableDBAllowsNonRagDB(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("DATABASE_URL", "postgres://rag:rag@127.0.0.1:5434/rag_test?sslmode=disable")
+
+	ran := false
+	t.Run("guarded", func(t *testing.T) {
+		requireDisposableDB(t)
+		ran = true
+	})
+
+	if !ran {
+		t.Fatal("requireDisposableDB skipped a disposable non-rag_db database")
+	}
+}
+
+// TestRequireDisposableDBUnsetFallsBackToDefault proves an unset DATABASE_URL
+// falls back to DefaultDatabaseURL and is still refused when it names rag_db.
+func TestRequireDisposableDBUnsetFallsBackToDefault(t *testing.T) {
+	clearEnv(t)
+
+	if name := databaseNameFromURL(DefaultDatabaseURL); name != "rag_db" {
+		t.Skipf("DefaultDatabaseURL no longer names rag_db (got %q); guard fallback test is stale", name)
+	}
+
+	ran := false
+	t.Run("guarded", func(t *testing.T) {
+		requireDisposableDB(t)
+		ran = true
+	})
+
+	if ran {
+		t.Fatal("requireDisposableDB allowed a destructive test against the default rag_db")
+	}
+}
+
+// TestRequireDisposableDBBlankMarkerCountsAsUnset proves a blank or whitespace
+// marker value counts as unset, matching envValue semantics, so a blank
+// RAG_TEST_DB does not opt in.
+func TestRequireDisposableDBBlankMarkerCountsAsUnset(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("DATABASE_URL", "postgres://rag:rag@127.0.0.1:5434/rag_db?sslmode=disable")
+	t.Setenv(RAGTestDBMarker, "   ")
+
+	ran := false
+	t.Run("guarded", func(t *testing.T) {
+		requireDisposableDB(t)
+		ran = true
+	})
+
+	if ran {
+		t.Fatal("a blank RAG_TEST_DB marker must not opt in to rag_db")
+	}
+}
+
+// TestDatabaseNameFromURL covers the URL parsing the guard relies on: the
+// database path component is extracted and query strings are ignored. A name
+// other than rag_db (even an unparseable URL) is not refused by the guard.
+func TestDatabaseNameFromURL(t *testing.T) {
+	tests := []struct {
+		raw  string
+		want string
+	}{
+		{"postgres://rag:rag@127.0.0.1:5434/rag_db?sslmode=disable", "rag_db"},
+		{"postgres://rag:rag@127.0.0.1:5434/rag_test", "rag_test"},
+		{"postgres://host/rag_db", "rag_db"},
+		{"postgres://host/rag_db?sslmode=disable", "rag_db"},
+	}
+
+	for _, tt := range tests {
+		if got := databaseNameFromURL(tt.raw); got != tt.want {
+			t.Errorf("databaseNameFromURL(%q) = %q, want %q", tt.raw, got, tt.want)
+		}
 	}
 }
 
@@ -526,6 +695,16 @@ func TestLoad(t *testing.T) {
 					t.Fatalf("providers = %q/%q, want ollama/ollama", c.EmbedProvider, c.GenProvider)
 				}
 			},
+		},
+		{
+			name:    "unknown embed provider fails fast",
+			env:     map[string]string{"EMBED_PROVIDER": "not-registered"},
+			wantErr: "EMBED_PROVIDER",
+		},
+		{
+			name:    "unknown gen provider fails fast",
+			env:     map[string]string{"GEN_PROVIDER": "not-registered"},
+			wantErr: "GEN_PROVIDER",
 		},
 		{
 			name: "valid chunk size and overlap",

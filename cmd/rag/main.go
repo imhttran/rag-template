@@ -97,9 +97,19 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	ctx, cancel := context.WithTimeout(ctx, cfg.RequestTimeout)
 	defer cancel()
 
-	client := cfg.OllamaClient()
-	embedder := embedding.New(client, cfg.EmbedModel)
-	generator := generation.New(client, cfg.ChatModel)
+	// Resolve the embedder and generator through the provider registry so
+	// EMBED_PROVIDER / GEN_PROVIDER select the implementation. An empty provider
+	// keeps the ollama default; an unregistered provider is an error, never a
+	// silent fallback.
+	embedder, err := cfg.Embedder()
+	if err != nil {
+		return err
+	}
+
+	generator, err := cfg.Generator()
+	if err != nil {
+		return err
+	}
 
 	conn, err := cfg.Connect(ctx)
 	if err != nil {
