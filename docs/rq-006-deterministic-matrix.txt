@@ -1,0 +1,1055 @@
+HEADER arm=A,D1,D2 dataset=evals/retrieval-vi-en-expanded.json embed=nomic-embed-text chat=llama3.2:3b floor=0.70 repeats=3 gen_options=map[num_predict:64 seed:0 temperature:0]
+CASE arm=A rep=1 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-en-en-04 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-en-vi-05 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=1 id=eval-misleading-03 kind=misleading r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=1 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=1 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=1 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=1 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=1 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=1 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=2 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-en-en-04 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-en-vi-05 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=2 id=eval-misleading-03 kind=misleading r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=2 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=2 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=2 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=2 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=2 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=2 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=3 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-en-en-04 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-en-vi-05 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=A rep=3 id=eval-misleading-03 kind=misleading r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=A rep=3 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=3 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=3 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=3 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=3 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+CASE arm=A rep=3 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-en-en-01 variant=exp source=model
+GEN id=eval-en-en-01 variant=vi source=model
+GEN id=eval-en-en-01 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-02 variant=exp source=model
+GEN id=eval-en-en-02 variant=vi source=model
+GEN id=eval-en-en-02 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-03 variant=exp source=model
+GEN id=eval-en-en-03 variant=vi source=model
+GEN id=eval-en-en-03 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-04 variant=exp source=model
+GEN id=eval-en-en-04 variant=vi source=model
+GEN id=eval-en-en-04 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-04 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-05 variant=exp source=model
+GEN id=eval-en-en-05 variant=vi source=model
+GEN id=eval-en-en-05 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-06 variant=exp source=model
+GEN id=eval-en-en-06 variant=vi source=model
+GEN id=eval-en-en-06 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-07 variant=exp source=model
+GEN id=eval-en-en-07 variant=vi source=model
+GEN id=eval-en-en-07 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-08 variant=exp source=model
+GEN id=eval-en-en-08 variant=vi source=model
+GEN id=eval-en-en-08 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-09 variant=exp source=model
+GEN id=eval-en-en-09 variant=vi source=model
+GEN id=eval-en-en-09 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-10 variant=exp source=model
+GEN id=eval-en-en-10 variant=vi source=model
+GEN id=eval-en-en-10 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-01 variant=exp source=model
+GEN id=eval-vi-vi-01 variant=vi source=model
+GEN id=eval-vi-vi-01 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-02 variant=exp source=model
+GEN id=eval-vi-vi-02 variant=vi source=model
+GEN id=eval-vi-vi-02 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-03 variant=exp source=model
+GEN id=eval-vi-vi-03 variant=vi source=model
+GEN id=eval-vi-vi-03 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-04 variant=exp source=model
+GEN id=eval-vi-vi-04 variant=vi source=model
+GEN id=eval-vi-vi-04 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-05 variant=exp source=model
+GEN id=eval-vi-vi-05 variant=vi source=model
+GEN id=eval-vi-vi-05 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-06 variant=exp source=model
+GEN id=eval-vi-vi-06 variant=vi source=model
+GEN id=eval-vi-vi-06 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-07 variant=exp source=model
+GEN id=eval-vi-vi-07 variant=vi source=model
+GEN id=eval-vi-vi-07 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-08 variant=exp source=model
+GEN id=eval-vi-vi-08 variant=vi source=model
+GEN id=eval-vi-vi-08 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-09 variant=exp source=model
+GEN id=eval-vi-vi-09 variant=vi source=model
+GEN id=eval-vi-vi-09 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-10 variant=exp source=model
+GEN id=eval-vi-vi-10 variant=vi source=model
+GEN id=eval-vi-vi-10 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-01 variant=exp source=model
+GEN id=eval-en-vi-01 variant=vi source=model
+GEN id=eval-en-vi-01 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-02 variant=exp source=model
+GEN id=eval-en-vi-02 variant=vi source=model
+GEN id=eval-en-vi-02 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-03 variant=exp source=model
+GEN id=eval-en-vi-03 variant=vi source=model
+GEN id=eval-en-vi-03 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-04 variant=exp source=model
+GEN id=eval-en-vi-04 variant=vi source=model
+GEN id=eval-en-vi-04 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-05 variant=exp source=model
+GEN id=eval-en-vi-05 variant=vi source=model
+GEN id=eval-en-vi-05 variant=en source=model
+CASE arm=D1 rep=1 id=eval-en-vi-05 kind=en-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-en-01 variant=exp source=model
+GEN id=eval-vi-en-01 variant=vi source=model
+GEN id=eval-vi-en-01 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-02 variant=exp source=model
+GEN id=eval-vi-en-02 variant=vi source=model
+GEN id=eval-vi-en-02 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-03 variant=exp source=model
+GEN id=eval-vi-en-03 variant=vi source=model
+GEN id=eval-vi-en-03 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-04 variant=exp source=model
+GEN id=eval-vi-en-04 variant=vi source=model
+GEN id=eval-vi-en-04 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-05 variant=exp source=model
+GEN id=eval-vi-en-05 variant=vi source=model
+GEN id=eval-vi-en-05 variant=en source=model
+CASE arm=D1 rep=1 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-misleading-01 variant=exp source=model
+GEN id=eval-misleading-01 variant=vi source=model
+GEN id=eval-misleading-01 variant=en source=model
+CASE arm=D1 rep=1 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-02 variant=exp source=model
+GEN id=eval-misleading-02 variant=vi source=model
+GEN id=eval-misleading-02 variant=en source=model
+CASE arm=D1 rep=1 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-03 variant=exp source=model
+GEN id=eval-misleading-03 variant=vi source=model
+GEN id=eval-misleading-03 variant=en source=model
+CASE arm=D1 rep=1 id=eval-misleading-03 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-unanswerable-01 variant=exp source=model
+GEN id=eval-unanswerable-01 variant=vi source=model
+GEN id=eval-unanswerable-01 variant=en source=model
+CASE arm=D1 rep=1 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-02 variant=exp source=model
+GEN id=eval-unanswerable-02 variant=vi source=model
+GEN id=eval-unanswerable-02 variant=en source=model
+CASE arm=D1 rep=1 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-03 variant=exp source=model
+GEN id=eval-unanswerable-03 variant=vi source=model
+GEN id=eval-unanswerable-03 variant=en source=model
+CASE arm=D1 rep=1 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-04 variant=exp source=model
+GEN id=eval-unanswerable-04 variant=vi source=model
+GEN id=eval-unanswerable-04 variant=en source=model
+CASE arm=D1 rep=1 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-05 variant=exp source=model
+GEN id=eval-unanswerable-05 variant=vi source=model
+GEN id=eval-unanswerable-05 variant=en source=model
+CASE arm=D1 rep=1 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-06 variant=exp source=model
+GEN id=eval-unanswerable-06 variant=vi source=model
+GEN id=eval-unanswerable-06 variant=en source=model
+CASE arm=D1 rep=1 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-en-en-01 variant=exp source=cache
+GEN id=eval-en-en-01 variant=vi source=cache
+GEN id=eval-en-en-01 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-02 variant=exp source=cache
+GEN id=eval-en-en-02 variant=vi source=cache
+GEN id=eval-en-en-02 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-03 variant=exp source=cache
+GEN id=eval-en-en-03 variant=vi source=cache
+GEN id=eval-en-en-03 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-04 variant=exp source=cache
+GEN id=eval-en-en-04 variant=vi source=cache
+GEN id=eval-en-en-04 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-04 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-05 variant=exp source=cache
+GEN id=eval-en-en-05 variant=vi source=cache
+GEN id=eval-en-en-05 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-06 variant=exp source=cache
+GEN id=eval-en-en-06 variant=vi source=cache
+GEN id=eval-en-en-06 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-07 variant=exp source=cache
+GEN id=eval-en-en-07 variant=vi source=cache
+GEN id=eval-en-en-07 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-08 variant=exp source=cache
+GEN id=eval-en-en-08 variant=vi source=cache
+GEN id=eval-en-en-08 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-09 variant=exp source=cache
+GEN id=eval-en-en-09 variant=vi source=cache
+GEN id=eval-en-en-09 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-10 variant=exp source=cache
+GEN id=eval-en-en-10 variant=vi source=cache
+GEN id=eval-en-en-10 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-01 variant=exp source=cache
+GEN id=eval-vi-vi-01 variant=vi source=cache
+GEN id=eval-vi-vi-01 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-02 variant=exp source=cache
+GEN id=eval-vi-vi-02 variant=vi source=cache
+GEN id=eval-vi-vi-02 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-03 variant=exp source=cache
+GEN id=eval-vi-vi-03 variant=vi source=cache
+GEN id=eval-vi-vi-03 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-04 variant=exp source=cache
+GEN id=eval-vi-vi-04 variant=vi source=cache
+GEN id=eval-vi-vi-04 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-05 variant=exp source=cache
+GEN id=eval-vi-vi-05 variant=vi source=cache
+GEN id=eval-vi-vi-05 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-06 variant=exp source=cache
+GEN id=eval-vi-vi-06 variant=vi source=cache
+GEN id=eval-vi-vi-06 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-07 variant=exp source=cache
+GEN id=eval-vi-vi-07 variant=vi source=cache
+GEN id=eval-vi-vi-07 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-08 variant=exp source=cache
+GEN id=eval-vi-vi-08 variant=vi source=cache
+GEN id=eval-vi-vi-08 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-09 variant=exp source=cache
+GEN id=eval-vi-vi-09 variant=vi source=cache
+GEN id=eval-vi-vi-09 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-10 variant=exp source=cache
+GEN id=eval-vi-vi-10 variant=vi source=cache
+GEN id=eval-vi-vi-10 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-01 variant=exp source=cache
+GEN id=eval-en-vi-01 variant=vi source=cache
+GEN id=eval-en-vi-01 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-02 variant=exp source=cache
+GEN id=eval-en-vi-02 variant=vi source=cache
+GEN id=eval-en-vi-02 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-03 variant=exp source=cache
+GEN id=eval-en-vi-03 variant=vi source=cache
+GEN id=eval-en-vi-03 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-04 variant=exp source=cache
+GEN id=eval-en-vi-04 variant=vi source=cache
+GEN id=eval-en-vi-04 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-05 variant=exp source=cache
+GEN id=eval-en-vi-05 variant=vi source=cache
+GEN id=eval-en-vi-05 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-en-vi-05 kind=en-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-en-01 variant=exp source=cache
+GEN id=eval-vi-en-01 variant=vi source=cache
+GEN id=eval-vi-en-01 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-02 variant=exp source=cache
+GEN id=eval-vi-en-02 variant=vi source=cache
+GEN id=eval-vi-en-02 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-03 variant=exp source=cache
+GEN id=eval-vi-en-03 variant=vi source=cache
+GEN id=eval-vi-en-03 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-04 variant=exp source=cache
+GEN id=eval-vi-en-04 variant=vi source=cache
+GEN id=eval-vi-en-04 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-05 variant=exp source=cache
+GEN id=eval-vi-en-05 variant=vi source=cache
+GEN id=eval-vi-en-05 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-misleading-01 variant=exp source=cache
+GEN id=eval-misleading-01 variant=vi source=cache
+GEN id=eval-misleading-01 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-02 variant=exp source=cache
+GEN id=eval-misleading-02 variant=vi source=cache
+GEN id=eval-misleading-02 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-03 variant=exp source=cache
+GEN id=eval-misleading-03 variant=vi source=cache
+GEN id=eval-misleading-03 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-misleading-03 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-unanswerable-01 variant=exp source=cache
+GEN id=eval-unanswerable-01 variant=vi source=cache
+GEN id=eval-unanswerable-01 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-02 variant=exp source=cache
+GEN id=eval-unanswerable-02 variant=vi source=cache
+GEN id=eval-unanswerable-02 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-03 variant=exp source=cache
+GEN id=eval-unanswerable-03 variant=vi source=cache
+GEN id=eval-unanswerable-03 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-04 variant=exp source=cache
+GEN id=eval-unanswerable-04 variant=vi source=cache
+GEN id=eval-unanswerable-04 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-05 variant=exp source=cache
+GEN id=eval-unanswerable-05 variant=vi source=cache
+GEN id=eval-unanswerable-05 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-06 variant=exp source=cache
+GEN id=eval-unanswerable-06 variant=vi source=cache
+GEN id=eval-unanswerable-06 variant=en source=cache
+CASE arm=D1 rep=2 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-en-en-01 variant=exp source=cache
+GEN id=eval-en-en-01 variant=vi source=cache
+GEN id=eval-en-en-01 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-02 variant=exp source=cache
+GEN id=eval-en-en-02 variant=vi source=cache
+GEN id=eval-en-en-02 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-03 variant=exp source=cache
+GEN id=eval-en-en-03 variant=vi source=cache
+GEN id=eval-en-en-03 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-04 variant=exp source=cache
+GEN id=eval-en-en-04 variant=vi source=cache
+GEN id=eval-en-en-04 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-04 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-05 variant=exp source=cache
+GEN id=eval-en-en-05 variant=vi source=cache
+GEN id=eval-en-en-05 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-06 variant=exp source=cache
+GEN id=eval-en-en-06 variant=vi source=cache
+GEN id=eval-en-en-06 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-07 variant=exp source=cache
+GEN id=eval-en-en-07 variant=vi source=cache
+GEN id=eval-en-en-07 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-08 variant=exp source=cache
+GEN id=eval-en-en-08 variant=vi source=cache
+GEN id=eval-en-en-08 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-09 variant=exp source=cache
+GEN id=eval-en-en-09 variant=vi source=cache
+GEN id=eval-en-en-09 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-10 variant=exp source=cache
+GEN id=eval-en-en-10 variant=vi source=cache
+GEN id=eval-en-en-10 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-01 variant=exp source=cache
+GEN id=eval-vi-vi-01 variant=vi source=cache
+GEN id=eval-vi-vi-01 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-02 variant=exp source=cache
+GEN id=eval-vi-vi-02 variant=vi source=cache
+GEN id=eval-vi-vi-02 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-03 variant=exp source=cache
+GEN id=eval-vi-vi-03 variant=vi source=cache
+GEN id=eval-vi-vi-03 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-04 variant=exp source=cache
+GEN id=eval-vi-vi-04 variant=vi source=cache
+GEN id=eval-vi-vi-04 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-05 variant=exp source=cache
+GEN id=eval-vi-vi-05 variant=vi source=cache
+GEN id=eval-vi-vi-05 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-06 variant=exp source=cache
+GEN id=eval-vi-vi-06 variant=vi source=cache
+GEN id=eval-vi-vi-06 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-07 variant=exp source=cache
+GEN id=eval-vi-vi-07 variant=vi source=cache
+GEN id=eval-vi-vi-07 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-08 variant=exp source=cache
+GEN id=eval-vi-vi-08 variant=vi source=cache
+GEN id=eval-vi-vi-08 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-09 variant=exp source=cache
+GEN id=eval-vi-vi-09 variant=vi source=cache
+GEN id=eval-vi-vi-09 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-10 variant=exp source=cache
+GEN id=eval-vi-vi-10 variant=vi source=cache
+GEN id=eval-vi-vi-10 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-01 variant=exp source=cache
+GEN id=eval-en-vi-01 variant=vi source=cache
+GEN id=eval-en-vi-01 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-02 variant=exp source=cache
+GEN id=eval-en-vi-02 variant=vi source=cache
+GEN id=eval-en-vi-02 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-03 variant=exp source=cache
+GEN id=eval-en-vi-03 variant=vi source=cache
+GEN id=eval-en-vi-03 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-04 variant=exp source=cache
+GEN id=eval-en-vi-04 variant=vi source=cache
+GEN id=eval-en-vi-04 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-05 variant=exp source=cache
+GEN id=eval-en-vi-05 variant=vi source=cache
+GEN id=eval-en-vi-05 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-en-vi-05 kind=en-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-en-01 variant=exp source=cache
+GEN id=eval-vi-en-01 variant=vi source=cache
+GEN id=eval-vi-en-01 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-02 variant=exp source=cache
+GEN id=eval-vi-en-02 variant=vi source=cache
+GEN id=eval-vi-en-02 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-03 variant=exp source=cache
+GEN id=eval-vi-en-03 variant=vi source=cache
+GEN id=eval-vi-en-03 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-04 variant=exp source=cache
+GEN id=eval-vi-en-04 variant=vi source=cache
+GEN id=eval-vi-en-04 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-05 variant=exp source=cache
+GEN id=eval-vi-en-05 variant=vi source=cache
+GEN id=eval-vi-en-05 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-misleading-01 variant=exp source=cache
+GEN id=eval-misleading-01 variant=vi source=cache
+GEN id=eval-misleading-01 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-02 variant=exp source=cache
+GEN id=eval-misleading-02 variant=vi source=cache
+GEN id=eval-misleading-02 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-03 variant=exp source=cache
+GEN id=eval-misleading-03 variant=vi source=cache
+GEN id=eval-misleading-03 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-misleading-03 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-unanswerable-01 variant=exp source=cache
+GEN id=eval-unanswerable-01 variant=vi source=cache
+GEN id=eval-unanswerable-01 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-02 variant=exp source=cache
+GEN id=eval-unanswerable-02 variant=vi source=cache
+GEN id=eval-unanswerable-02 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-03 variant=exp source=cache
+GEN id=eval-unanswerable-03 variant=vi source=cache
+GEN id=eval-unanswerable-03 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-04 variant=exp source=cache
+GEN id=eval-unanswerable-04 variant=vi source=cache
+GEN id=eval-unanswerable-04 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-05 variant=exp source=cache
+GEN id=eval-unanswerable-05 variant=vi source=cache
+GEN id=eval-unanswerable-05 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-06 variant=exp source=cache
+GEN id=eval-unanswerable-06 variant=vi source=cache
+GEN id=eval-unanswerable-06 variant=en source=cache
+CASE arm=D1 rep=3 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-en-en-01 variant=exp source=cache
+GEN id=eval-en-en-01 variant=vi source=cache
+GEN id=eval-en-en-01 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-02 variant=exp source=cache
+GEN id=eval-en-en-02 variant=vi source=cache
+GEN id=eval-en-en-02 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-03 variant=exp source=cache
+GEN id=eval-en-en-03 variant=vi source=cache
+GEN id=eval-en-en-03 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-04 variant=exp source=cache
+GEN id=eval-en-en-04 variant=vi source=cache
+GEN id=eval-en-en-04 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-04 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-05 variant=exp source=cache
+GEN id=eval-en-en-05 variant=vi source=cache
+GEN id=eval-en-en-05 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-06 variant=exp source=cache
+GEN id=eval-en-en-06 variant=vi source=cache
+GEN id=eval-en-en-06 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-07 variant=exp source=cache
+GEN id=eval-en-en-07 variant=vi source=cache
+GEN id=eval-en-en-07 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-08 variant=exp source=cache
+GEN id=eval-en-en-08 variant=vi source=cache
+GEN id=eval-en-en-08 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-09 variant=exp source=cache
+GEN id=eval-en-en-09 variant=vi source=cache
+GEN id=eval-en-en-09 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-10 variant=exp source=cache
+GEN id=eval-en-en-10 variant=vi source=cache
+GEN id=eval-en-en-10 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-01 variant=exp source=cache
+GEN id=eval-vi-vi-01 variant=vi source=cache
+GEN id=eval-vi-vi-01 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-02 variant=exp source=cache
+GEN id=eval-vi-vi-02 variant=vi source=cache
+GEN id=eval-vi-vi-02 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-03 variant=exp source=cache
+GEN id=eval-vi-vi-03 variant=vi source=cache
+GEN id=eval-vi-vi-03 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-04 variant=exp source=cache
+GEN id=eval-vi-vi-04 variant=vi source=cache
+GEN id=eval-vi-vi-04 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-05 variant=exp source=cache
+GEN id=eval-vi-vi-05 variant=vi source=cache
+GEN id=eval-vi-vi-05 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-06 variant=exp source=cache
+GEN id=eval-vi-vi-06 variant=vi source=cache
+GEN id=eval-vi-vi-06 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-07 variant=exp source=cache
+GEN id=eval-vi-vi-07 variant=vi source=cache
+GEN id=eval-vi-vi-07 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-08 variant=exp source=cache
+GEN id=eval-vi-vi-08 variant=vi source=cache
+GEN id=eval-vi-vi-08 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-09 variant=exp source=cache
+GEN id=eval-vi-vi-09 variant=vi source=cache
+GEN id=eval-vi-vi-09 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-10 variant=exp source=cache
+GEN id=eval-vi-vi-10 variant=vi source=cache
+GEN id=eval-vi-vi-10 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-01 variant=exp source=cache
+GEN id=eval-en-vi-01 variant=vi source=cache
+GEN id=eval-en-vi-01 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-02 variant=exp source=cache
+GEN id=eval-en-vi-02 variant=vi source=cache
+GEN id=eval-en-vi-02 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-03 variant=exp source=cache
+GEN id=eval-en-vi-03 variant=vi source=cache
+GEN id=eval-en-vi-03 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-04 variant=exp source=cache
+GEN id=eval-en-vi-04 variant=vi source=cache
+GEN id=eval-en-vi-04 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-05 variant=exp source=cache
+GEN id=eval-en-vi-05 variant=vi source=cache
+GEN id=eval-en-vi-05 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-en-vi-05 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-01 variant=exp source=cache
+GEN id=eval-vi-en-01 variant=vi source=cache
+GEN id=eval-vi-en-01 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-02 variant=exp source=cache
+GEN id=eval-vi-en-02 variant=vi source=cache
+GEN id=eval-vi-en-02 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-03 variant=exp source=cache
+GEN id=eval-vi-en-03 variant=vi source=cache
+GEN id=eval-vi-en-03 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-04 variant=exp source=cache
+GEN id=eval-vi-en-04 variant=vi source=cache
+GEN id=eval-vi-en-04 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-05 variant=exp source=cache
+GEN id=eval-vi-en-05 variant=vi source=cache
+GEN id=eval-vi-en-05 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-misleading-01 variant=exp source=cache
+GEN id=eval-misleading-01 variant=vi source=cache
+GEN id=eval-misleading-01 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-02 variant=exp source=cache
+GEN id=eval-misleading-02 variant=vi source=cache
+GEN id=eval-misleading-02 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-03 variant=exp source=cache
+GEN id=eval-misleading-03 variant=vi source=cache
+GEN id=eval-misleading-03 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-misleading-03 kind=misleading r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-unanswerable-01 variant=exp source=cache
+GEN id=eval-unanswerable-01 variant=vi source=cache
+GEN id=eval-unanswerable-01 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-02 variant=exp source=cache
+GEN id=eval-unanswerable-02 variant=vi source=cache
+GEN id=eval-unanswerable-02 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-03 variant=exp source=cache
+GEN id=eval-unanswerable-03 variant=vi source=cache
+GEN id=eval-unanswerable-03 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-04 variant=exp source=cache
+GEN id=eval-unanswerable-04 variant=vi source=cache
+GEN id=eval-unanswerable-04 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-05 variant=exp source=cache
+GEN id=eval-unanswerable-05 variant=vi source=cache
+GEN id=eval-unanswerable-05 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-06 variant=exp source=cache
+GEN id=eval-unanswerable-06 variant=vi source=cache
+GEN id=eval-unanswerable-06 variant=en source=cache
+CASE arm=D2 rep=1 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-en-en-01 variant=exp source=cache
+GEN id=eval-en-en-01 variant=vi source=cache
+GEN id=eval-en-en-01 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-02 variant=exp source=cache
+GEN id=eval-en-en-02 variant=vi source=cache
+GEN id=eval-en-en-02 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-03 variant=exp source=cache
+GEN id=eval-en-en-03 variant=vi source=cache
+GEN id=eval-en-en-03 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-04 variant=exp source=cache
+GEN id=eval-en-en-04 variant=vi source=cache
+GEN id=eval-en-en-04 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-04 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-05 variant=exp source=cache
+GEN id=eval-en-en-05 variant=vi source=cache
+GEN id=eval-en-en-05 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-06 variant=exp source=cache
+GEN id=eval-en-en-06 variant=vi source=cache
+GEN id=eval-en-en-06 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-07 variant=exp source=cache
+GEN id=eval-en-en-07 variant=vi source=cache
+GEN id=eval-en-en-07 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-08 variant=exp source=cache
+GEN id=eval-en-en-08 variant=vi source=cache
+GEN id=eval-en-en-08 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-09 variant=exp source=cache
+GEN id=eval-en-en-09 variant=vi source=cache
+GEN id=eval-en-en-09 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-10 variant=exp source=cache
+GEN id=eval-en-en-10 variant=vi source=cache
+GEN id=eval-en-en-10 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-01 variant=exp source=cache
+GEN id=eval-vi-vi-01 variant=vi source=cache
+GEN id=eval-vi-vi-01 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-02 variant=exp source=cache
+GEN id=eval-vi-vi-02 variant=vi source=cache
+GEN id=eval-vi-vi-02 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-03 variant=exp source=cache
+GEN id=eval-vi-vi-03 variant=vi source=cache
+GEN id=eval-vi-vi-03 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-04 variant=exp source=cache
+GEN id=eval-vi-vi-04 variant=vi source=cache
+GEN id=eval-vi-vi-04 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-05 variant=exp source=cache
+GEN id=eval-vi-vi-05 variant=vi source=cache
+GEN id=eval-vi-vi-05 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-06 variant=exp source=cache
+GEN id=eval-vi-vi-06 variant=vi source=cache
+GEN id=eval-vi-vi-06 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-07 variant=exp source=cache
+GEN id=eval-vi-vi-07 variant=vi source=cache
+GEN id=eval-vi-vi-07 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-08 variant=exp source=cache
+GEN id=eval-vi-vi-08 variant=vi source=cache
+GEN id=eval-vi-vi-08 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-09 variant=exp source=cache
+GEN id=eval-vi-vi-09 variant=vi source=cache
+GEN id=eval-vi-vi-09 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-10 variant=exp source=cache
+GEN id=eval-vi-vi-10 variant=vi source=cache
+GEN id=eval-vi-vi-10 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-01 variant=exp source=cache
+GEN id=eval-en-vi-01 variant=vi source=cache
+GEN id=eval-en-vi-01 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-02 variant=exp source=cache
+GEN id=eval-en-vi-02 variant=vi source=cache
+GEN id=eval-en-vi-02 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-03 variant=exp source=cache
+GEN id=eval-en-vi-03 variant=vi source=cache
+GEN id=eval-en-vi-03 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-04 variant=exp source=cache
+GEN id=eval-en-vi-04 variant=vi source=cache
+GEN id=eval-en-vi-04 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-05 variant=exp source=cache
+GEN id=eval-en-vi-05 variant=vi source=cache
+GEN id=eval-en-vi-05 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-en-vi-05 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-01 variant=exp source=cache
+GEN id=eval-vi-en-01 variant=vi source=cache
+GEN id=eval-vi-en-01 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-02 variant=exp source=cache
+GEN id=eval-vi-en-02 variant=vi source=cache
+GEN id=eval-vi-en-02 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-03 variant=exp source=cache
+GEN id=eval-vi-en-03 variant=vi source=cache
+GEN id=eval-vi-en-03 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-04 variant=exp source=cache
+GEN id=eval-vi-en-04 variant=vi source=cache
+GEN id=eval-vi-en-04 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-05 variant=exp source=cache
+GEN id=eval-vi-en-05 variant=vi source=cache
+GEN id=eval-vi-en-05 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-misleading-01 variant=exp source=cache
+GEN id=eval-misleading-01 variant=vi source=cache
+GEN id=eval-misleading-01 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-02 variant=exp source=cache
+GEN id=eval-misleading-02 variant=vi source=cache
+GEN id=eval-misleading-02 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-03 variant=exp source=cache
+GEN id=eval-misleading-03 variant=vi source=cache
+GEN id=eval-misleading-03 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-misleading-03 kind=misleading r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-unanswerable-01 variant=exp source=cache
+GEN id=eval-unanswerable-01 variant=vi source=cache
+GEN id=eval-unanswerable-01 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-02 variant=exp source=cache
+GEN id=eval-unanswerable-02 variant=vi source=cache
+GEN id=eval-unanswerable-02 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-03 variant=exp source=cache
+GEN id=eval-unanswerable-03 variant=vi source=cache
+GEN id=eval-unanswerable-03 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-04 variant=exp source=cache
+GEN id=eval-unanswerable-04 variant=vi source=cache
+GEN id=eval-unanswerable-04 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-05 variant=exp source=cache
+GEN id=eval-unanswerable-05 variant=vi source=cache
+GEN id=eval-unanswerable-05 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-06 variant=exp source=cache
+GEN id=eval-unanswerable-06 variant=vi source=cache
+GEN id=eval-unanswerable-06 variant=en source=cache
+CASE arm=D2 rep=2 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-en-en-01 variant=exp source=cache
+GEN id=eval-en-en-01 variant=vi source=cache
+GEN id=eval-en-en-01 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-02 variant=exp source=cache
+GEN id=eval-en-en-02 variant=vi source=cache
+GEN id=eval-en-en-02 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-03 variant=exp source=cache
+GEN id=eval-en-en-03 variant=vi source=cache
+GEN id=eval-en-en-03 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-04 variant=exp source=cache
+GEN id=eval-en-en-04 variant=vi source=cache
+GEN id=eval-en-en-04 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-04 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-05 variant=exp source=cache
+GEN id=eval-en-en-05 variant=vi source=cache
+GEN id=eval-en-en-05 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-06 variant=exp source=cache
+GEN id=eval-en-en-06 variant=vi source=cache
+GEN id=eval-en-en-06 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-07 variant=exp source=cache
+GEN id=eval-en-en-07 variant=vi source=cache
+GEN id=eval-en-en-07 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-08 variant=exp source=cache
+GEN id=eval-en-en-08 variant=vi source=cache
+GEN id=eval-en-en-08 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-09 variant=exp source=cache
+GEN id=eval-en-en-09 variant=vi source=cache
+GEN id=eval-en-en-09 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-10 variant=exp source=cache
+GEN id=eval-en-en-10 variant=vi source=cache
+GEN id=eval-en-en-10 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-01 variant=exp source=cache
+GEN id=eval-vi-vi-01 variant=vi source=cache
+GEN id=eval-vi-vi-01 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-02 variant=exp source=cache
+GEN id=eval-vi-vi-02 variant=vi source=cache
+GEN id=eval-vi-vi-02 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-03 variant=exp source=cache
+GEN id=eval-vi-vi-03 variant=vi source=cache
+GEN id=eval-vi-vi-03 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-04 variant=exp source=cache
+GEN id=eval-vi-vi-04 variant=vi source=cache
+GEN id=eval-vi-vi-04 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-05 variant=exp source=cache
+GEN id=eval-vi-vi-05 variant=vi source=cache
+GEN id=eval-vi-vi-05 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-06 variant=exp source=cache
+GEN id=eval-vi-vi-06 variant=vi source=cache
+GEN id=eval-vi-vi-06 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-07 variant=exp source=cache
+GEN id=eval-vi-vi-07 variant=vi source=cache
+GEN id=eval-vi-vi-07 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-08 variant=exp source=cache
+GEN id=eval-vi-vi-08 variant=vi source=cache
+GEN id=eval-vi-vi-08 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-09 variant=exp source=cache
+GEN id=eval-vi-vi-09 variant=vi source=cache
+GEN id=eval-vi-vi-09 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-10 variant=exp source=cache
+GEN id=eval-vi-vi-10 variant=vi source=cache
+GEN id=eval-vi-vi-10 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-01 variant=exp source=cache
+GEN id=eval-en-vi-01 variant=vi source=cache
+GEN id=eval-en-vi-01 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-02 variant=exp source=cache
+GEN id=eval-en-vi-02 variant=vi source=cache
+GEN id=eval-en-vi-02 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-03 variant=exp source=cache
+GEN id=eval-en-vi-03 variant=vi source=cache
+GEN id=eval-en-vi-03 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-04 variant=exp source=cache
+GEN id=eval-en-vi-04 variant=vi source=cache
+GEN id=eval-en-vi-04 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-05 variant=exp source=cache
+GEN id=eval-en-vi-05 variant=vi source=cache
+GEN id=eval-en-vi-05 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-en-vi-05 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-01 variant=exp source=cache
+GEN id=eval-vi-en-01 variant=vi source=cache
+GEN id=eval-vi-en-01 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-02 variant=exp source=cache
+GEN id=eval-vi-en-02 variant=vi source=cache
+GEN id=eval-vi-en-02 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-03 variant=exp source=cache
+GEN id=eval-vi-en-03 variant=vi source=cache
+GEN id=eval-vi-en-03 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-04 variant=exp source=cache
+GEN id=eval-vi-en-04 variant=vi source=cache
+GEN id=eval-vi-en-04 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-05 variant=exp source=cache
+GEN id=eval-vi-en-05 variant=vi source=cache
+GEN id=eval-vi-en-05 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-misleading-01 variant=exp source=cache
+GEN id=eval-misleading-01 variant=vi source=cache
+GEN id=eval-misleading-01 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-02 variant=exp source=cache
+GEN id=eval-misleading-02 variant=vi source=cache
+GEN id=eval-misleading-02 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-03 variant=exp source=cache
+GEN id=eval-misleading-03 variant=vi source=cache
+GEN id=eval-misleading-03 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-misleading-03 kind=misleading r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-unanswerable-01 variant=exp source=cache
+GEN id=eval-unanswerable-01 variant=vi source=cache
+GEN id=eval-unanswerable-01 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-02 variant=exp source=cache
+GEN id=eval-unanswerable-02 variant=vi source=cache
+GEN id=eval-unanswerable-02 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-03 variant=exp source=cache
+GEN id=eval-unanswerable-03 variant=vi source=cache
+GEN id=eval-unanswerable-03 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-04 variant=exp source=cache
+GEN id=eval-unanswerable-04 variant=vi source=cache
+GEN id=eval-unanswerable-04 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-05 variant=exp source=cache
+GEN id=eval-unanswerable-05 variant=vi source=cache
+GEN id=eval-unanswerable-05 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-06 variant=exp source=cache
+GEN id=eval-unanswerable-06 variant=vi source=cache
+GEN id=eval-unanswerable-06 variant=en source=cache
+CASE arm=D2 rep=3 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+FOOTER wall=58.217s generated_queries=117 cache=docs/rq-006-query-cache.json

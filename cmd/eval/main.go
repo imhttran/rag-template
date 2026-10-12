@@ -36,6 +36,26 @@ type EvalCase struct {
 // It is the pre-existing default and must not change.
 const defaultDatasetPath = "evals/retrieval.json"
 
+// prefilterEnv is the opt-in, evaluation-only environment switch that prints
+// per-case pre-KeepSimilar candidate diagnostics. It defaults OFF: when it is
+// unset or not truthy every code path below behaves exactly as before and the
+// default cmd/eval output is byte-identical. It changes no production default,
+// no MIN_SIMILARITY handling, and no retrieval/embedding/ingestion code; it only
+// prints extra diagnostic lines.
+const prefilterEnv = "EVAL_PREFILTER_DUMP"
+
+// prefilterDumpEnabled reports whether the opt-in pre-filter candidate dump is
+// on. Only the exact values "1", "true" (any case) enable it; anything else,
+// including unset, keeps the default output unchanged.
+func prefilterDumpEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(prefilterEnv))) {
+	case "1", "true":
+		return true
+	default:
+		return false
+	}
+}
+
 // stats accumulates the per-case metrics for the final summary.
 type stats struct {
 	recallTotals          map[int]float64
@@ -105,6 +125,11 @@ type evaluator struct {
 	rerankTimeout     time.Duration
 	ks                []int
 
+	// prefilterDump is the opt-in, evaluation-only switch that enables the
+	// pre-KeepSimilar candidate diagnostic lines. It is false by default so
+	// default output is byte-identical.
+	prefilterDump bool
+
 	// language is cfg.Language forwarded into retrieval.PipelineOptions so
 	// keyword retrieval uses the configured CORPUS_LANGUAGE full-text search
 	// configuration. Empty keeps the baseline 'english' config, matching
@@ -152,6 +177,7 @@ func run(ctx context.Context) error {
 		finalK:            cfg.FinalK,
 		rerankTimeout:     cfg.RerankTimeout,
 		ks:                retrievalKs(cfg.TopK),
+		prefilterDump:     prefilterDumpEnabled(),
 		language:          cfg.Language,
 	}
 
@@ -671,6 +697,14 @@ func (e evaluator) baselines(
 			return nil, err
 		}
 
+		// The opt-in dump reports the raw, pre-filter candidate slice before
+		// KeepSimilar is applied, so candidate loss attributable to the floor
+		// can be measured. It is off by default and prints nothing then, so
+		// the default output is unchanged.
+		if e.prefilterDump {
+			e.reportPrefilter(k, evalCase, documents)
+		}
+
 		// Apply the same similarity filter to both
 		// answerable and unanswerable questions.
 		documents = retrieval.KeepSimilar(documents, e.minSimilarity)
@@ -689,6 +723,84 @@ func (e evaluator) baselines(
 	}
 
 	return candidates, nil
+}
+
+// reportPrefilter prints the opt-in, evaluation-only pre-KeepSimilar candidate
+// diagnostic for one K BEFORE the similarity floor is applied. It reports the
+// pre-filter candidate count, how many are >= the floor and how many are below,
+// whether each expected source/section is present pre-filter (and the first
+// rank where it appears), and which candidate(s) the floor would drop. It emits
+// nothing unless the operator turned the dump on, so the default run stays
+// byte-identical.
+func (e evaluator) reportPrefilter(
+	k int,
+	evalCase EvalCase,
+	documents []retrieval.Document,
+) {
+	kept := 0
+
+	for _, doc := range documents {
+		if doc.Similarity >= e.minSimilarity {
+			kept++
+		}
+	}
+
+	dropped := len(documents) - kept
+
+	fmt.Printf(
+		"Pre-filter K=%d  candidates=%d  sim>=%.2f=%d  sim<%.2f=%d\n",
+		k,
+		len(documents),
+		e.minSimilarity,
+		kept,
+		e.minSimilarity,
+		dropped,
+	)
+
+	if len(evalCase.Expected) == 0 {
+		fmt.Println("  expected: (unanswerable)")
+	} else {
+		for _, expected := range evalCase.Expected {
+			rank := 0
+
+			for index, doc := range documents {
+				if doc.Source == expected.Source && doc.Section == expected.Section {
+					rank = index + 1
+
+					break
+				}
+			}
+
+			if rank == 0 {
+				fmt.Printf(
+					"  expected present pre-filter: NO  %s / %s\n",
+					expected.Source,
+					expected.Section,
+				)
+			} else {
+				fmt.Printf(
+					"  expected present pre-filter: YES  %s / %s (rank %d)\n",
+					expected.Source,
+					expected.Section,
+					rank,
+				)
+			}
+		}
+	}
+
+	for _, doc := range documents {
+		if doc.Similarity >= e.minSimilarity {
+			continue
+		}
+
+		fmt.Printf(
+			"  dropped by floor: %.4f  %s / %s / chunk %d\n",
+			doc.Similarity,
+			doc.Source,
+			doc.Section,
+			doc.ChunkIndex,
+		)
+	}
 }
 
 // reportBaseline scores one k's documents against the case and prints them.

@@ -1,0 +1,100 @@
+{
+  "config": {
+    "name": "rrf",
+    "path": "rrf",
+    "candidate_k": 20,
+    "final_k": 10,
+    "expand_limit": 20,
+    "min_similarity": 0.7
+  },
+  "input_hashes": {
+    "config": "68783bead9de090e74232ba9e5cdbd4b6ce82e96dcb0987c93836b9a01a070d0",
+    "en-en": "ecf4d3181b0e7f13f9c19adc0d175b41124d2889a30b2cb0a95c84b2ea6478d0",
+    "en-vi": "7f6926dfa7a3e3a63174c6be52bd396aa3fd6efbac36f3022dc0c7ffcbd2d0df",
+    "misleading": "7f6926dfa7a3e3a63174c6be52bd396aa3fd6efbac36f3022dc0c7ffcbd2d0df",
+    "vi-en": "51be86ba7ef36557184c439b8e5489d858b486099827fa16d1d6bc1e15444f2e",
+    "vi-vi": "37d0f138d60bc258ba4dbc33d4da71be0972c83863fb8791b22489946ec0c3f0"
+  },
+  "coverage": [
+    {
+      "kind": "en-en",
+      "file": "evals/retrieval.json",
+      "measured": true,
+      "status": "measured",
+      "num_cases": 43
+    },
+    {
+      "kind": "vi-vi",
+      "file": "evals/retrieval-vi-en.json",
+      "measured": true,
+      "status": "measured",
+      "num_cases": 6
+    },
+    {
+      "kind": "en-vi",
+      "file": "evals/retrieval-vi-en-expanded.json",
+      "measured": true,
+      "status": "measured",
+      "num_cases": 39
+    },
+    {
+      "kind": "vi-en",
+      "file": "evals/retrieval-vi-en-calibration.json",
+      "measured": true,
+      "status": "measured",
+      "num_cases": 21
+    },
+    {
+      "kind": "misleading",
+      "file": "evals/retrieval-vi-en-expanded.json",
+      "measured": true,
+      "status": "measured (unverified kind label: fixture shared with another kind)",
+      "num_cases": 39
+    }
+  ],
+  "per_kind_metrics": {
+    "en-en": {
+      "num_cases": 43,
+      "rank1_hits": 37,
+      "rank1_losses": 0,
+      "rank1_rate": 1,
+      "truncated_correct_candidates": 32,
+      "skipped_cases": 6
+    },
+    "en-vi": {
+      "num_cases": 39,
+      "rank1_hits": 33,
+      "rank1_losses": 0,
+      "rank1_rate": 1,
+      "truncated_correct_candidates": 23,
+      "skipped_cases": 6
+    },
+    "misleading": {
+      "num_cases": 39,
+      "rank1_hits": 33,
+      "rank1_losses": 0,
+      "rank1_rate": 1,
+      "truncated_correct_candidates": 23,
+      "skipped_cases": 6
+    },
+    "vi-en": {
+      "num_cases": 21,
+      "rank1_hits": 15,
+      "rank1_losses": 0,
+      "rank1_rate": 1,
+      "truncated_correct_candidates": 12,
+      "skipped_cases": 6
+    },
+    "vi-vi": {
+      "num_cases": 6,
+      "rank1_hits": 5,
+      "rank1_losses": 0,
+      "rank1_rate": 1,
+      "truncated_correct_candidates": 4,
+      "skipped_cases": 1
+    }
+  },
+  "latency_ms": 2.95,
+  "command": "SWEEP_CONFIG=rrf go test ./internal/retrieval/ -run 'TestSweepExperimentRecords' -v",
+  "min_similarity": 0.7
+}

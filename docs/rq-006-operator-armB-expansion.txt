@@ -1,0 +1,27 @@
+HEADER arm=B dataset=evals/retrieval-vi-en-expanded.json embed=nomic-embed-text chat=qwen3:8b floor=0.70
+CASE arm=B id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-en-en-04 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=B id=eval-en-vi-01 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-en-vi-02 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-en-vi-05 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=B id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a

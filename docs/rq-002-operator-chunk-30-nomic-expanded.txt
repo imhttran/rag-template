@@ -1,0 +1,547 @@
+Loaded 39 evaluation cases
+
+Question: How are loan payments handled?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: When is a late fee charged?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.50
+  Ranking:
+    #1  0.7736  examples/loan-policy.md / Late Fees / chunk 5
+    #2  0.7609  examples/member-services-guide.md / Fee Waivers / chunk 3
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.50
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: Can I make a partial payment?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.50
+  Ranking:
+    #1  0.7855  examples/loan-policy.md / Partial Payments / chunk 6
+    #2  0.7167  examples/member-services-guide.md / Partial Payment Handling / chunk 7
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.50
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: When does a loan go to collections?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.33
+  Ranking:
+    #1  0.7964  examples/loan-policy.md / Collections / chunk 7
+    #2  0.7759  examples/large-loan-policy.md / Missed Payments / chunk 12
+    #3  0.7654  examples/large-loan-policy.md / Missed Payments / chunk 13
+    #4  0.7025  examples/loan-policy.md / Payments / chunk 0
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.33
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: What do the payment codes mean?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: How do I request a grace period?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.33
+  Ranking:
+    #1  0.7677  examples/member-services-guide.md / Grace Period Requests / chunk 1
+    #2  0.7512  examples/large-loan-policy.md / Missed Payments / chunk 1
+    #3  0.7349  examples/loan-policy.md / Missed Payments / chunk 3
+    #4  0.7143  examples/large-loan-policy.md / Missed Payments / chunk 2
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.33
+Evidence Recall: before expansion=0.00  after expansion=1.00
+
+Question: How do I request a payoff statement?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: How do I dispute a charge?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: What insurance is required?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=1.00
+K=4  Recall@4=1.00  Precision@4=1.00
+  Ranking:
+    #1  0.7179  examples/commercial-servicing-manual.md / Insurance Requirements / chunk 41
+    #2  0.7081  examples/commercial-servicing-manual.md / Insurance Requirements / chunk 40
+    #3  0.7002  examples/commercial-servicing-manual.md / Insurance Requirements / chunk 39
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=1.00
+Hybrid K=4  Recall@4=1.00  Precision@4=1.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: Who handles property taxes?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=1.00
+K=4  Recall@4=1.00  Precision@4=1.00
+  Ranking:
+    #1  0.7357  examples/commercial-servicing-manual.md / Property Taxes / chunk 59
+    #2  0.7195  examples/commercial-servicing-manual.md / Property Taxes / chunk 75
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=1.00
+Hybrid K=4  Recall@4=1.00  Precision@4=1.00
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: Thời hạn gia hạn là bao lâu?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=1.00
+K=4  Recall@4=1.00  Precision@4=1.00
+  Ranking:
+    #1  0.7894  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 1
+    #2  0.7854  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 2
+    #3  0.7541  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #4  0.7481  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 0
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=1.00
+Hybrid K=4  Recall@4=1.00  Precision@4=1.00
+Evidence Recall: before expansion=0.00  after expansion=1.00
+
+Question: Thanh toán được áp dụng như thế nào?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.25
+  Ranking:
+    #1  0.8254  examples/vi/chinh-sach-khoan-vay.md / Xử lý thanh toán / chunk 5
+    #2  0.8095  examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm / chunk 4
+    #3  0.7661  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 0
+    #4  0.7627  examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi / chunk 2
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.25
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: Tôi có thể liên hệ bằng cách nào?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.7007  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.7007  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.7007  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: Yêu cầu tất toán mất bao lâu?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.25
+  Ranking:
+    #1  0.7741  examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán / chunk 1
+    #2  0.7290  examples/vi/dich-vu-thanh-vien.md / Miễn giảm phí / chunk 2
+    #3  0.7255  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #4  0.7161  examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả / chunk 0
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.25
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: Khi chậm trả thì được thông báo thế nào?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.25
+  Ranking:
+    #1  0.8159  examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả / chunk 0
+    #2  0.7691  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #3  0.7358  examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm / chunk 4
+    #4  0.7299  examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán / chunk 1
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.25
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: Tôi có thể lập kế hoạch thanh toán không?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.7827  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.7827  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #2  0.7792  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 0
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.7827  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #2  0.7792  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 0
+    #3  0.7668  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 2
+    #4  0.7483  examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả / chunk 0
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: Khi nào hồ sơ bị chuyển cho bộ phận thu hồi?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.50
+  Ranking:
+    #1  0.8185  examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi / chunk 2
+    #2  0.8142  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #3  0.7934  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 1
+    #4  0.7873  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 2
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.50
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: Tôi có phải mua bảo hiểm tài sản không?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.25
+  Ranking:
+    #1  0.8328  examples/vi/bao-hiem-tai-san.md / Yêu cầu bảo hiểm / chunk 0
+    #2  0.8191  examples/vi/bao-hiem-tai-san.md / Thời hạn hiệu lực / chunk 1
+    #3  0.7897  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #4  0.7818  examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm / chunk 4
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.25
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: Chứng nhận bảo hiểm có hiệu lực bao lâu?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.33
+  Ranking:
+    #1  0.8448  examples/vi/bao-hiem-tai-san.md / Thời hạn hiệu lực / chunk 1
+    #2  0.7164  examples/vi/bao-hiem-tai-san.md / Bồi thường / chunk 2
+    #3  0.7113  examples/vi/bao-hiem-tai-san.md / Yêu cầu bảo hiểm / chunk 0
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.33
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: Yêu cầu bồi thường được xử lý trong bao lâu?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.25
+  Ranking:
+    #1  0.8694  examples/vi/bao-hiem-tai-san.md / Bồi thường / chunk 2
+    #2  0.7890  examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán / chunk 1
+    #3  0.7691  examples/vi/dich-vu-thanh-vien.md / Miễn giảm phí / chunk 2
+    #4  0.7650  examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả / chunk 0
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.25
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: When is a debt written off?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: When is a late fee applied?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.7914  examples/loan-policy.md / Late Fees / chunk 5
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.7914  examples/loan-policy.md / Late Fees / chunk 5
+    #2  0.7729  examples/member-services-guide.md / Fee Waivers / chunk 3
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.7914  examples/loan-policy.md / Late Fees / chunk 5
+    #2  0.7729  examples/member-services-guide.md / Fee Waivers / chunk 3
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: Can fees be waived?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.7782  examples/member-services-guide.md / Fee Waivers / chunk 3
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.7782  examples/member-services-guide.md / Fee Waivers / chunk 3
+    #2  0.7221  examples/member-services-guide.md / Fee Waivers / chunk 4
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.7782  examples/member-services-guide.md / Fee Waivers / chunk 3
+    #2  0.7221  examples/member-services-guide.md / Fee Waivers / chunk 4
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: How is a delinquency noticed?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.7208  examples/large-loan-policy.md / Missed Payments / chunk 8
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.7208  examples/large-loan-policy.md / Missed Payments / chunk 8
+    #2  0.7035  examples/large-loan-policy.md / Missed Payments / chunk 7
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.7208  examples/large-loan-policy.md / Missed Payments / chunk 8
+    #2  0.7035  examples/large-loan-policy.md / Missed Payments / chunk 7
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: How long does a claim take?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: Làm sao để thay đổi cách nhận sao kê?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.7830  examples/vi/bao-hiem-tai-san.md / Bồi thường / chunk 2
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.7830  examples/vi/bao-hiem-tai-san.md / Bồi thường / chunk 2
+    #2  0.7730  examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán / chunk 1
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.7830  examples/vi/bao-hiem-tai-san.md / Bồi thường / chunk 2
+    #2  0.7730  examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán / chunk 1
+    #3  0.7678  examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán / chunk 1
+    #4  0.7669  examples/vi/chinh-sach-khoan-vay.md / Xử lý thanh toán / chunk 5
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: Tôi có thể sắp xếp kế hoạch thanh toán không?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.7831  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.7831  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #2  0.7722  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 0
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.7831  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #2  0.7722  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 0
+    #3  0.7650  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 2
+    #4  0.7577  examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán / chunk 1
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: Điều gì xảy ra khi hồ sơ được chuyển giao?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.8166  examples/vi/quy-trinh-thu-hoi.md / Xóa nợ / chunk 3
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.8166  examples/vi/quy-trinh-thu-hoi.md / Xóa nợ / chunk 3
+    #2  0.8052  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.8166  examples/vi/quy-trinh-thu-hoi.md / Xóa nợ / chunk 3
+    #2  0.8052  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #3  0.8049  examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi / chunk 2
+    #4  0.8006  examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán / chunk 1
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: Khoản vay lớn xử lý thanh toán ra sao?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.8129  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 0
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.8129  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 0
+    #2  0.8054  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.8129  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 0
+    #2  0.8054  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #3  0.8054  examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán / chunk 1
+    #4  0.7827  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 2
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: Hồ sơ thế chấp được quản lý thế nào?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+    #1  0.7328  examples/vi/quy-trinh-thu-hoi.md / Xóa nợ / chunk 3
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+    #1  0.7328  examples/vi/quy-trinh-thu-hoi.md / Xóa nợ / chunk 3
+    #2  0.7308  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+    #1  0.7328  examples/vi/quy-trinh-thu-hoi.md / Xóa nợ / chunk 3
+    #2  0.7308  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+    #3  0.7270  examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán / chunk 1
+    #4  0.7226  examples/vi/bao-hiem-tai-san.md / Bồi thường / chunk 2
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: What is the grace period under the standard loan policy?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.50
+  Ranking:
+    #1  0.8155  examples/loan-policy.md / Missed Payments / chunk 3
+    #2  0.7928  examples/large-loan-policy.md / Missed Payments / chunk 1
+    #3  0.7902  examples/loan-policy.md / Missed Payments / chunk 2
+    #4  0.7599  examples/large-loan-policy.md / Missed Payments / chunk 0
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.50
+Evidence Recall: before expansion=0.00  after expansion=1.00
+
+Question: Làm sao để được miễn giảm phí?
+K=1  Recall@1=1.00  Precision@1=1.00
+K=2  Recall@2=1.00  Precision@2=0.50
+K=4  Recall@4=1.00  Precision@4=0.25
+  Ranking:
+    #1  0.8021  examples/vi/dich-vu-thanh-vien.md / Miễn giảm phí / chunk 2
+    #2  0.7616  examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm / chunk 4
+    #3  0.7267  examples/vi/bao-hiem-tai-san.md / Bồi thường / chunk 2
+    #4  0.7223  examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn / chunk 3
+Hybrid K=1  Recall@1=1.00  Precision@1=1.00
+Hybrid K=2  Recall@2=1.00  Precision@2=0.50
+Hybrid K=4  Recall@4=1.00  Precision@4=0.25
+Evidence Recall: before expansion=1.00  after expansion=1.00
+
+Question: How do I set up a payment plan?
+K=1  Recall@1=0.00  Precision@1=0.00
+  Retrieval miss:
+K=2  Recall@2=0.00  Precision@2=0.00
+  Retrieval miss:
+K=4  Recall@4=0.00  Precision@4=0.00
+  Retrieval miss:
+Hybrid K=1  Recall@1=0.00  Precision@1=0.00
+Hybrid K=2  Recall@2=0.00  Precision@2=0.00
+Hybrid K=4  Recall@4=0.00  Precision@4=0.00
+Evidence Recall: before expansion=0.00  after expansion=0.00
+
+Question: What is the cryptocurrency payment policy?
+K=1  Correct rejection
+K=2  Correct rejection
+K=4  Correct rejection
+Hybrid K=1  Correct rejection
+Hybrid K=2  Correct rejection
+Hybrid K=4  Correct rejection
+
+Question: How do I reset my online banking password?
+K=1  Correct rejection
+K=2  Correct rejection
+K=4  Correct rejection
+Hybrid K=1  Correct rejection
+Hybrid K=2  Correct rejection
+Hybrid K=4  Correct rejection
+
+Question: What are the holiday customer service hours?
+K=1  Correct rejection
+K=2  Correct rejection
+K=4  Correct rejection
+Hybrid K=1  Correct rejection
+Hybrid K=2  Correct rejection
+Hybrid K=4  Correct rejection
+
+Question: Is there a mobile app for members?
+K=1  Correct rejection
+K=2  Correct rejection
+K=4  Correct rejection
+Hybrid K=1  Correct rejection
+Hybrid K=2  Correct rejection
+Hybrid K=4  Correct rejection
+
+Question: What is the interest rate for auto loans?
+K=1  Correct rejection
+K=2  Correct rejection
+K=4  Correct rejection
+Hybrid K=1  Correct rejection
+Hybrid K=2  Correct rejection
+Hybrid K=4  Correct rejection
+
+Question: How do I close my account?
+K=1  Correct rejection
+K=2  Correct rejection
+K=4  Correct rejection
+Hybrid K=1  Correct rejection
+Hybrid K=2  Correct rejection
+Hybrid K=4  Correct rejection
+
+Overall:
+Vector retrieval:
+K=1  Avg Recall@1=0.48  Avg Precision@1=0.48
+K=2  Avg Recall@2=0.48  Avg Precision@2=0.29
+K=4  Avg Recall@4=0.48  Avg Precision@4=0.23
+
+Hybrid retrieval:
+K=1  Avg Recall@1=0.45  Avg Precision@1=0.45
+K=2  Avg Recall@2=0.48  Avg Precision@2=0.29
+K=4  Avg Recall@4=0.48  Avg Precision@4=0.23
+Avg Evidence Recall: before expansion=0.36  after expansion=0.45
+Rerank latency:
+  off      avg=0s  (baseline, no rerank call)
+  lexical  unavailable (EVAL_LEXICAL_RERANK=false)
+  llm      unavailable (EVAL_LLM_RERANK=false)
+  cross-encoder  unavailable (no cross-encoder provider registered)
+Similarity-only rejection=6/6 (1.00), False-positive rate=0.00

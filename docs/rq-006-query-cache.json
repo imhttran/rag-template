@@ -1,0 +1,317 @@
+{
+  "model": "llama3.2:3b",
+  "entries": {
+    "eval-en-en-01": {
+      "question": "How are loan payments handled?",
+      "variants": {
+        "en": "How are loan payments handled?",
+        "exp": "Thương vụ vay tiền như thế nào?",
+        "vi": "Cách xử lý các khoản thanh toán cho vay."
+      }
+    },
+    "eval-en-en-02": {
+      "question": "When is a late fee charged?",
+      "variants": {
+        "en": "When is a late fee charged?",
+        "exp": "Khi nào sẽ thu phí trễ?",
+        "vi": "Khi nào sẽ thu phí trễ."
+      }
+    },
+    "eval-en-en-03": {
+      "question": "Can I make a partial payment?",
+      "variants": {
+        "en": "Can I make a partial payment?",
+        "exp": "Tiền thanh toán phần nào",
+        "vi": "Bạn có thể thực hiện thanh toán một phần không?"
+      }
+    },
+    "eval-en-en-04": {
+      "question": "When does a loan go to collections?",
+      "variants": {
+        "en": "When a borrower fails to make payments on a loan for a specified period of time, typically 90 to 180 days, the lender may send the account to a collections agency or take other collection actions.",
+        "exp": "Đó là khoản vay sẽ chuyển sang thu hồi không?",
+        "vi": "Khi nào một khoản vay sẽ đi vào thu hồi."
+      }
+    },
+    "eval-en-en-05": {
+      "question": "What do the payment codes mean?",
+      "variants": {
+        "en": "What do the payment codes mean?",
+        "exp": "Mã thanh toán gì?",
+        "vi": "Những mã thanh toán có nghĩa gì?"
+      }
+    },
+    "eval-en-en-06": {
+      "question": "How do I request a grace period?",
+      "variants": {
+        "en": "How do I request a grace period?",
+        "exp": "Hỏi về thời gian nghỉ thơng tin",
+        "vi": "Bạn có thể yêu cầu thời gian trân trọng như thế nào?"
+      }
+    },
+    "eval-en-en-07": {
+      "question": "How do I request a payoff statement?",
+      "variants": {
+        "en": "How do I request a payoff statement?",
+        "exp": "Hỏi cách yêu cầu biên lai thu nhập",
+        "vi": "Bạn cần yêu cầu báo thanh toán."
+      }
+    },
+    "eval-en-en-08": {
+      "question": "How do I dispute a charge?",
+      "variants": {
+        "en": "How do I dispute a charge?",
+        "exp": "Thị trường bị cáo buộc tranh chấp",
+        "vi": "Cách làm gì để phản đối khoản phí này?"
+      }
+    },
+    "eval-en-en-09": {
+      "question": "What insurance is required?",
+      "variants": {
+        "en": "What type of insurance is needed?",
+        "exp": "Bảo hiểm bắt buộc",
+        "vi": "Bảo hiểm nào là bắt buộc?"
+      }
+    },
+    "eval-en-en-10": {
+      "question": "Who handles property taxes?",
+      "variants": {
+        "en": "The local government or tax authority is responsible for handling property taxes.",
+        "exp": "Đầu tư bất động sản",
+        "vi": "Ai quản lý thuế tài sản?"
+      }
+    },
+    "eval-en-vi-01": {
+      "question": "When is a debt written off?",
+      "variants": {
+        "en": "When is a debt written off?",
+        "exp": "Đầu tư nợ bị viết giảm",
+        "vi": "Khi nào một khoản nợ được viết giảm."
+      }
+    },
+    "eval-en-vi-02": {
+      "question": "When is a late fee applied?",
+      "variants": {
+        "en": "When is a late fee applied?",
+        "exp": "Khi nào tiền trễ được áp dụng?",
+        "vi": "Khi nào sẽ áp dụng khoản phí trễ."
+      }
+    },
+    "eval-en-vi-03": {
+      "question": "Can fees be waived?",
+      "variants": {
+        "en": "Can fees be waived?",
+        "exp": "Tiền thu được có thể được miễn không?",
+        "vi": "Được không?"
+      }
+    },
+    "eval-en-vi-04": {
+      "question": "How is a delinquency noticed?",
+      "variants": {
+        "en": "How is a delinquency detected or identified?",
+        "exp": "Thiếu tiền mặt là gì?",
+        "vi": "Cách nhận biết sự trễ hạn."
+      }
+    },
+    "eval-en-vi-05": {
+      "question": "How long does a claim take?",
+      "variants": {
+        "en": "How long does a claim take?",
+        "exp": "Thời gian làm đơn khiếu nại",
+        "vi": "Thời gian cần thiết để giải quyết một yêu cầu là bao lâu?"
+      }
+    },
+    "eval-misleading-01": {
+      "question": "What is the grace period under the standard loan policy?",
+      "variants": {
+        "en": "The time period during which a borrower can repay a loan without incurring late payment fees or penalties.",
+        "exp": "Thời gian ưu đãi trong chính sách vay tiêu chuẩn",
+        "vi": "Thời gian trích lập trong chính sách vay tiêu chuẩn."
+      }
+    },
+    "eval-misleading-02": {
+      "question": "Làm sao để được miễn giảm phí?",
+      "variants": {
+        "en": "How to be exempt from reduced fee.",
+        "exp": "Làm sao để được miễn giảm phí?",
+        "vi": "Làm sao để được miễn giảm phí?"
+      }
+    },
+    "eval-misleading-03": {
+      "question": "How do I set up a payment plan?",
+      "variants": {
+        "en": "How do I set up a payment plan?",
+        "exp": "Đặt kế hoạch thanh toán",
+        "vi": "Cách thiết lập kế hoạch thanh toán."
+      }
+    },
+    "eval-unanswerable-01": {
+      "question": "What is the cryptocurrency payment policy?",
+      "variants": {
+        "en": "What is the cryptocurrency payment policy?",
+        "exp": "Tiền điện tử chính sách thanh toán",
+        "vi": "Hệ thống thanh toán bằng tiền điện tử là chính sách gì?"
+      }
+    },
+    "eval-unanswerable-02": {
+      "question": "How do I reset my online banking password?",
+      "variants": {
+        "en": "How do I reset my online banking password?",
+        "exp": "Đổi mật khẩu ngân hàng trực tuyến như thế nào?",
+        "vi": "Cách reset mật khẩu ngân hàng trực tuyến của tôi?"
+      }
+    },
+    "eval-unanswerable-03": {
+      "question": "What are the holiday customer service hours?",
+      "variants": {
+        "en": "What are the holiday customer service hours?",
+        "exp": "Tin dịp lễ giờ hỗ trợ khách hàng?",
+        "vi": "Giờ làm việc của khách hàng trong dịp lễ."
+      }
+    },
+    "eval-unanswerable-04": {
+      "question": "Is there a mobile app for members?",
+      "variants": {
+        "en": "Is there a mobile app for members?",
+        "exp": "Đã có ứng dụng di động cho thành viên không?",
+        "vi": "Có ứng dụng di động cho thành viên không?"
+      }
+    },
+    "eval-unanswerable-05": {
+      "question": "What is the interest rate for auto loans?",
+      "variants": {
+        "en": "The interest rate for auto loans.",
+        "exp": "Đơn giá lãi suất cho vay ô tô",
+        "vi": "Độ lãi suất cho vay ô tô."
+      }
+    },
+    "eval-unanswerable-06": {
+      "question": "How do I close my account?",
+      "variants": {
+        "en": "How do I close my account?",
+        "exp": "Bỏ tài khoản",
+        "vi": "Bạn có thể đóng tài khoản như thế nào?"
+      }
+    },
+    "eval-vi-en-01": {
+      "question": "Làm sao để thay đổi cách nhận sao kê?",
+      "variants": {
+        "en": "How to change the way to view receipts?",
+        "exp": "Thay đổi cách nhận sao kê",
+        "vi": "Làm cách nào để thay đổi cách nhận sao kê?"
+      }
+    },
+    "eval-vi-en-02": {
+      "question": "Tôi có thể sắp xếp kế hoạch thanh toán không?",
+      "variants": {
+        "en": "Can I arrange the payment plan?",
+        "exp": "Tiêu đề: sắp xếp kế hoạch thanh toán",
+        "vi": "Bạn có thể sắp xếp kế hoạch thanh toán không?"
+      }
+    },
+    "eval-vi-en-03": {
+      "question": "Điều gì xảy ra khi hồ sơ được chuyển giao?",
+      "variants": {
+        "en": "What happens when the file is transferred.",
+        "exp": "Điều gì xảy ra khi hồ sơ được chuyển giao?",
+        "vi": "Điều gì xảy ra khi hồ sơ được chuyển giao?"
+      }
+    },
+    "eval-vi-en-04": {
+      "question": "Khoản vay lớn xử lý thanh toán ra sao?",
+      "variants": {
+        "en": "How do large loans handle payment?",
+        "exp": "Khoản vay lớn xử lý thanh toán ra sao?",
+        "vi": "Khoản vay lớn xử lý thanh toán ra sao?"
+      }
+    },
+    "eval-vi-en-05": {
+      "question": "Hồ sơ thế chấp được quản lý thế nào?",
+      "variants": {
+        "en": "Secured documents are managed how?",
+        "exp": "Hồ sơ thế chấp quản lý thế nào?",
+        "vi": "Hồ sơ thế chấp được quản lý như thế nào?"
+      }
+    },
+    "eval-vi-vi-01": {
+      "question": "Thời hạn gia hạn là bao lâu?",
+      "variants": {
+        "en": "How long is the extension period?",
+        "exp": "Thời hạn gia hạn là bao lâu?",
+        "vi": "Thời hạn gia hạn là bao lâu?"
+      }
+    },
+    "eval-vi-vi-02": {
+      "question": "Thanh toán được áp dụng như thế nào?",
+      "variants": {
+        "en": "How payment is applied.",
+        "exp": "Thanh toán được áp dụng như thế nào?",
+        "vi": "Thanh toán được áp dụng như thế nào?"
+      }
+    },
+    "eval-vi-vi-03": {
+      "question": "Tôi có thể liên hệ bằng cách nào?",
+      "variants": {
+        "en": "How can I contact you?",
+        "exp": "Tiếng Việt: Tôi có thể liên hệ bằng cách nào?\nEnglish: How can I contact you?",
+        "vi": "Bạn có thể liên hệ bằng cách nào?"
+      }
+    },
+    "eval-vi-vi-04": {
+      "question": "Yêu cầu tất toán mất bao lâu?",
+      "variants": {
+        "en": "How long will it take to pay the bill?",
+        "exp": "Tất toán mất bao lâu?",
+        "vi": "Yêu cầu tất toán mất bao lâu?"
+      }
+    },
+    "eval-vi-vi-05": {
+      "question": "Khi chậm trả thì được thông báo thế nào?",
+      "variants": {
+        "en": "When late payment is made, how will it be notified?",
+        "exp": "Khi chậm trả thì được thông báo thế nào?",
+        "vi": "Khi chậm trả thì được thông báo bằng văn bản hoặc điện thoại."
+      }
+    },
+    "eval-vi-vi-06": {
+      "question": "Tôi có thể lập kế hoạch thanh toán không?",
+      "variants": {
+        "en": "Can I plan a payment?",
+        "exp": "Tiêu đề: Lập kế hoạch thanh toán không",
+        "vi": "Bạn có thể lập kế hoạch thanh toán không?"
+      }
+    },
+    "eval-vi-vi-07": {
+      "question": "Khi nào hồ sơ bị chuyển cho bộ phận thu hồi?",
+      "variants": {
+        "en": "When is the file transferred to the recovery department?",
+        "exp": "Khi nào hồ sơ bị chuyển cho bộ phận thu hồi?",
+        "vi": "Khi nào hồ sơ bị chuyển cho bộ phận thu hồi?"
+      }
+    },
+    "eval-vi-vi-08": {
+      "question": "Tôi có phải mua bảo hiểm tài sản không?",
+      "variants": {
+        "en": "Should I buy insurance for my assets?",
+        "exp": "Tiêu đề bảo hiểm tài sản",
+        "vi": "Bạn có nên mua bảo hiểm tài sản hay không?"
+      }
+    },
+    "eval-vi-vi-09": {
+      "question": "Chứng nhận bảo hiểm có hiệu lực bao lâu?",
+      "variants": {
+        "en": "How long does insurance certification be valid?",
+        "exp": "Chứng nhận bảo hiểm có hiệu lực bao lâu?",
+        "vi": "Chứng nhận bảo hiểm có hiệu lực bao lâu?"
+      }
+    },
+    "eval-vi-vi-10": {
+      "question": "Yêu cầu bồi thường được xử lý trong bao lâu?",
+      "variants": {
+        "en": "How long will compensation be handled?",
+        "exp": "Yêu cầu bồi thường được xử lý trong bao lâu?",
+        "vi": "Hỏi yêu cầu bồi thường được xử lý trong bao lâu?"
+      }
+    }
+  }
+}

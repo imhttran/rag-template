@@ -1,0 +1,75 @@
+HEADER arm=C dataset=evals/retrieval-vi-en-expanded.json embed=nomic-embed-text chat=llama3.2:3b floor=0.70 repeats=1
+CASE arm=C rep=1 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=C rep=1 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-en-04 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=C rep=1 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=C rep=1 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=C rep=1 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-02 kind=vi-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-04 kind=vi-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-08 kind=vi-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-en-vi-05 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=C rep=1 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=C rep=1 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=C rep=1 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=C rep=1 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+CASE arm=C rep=1 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+CASE arm=C rep=1 id=eval-misleading-03 kind=misleading r1=0.00 r4=0.00 evidence=0.00 n/a
+DIAG arm=C id=eval-unanswerable-01 vi="Vai trò của giao dịch tiền điện tử như thế nào trong chính sách thanh toán." en="What is the policy regarding the use of cryptocurrency for payment."
+DIAG arm=C id=eval-unanswerable-01 guardOK=true candidates=3
+DIAG   #1 sim=0.8411 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #2 sim=0.8377 examples/vi/dich-vu-thanh-vien.md / Kênh liên hệ
+DIAG   #3 sim=0.8342 examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi
+CASE arm=C rep=1 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 FALSE_POSITIVE
+DIAG arm=C id=eval-unanswerable-02 vi="Bạn có thể đặt lại mật khẩu ngân hàng trực tuyến như thế nào?" en="How do I reset my online banking password?"
+DIAG arm=C id=eval-unanswerable-02 guardOK=true candidates=3
+DIAG   #1 sim=0.7502 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #2 sim=0.7471 examples/vi/bao-hiem-tai-san.md / Thời hạn hiệu lực
+DIAG   #3 sim=0.7471 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+CASE arm=C rep=1 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 FALSE_POSITIVE
+DIAG arm=C id=eval-unanswerable-03 vi="Giờ dịch vụ khách hàng trong dịp lễ." en="What are the holiday customer service hours?"
+DIAG arm=C id=eval-unanswerable-03 guardOK=true candidates=4
+DIAG   #1 sim=0.7628 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #2 sim=0.7574 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+DIAG   #3 sim=0.7444 examples/vi/dich-vu-thanh-vien.md / Miễn giảm phí
+DIAG   #4 sim=0.7436 examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả
+CASE arm=C rep=1 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 FALSE_POSITIVE
+DIAG arm=C id=eval-unanswerable-04 vi="Có ứng dụng di động cho thành viên không." en="Is there a mobile app for club members?"
+DIAG arm=C id=eval-unanswerable-04 guardOK=true candidates=4
+DIAG   #1 sim=0.8020 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+DIAG   #2 sim=0.7957 examples/vi/chinh-sach-khoan-vay.md / Xử lý thanh toán
+DIAG   #3 sim=0.7563 examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi
+DIAG   #4 sim=0.7540 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+CASE arm=C rep=1 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 FALSE_POSITIVE
+DIAG arm=C id=eval-unanswerable-05 vi="Đồng tiền lãi cho vay xe ô tô" en="The interest rate for auto loans."
+DIAG arm=C id=eval-unanswerable-05 guardOK=true candidates=4
+DIAG   #1 sim=0.8110 examples/vi/chinh-sach-khoan-vay.md / Xử lý thanh toán
+DIAG   #2 sim=0.7755 examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán
+DIAG   #3 sim=0.7658 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+DIAG   #4 sim=0.7563 examples/vi/quy-trinh-thu-hoi.md / Xóa nợ
+CASE arm=C rep=1 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 FALSE_POSITIVE
+DIAG arm=C id=eval-unanswerable-06 vi="Bạn có thể đóng tài khoản của mình như thế nào?" en="How do I close my account?"
+DIAG arm=C id=eval-unanswerable-06 guardOK=true candidates=4
+DIAG   #1 sim=0.7614 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #2 sim=0.7576 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+DIAG   #3 sim=0.7487 examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi
+DIAG   #4 sim=0.7461 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+CASE arm=C rep=1 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 FALSE_POSITIVE
+FOOTER wall=25.342s

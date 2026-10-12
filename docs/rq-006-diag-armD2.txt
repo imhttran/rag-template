@@ -1,0 +1,294 @@
+HEADER arm=D2 dataset=evals/retrieval-vi-en-expanded.json embed=nomic-embed-text chat=llama3.2:3b floor=0.70 repeats=1 gen_options=map[num_predict:64 seed:0 temperature:0]
+GEN id=eval-en-en-01 variant=exp source=cache
+GEN id=eval-en-en-01 variant=vi source=cache
+GEN id=eval-en-en-01 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-01 kind=en-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7036 examples/large-loan-policy.md / Payment Processing
+DIAG   #2 sim=0.8226 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+DIAG   #3 sim=0.8521 examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi
+DIAG   #4 sim=0.7611 examples/vi/bao-hiem-tai-san.md / Bồi thường
+CASE arm=D2 rep=1 id=eval-en-en-01 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-02 variant=exp source=cache
+GEN id=eval-en-en-02 variant=vi source=cache
+GEN id=eval-en-en-02 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-02 kind=en-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7602 examples/member-services-guide.md / Fee Waivers
+DIAG   #2 sim=0.7736 examples/loan-policy.md / Late Fees
+DIAG   #3 sim=0.7581 examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả
+DIAG   #4 sim=0.7545 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+CASE arm=D2 rep=1 id=eval-en-en-02 kind=en-en r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-03 variant=exp source=cache
+GEN id=eval-en-en-03 variant=vi source=cache
+GEN id=eval-en-en-03 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-03 kind=en-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7855 examples/loan-policy.md / Partial Payments
+DIAG   #2 sim=0.7812 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #3 sim=0.7761 examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi
+DIAG   #4 sim=0.7167 examples/member-services-guide.md / Partial Payment Handling
+CASE arm=D2 rep=1 id=eval-en-en-03 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-04 variant=exp source=cache
+GEN id=eval-en-en-04 variant=vi source=cache
+GEN id=eval-en-en-04 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-04 kind=en-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7964 examples/loan-policy.md / Collections
+DIAG   #2 sim=0.8352 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #3 sim=0.7756 examples/large-loan-policy.md / Missed Payments
+DIAG   #4 sim=0.8409 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+CASE arm=D2 rep=1 id=eval-en-en-04 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-05 variant=exp source=cache
+GEN id=eval-en-en-05 variant=vi source=cache
+GEN id=eval-en-en-05 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-05 kind=en-en guardOK=false candidates=0 rejected=false
+CASE arm=D2 rep=1 id=eval-en-en-05 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-06 variant=exp source=cache
+GEN id=eval-en-en-06 variant=vi source=cache
+GEN id=eval-en-en-06 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-06 kind=en-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7105 examples/member-services-guide.md / Grace Period Requests
+DIAG   #2 sim=0.7181 examples/large-loan-policy.md / Missed Payments
+DIAG   #3 sim=0.7880 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #4 sim=0.7924 examples/vi/dich-vu-thanh-vien.md / Kênh liên hệ
+CASE arm=D2 rep=1 id=eval-en-en-06 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-07 variant=exp source=cache
+GEN id=eval-en-en-07 variant=vi source=cache
+GEN id=eval-en-en-07 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-07 kind=en-en guardOK=false candidates=0 rejected=false
+CASE arm=D2 rep=1 id=eval-en-en-07 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-08 variant=exp source=cache
+GEN id=eval-en-en-08 variant=vi source=cache
+GEN id=eval-en-en-08 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-08 kind=en-en guardOK=false candidates=0 rejected=false
+CASE arm=D2 rep=1 id=eval-en-en-08 kind=en-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-en-09 variant=exp source=cache
+GEN id=eval-en-en-09 variant=vi source=cache
+GEN id=eval-en-en-09 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-09 kind=en-en guardOK=true candidates=1 rejected=false
+DIAG   #1 sim=0.7347 examples/commercial-servicing-manual.md / Insurance Requirements
+CASE arm=D2 rep=1 id=eval-en-en-09 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-en-10 variant=exp source=cache
+GEN id=eval-en-en-10 variant=vi source=cache
+GEN id=eval-en-en-10 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-en-10 kind=en-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7120 examples/commercial-servicing-manual.md / Property Taxes
+DIAG   #2 sim=0.7268 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+DIAG   #3 sim=0.7327 examples/vi/dich-vu-thanh-vien.md / Miễn giảm phí
+DIAG   #4 sim=0.7184 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+CASE arm=D2 rep=1 id=eval-en-en-10 kind=en-en r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-01 variant=exp source=cache
+GEN id=eval-vi-vi-01 variant=vi source=cache
+GEN id=eval-vi-vi-01 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-01 kind=vi-vi guardOK=true candidates=3 rejected=false
+DIAG   #1 sim=0.7541 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #2 sim=0.7282 examples/vi/bao-hiem-tai-san.md / Yêu cầu bảo hiểm
+DIAG   #3 sim=0.7098 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+CASE arm=D2 rep=1 id=eval-vi-vi-01 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-02 variant=exp source=cache
+GEN id=eval-vi-vi-02 variant=vi source=cache
+GEN id=eval-vi-vi-02 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-02 kind=vi-vi guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.8254 examples/vi/chinh-sach-khoan-vay.md / Xử lý thanh toán
+DIAG   #2 sim=0.8095 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+DIAG   #3 sim=0.7666 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #4 sim=0.7627 examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi
+CASE arm=D2 rep=1 id=eval-vi-vi-02 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-03 variant=exp source=cache
+GEN id=eval-vi-vi-03 variant=vi source=cache
+GEN id=eval-vi-vi-03 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-03 kind=vi-vi guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7007 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #2 sim=0.0000 examples/member-services-guide.md / Contact Channels
+DIAG   #3 sim=0.0000 examples/loan-policy.md / Payment Codes
+DIAG   #4 sim=0.0000 examples/large-loan-policy.md / Missed Payments
+CASE arm=D2 rep=1 id=eval-vi-vi-03 kind=vi-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-04 variant=exp source=cache
+GEN id=eval-vi-vi-04 variant=vi source=cache
+GEN id=eval-vi-vi-04 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-04 kind=vi-vi guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7741 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+DIAG   #2 sim=0.7290 examples/vi/dich-vu-thanh-vien.md / Miễn giảm phí
+DIAG   #3 sim=0.7255 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #4 sim=0.7161 examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả
+CASE arm=D2 rep=1 id=eval-vi-vi-04 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-05 variant=exp source=cache
+GEN id=eval-vi-vi-05 variant=vi source=cache
+GEN id=eval-vi-vi-05 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-05 kind=vi-vi guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.8159 examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả
+DIAG   #2 sim=0.8210 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #3 sim=0.8288 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+DIAG   #4 sim=0.7299 examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán
+CASE arm=D2 rep=1 id=eval-vi-vi-05 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-06 variant=exp source=cache
+GEN id=eval-vi-vi-06 variant=vi source=cache
+GEN id=eval-vi-vi-06 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-06 kind=vi-vi guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7827 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #2 sim=0.7953 examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả
+DIAG   #3 sim=0.7856 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+DIAG   #4 sim=0.7428 examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán
+CASE arm=D2 rep=1 id=eval-vi-vi-06 kind=vi-vi r1=0.00 r4=1.00 evidence=0.00 n/a
+GEN id=eval-vi-vi-07 variant=exp source=cache
+GEN id=eval-vi-vi-07 variant=vi source=cache
+GEN id=eval-vi-vi-07 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-07 kind=vi-vi guardOK=true candidates=3 rejected=false
+DIAG   #1 sim=0.8185 examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi
+DIAG   #2 sim=0.8142 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #3 sim=0.7596 examples/vi/bao-hiem-tai-san.md / Yêu cầu bảo hiểm
+CASE arm=D2 rep=1 id=eval-vi-vi-07 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-08 variant=exp source=cache
+GEN id=eval-vi-vi-08 variant=vi source=cache
+GEN id=eval-vi-vi-08 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-08 kind=vi-vi guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.8328 examples/vi/bao-hiem-tai-san.md / Yêu cầu bảo hiểm
+DIAG   #2 sim=0.8191 examples/vi/bao-hiem-tai-san.md / Thời hạn hiệu lực
+DIAG   #3 sim=0.7897 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #4 sim=0.7818 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+CASE arm=D2 rep=1 id=eval-vi-vi-08 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-09 variant=exp source=cache
+GEN id=eval-vi-vi-09 variant=vi source=cache
+GEN id=eval-vi-vi-09 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-09 kind=vi-vi guardOK=true candidates=3 rejected=false
+DIAG   #1 sim=0.8448 examples/vi/bao-hiem-tai-san.md / Thời hạn hiệu lực
+DIAG   #2 sim=0.7164 examples/vi/bao-hiem-tai-san.md / Bồi thường
+DIAG   #3 sim=0.7113 examples/vi/bao-hiem-tai-san.md / Yêu cầu bảo hiểm
+CASE arm=D2 rep=1 id=eval-vi-vi-09 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-vi-vi-10 variant=exp source=cache
+GEN id=eval-vi-vi-10 variant=vi source=cache
+GEN id=eval-vi-vi-10 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-vi-10 kind=vi-vi guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.8694 examples/vi/bao-hiem-tai-san.md / Bồi thường
+DIAG   #2 sim=0.7970 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+DIAG   #3 sim=0.7696 examples/vi/dich-vu-thanh-vien.md / Miễn giảm phí
+DIAG   #4 sim=0.7717 examples/vi/quy-trinh-thu-hoi.md / Thông báo chậm trả
+CASE arm=D2 rep=1 id=eval-vi-vi-10 kind=vi-vi r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-01 variant=exp source=cache
+GEN id=eval-en-vi-01 variant=vi source=cache
+GEN id=eval-en-vi-01 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-vi-01 kind=en-vi guardOK=false candidates=0 rejected=false
+CASE arm=D2 rep=1 id=eval-en-vi-01 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-02 variant=exp source=cache
+GEN id=eval-en-vi-02 variant=vi source=cache
+GEN id=eval-en-vi-02 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-vi-02 kind=en-vi guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7914 examples/loan-policy.md / Late Fees
+DIAG   #2 sim=0.8523 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+DIAG   #3 sim=0.7691 examples/member-services-guide.md / Fee Waivers
+DIAG   #4 sim=0.8359 examples/vi/chinh-sach-khoan-vay.md / Xử lý thanh toán
+CASE arm=D2 rep=1 id=eval-en-vi-02 kind=en-vi r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-en-vi-03 variant=exp source=cache
+GEN id=eval-en-vi-03 variant=vi source=cache
+GEN id=eval-en-vi-03 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-vi-03 kind=en-vi guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7924 examples/member-services-guide.md / Fee Waivers
+DIAG   #2 sim=0.7821 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+DIAG   #3 sim=0.7663 examples/vi/bao-hiem-tai-san.md / Bồi thường
+DIAG   #4 sim=0.7103 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+CASE arm=D2 rep=1 id=eval-en-vi-03 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-04 variant=exp source=cache
+GEN id=eval-en-vi-04 variant=vi source=cache
+GEN id=eval-en-vi-04 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-vi-04 kind=en-vi guardOK=false candidates=0 rejected=false
+CASE arm=D2 rep=1 id=eval-en-vi-04 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-en-vi-05 variant=exp source=cache
+GEN id=eval-en-vi-05 variant=vi source=cache
+GEN id=eval-en-vi-05 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-en-vi-05 kind=en-vi guardOK=false candidates=0 rejected=false
+CASE arm=D2 rep=1 id=eval-en-vi-05 kind=en-vi r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-01 variant=exp source=cache
+GEN id=eval-vi-en-01 variant=vi source=cache
+GEN id=eval-vi-en-01 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-en-01 kind=vi-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7830 examples/vi/bao-hiem-tai-san.md / Bồi thường
+DIAG   #2 sim=0.7846 examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán
+DIAG   #3 sim=0.7914 examples/vi/chinh-sach-khoan-vay.md / Xử lý thanh toán
+DIAG   #4 sim=0.7907 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+CASE arm=D2 rep=1 id=eval-vi-en-01 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-02 variant=exp source=cache
+GEN id=eval-vi-en-02 variant=vi source=cache
+GEN id=eval-vi-en-02 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-en-02 kind=vi-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7831 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #2 sim=0.7745 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+DIAG   #3 sim=0.7626 examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán
+DIAG   #4 sim=0.7903 examples/vi/dich-vu-thanh-vien.md / Miễn giảm phí
+CASE arm=D2 rep=1 id=eval-vi-en-02 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-03 variant=exp source=cache
+GEN id=eval-vi-en-03 variant=vi source=cache
+GEN id=eval-vi-en-03 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-en-03 kind=vi-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.8166 examples/vi/quy-trinh-thu-hoi.md / Xóa nợ
+DIAG   #2 sim=0.8052 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #3 sim=0.8049 examples/vi/quy-trinh-thu-hoi.md / Chuyển hồ sơ thu hồi
+DIAG   #4 sim=0.8006 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+CASE arm=D2 rep=1 id=eval-vi-en-03 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-04 variant=exp source=cache
+GEN id=eval-vi-en-04 variant=vi source=cache
+GEN id=eval-vi-en-04 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-en-04 kind=vi-en guardOK=true candidates=3 rejected=false
+DIAG   #1 sim=0.8054 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #2 sim=0.8054 examples/vi/dich-vu-thanh-vien.md / Yêu cầu tất toán
+DIAG   #3 sim=0.7797 examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán
+CASE arm=D2 rep=1 id=eval-vi-en-04 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-vi-en-05 variant=exp source=cache
+GEN id=eval-vi-en-05 variant=vi source=cache
+GEN id=eval-vi-en-05 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-vi-en-05 kind=vi-en guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7328 examples/vi/quy-trinh-thu-hoi.md / Xóa nợ
+DIAG   #2 sim=0.7477 examples/vi/bao-hiem-tai-san.md / Bồi thường
+DIAG   #3 sim=0.7385 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+DIAG   #4 sim=0.7270 examples/vi/quy-trinh-thu-hoi.md / Kế hoạch thanh toán
+CASE arm=D2 rep=1 id=eval-vi-en-05 kind=vi-en r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-misleading-01 variant=exp source=cache
+GEN id=eval-misleading-01 variant=vi source=cache
+GEN id=eval-misleading-01 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-misleading-01 kind=misleading guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.7901 examples/large-loan-policy.md / Missed Payments
+DIAG   #2 sim=0.7894 examples/loan-policy.md / Missed Payments
+DIAG   #3 sim=0.8053 examples/vi/dich-vu-thanh-vien.md / Kênh liên hệ
+DIAG   #4 sim=0.8036 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+CASE arm=D2 rep=1 id=eval-misleading-01 kind=misleading r1=0.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-02 variant=exp source=cache
+GEN id=eval-misleading-02 variant=vi source=cache
+GEN id=eval-misleading-02 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-misleading-02 kind=misleading guardOK=true candidates=4 rejected=false
+DIAG   #1 sim=0.8021 examples/vi/dich-vu-thanh-vien.md / Miễn giảm phí
+DIAG   #2 sim=0.7616 examples/vi/chinh-sach-khoan-vay.md / Phí trả chậm
+DIAG   #3 sim=0.7267 examples/vi/bao-hiem-tai-san.md / Bồi thường
+DIAG   #4 sim=0.7223 examples/vi/chinh-sach-khoan-vay.md / Thời hạn gia hạn
+CASE arm=D2 rep=1 id=eval-misleading-02 kind=misleading r1=1.00 r4=1.00 evidence=1.00 n/a
+GEN id=eval-misleading-03 variant=exp source=cache
+GEN id=eval-misleading-03 variant=vi source=cache
+GEN id=eval-misleading-03 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-misleading-03 kind=misleading guardOK=false candidates=0 rejected=false
+CASE arm=D2 rep=1 id=eval-misleading-03 kind=misleading r1=0.00 r4=0.00 evidence=0.00 n/a
+GEN id=eval-unanswerable-01 variant=exp source=cache
+GEN id=eval-unanswerable-01 variant=vi source=cache
+GEN id=eval-unanswerable-01 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-unanswerable-01 kind=unanswerable guardOK=false candidates=0 rejected=true
+CASE arm=D2 rep=1 id=eval-unanswerable-01 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-02 variant=exp source=cache
+GEN id=eval-unanswerable-02 variant=vi source=cache
+GEN id=eval-unanswerable-02 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-unanswerable-02 kind=unanswerable guardOK=false candidates=0 rejected=true
+CASE arm=D2 rep=1 id=eval-unanswerable-02 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-03 variant=exp source=cache
+GEN id=eval-unanswerable-03 variant=vi source=cache
+GEN id=eval-unanswerable-03 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-unanswerable-03 kind=unanswerable guardOK=false candidates=0 rejected=true
+CASE arm=D2 rep=1 id=eval-unanswerable-03 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-04 variant=exp source=cache
+GEN id=eval-unanswerable-04 variant=vi source=cache
+GEN id=eval-unanswerable-04 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-unanswerable-04 kind=unanswerable guardOK=false candidates=0 rejected=true
+CASE arm=D2 rep=1 id=eval-unanswerable-04 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-05 variant=exp source=cache
+GEN id=eval-unanswerable-05 variant=vi source=cache
+GEN id=eval-unanswerable-05 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-unanswerable-05 kind=unanswerable guardOK=false candidates=0 rejected=true
+CASE arm=D2 rep=1 id=eval-unanswerable-05 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+GEN id=eval-unanswerable-06 variant=exp source=cache
+GEN id=eval-unanswerable-06 variant=vi source=cache
+GEN id=eval-unanswerable-06 variant=en source=cache
+DIAG arm=D2 rep=1 id=eval-unanswerable-06 kind=unanswerable guardOK=false candidates=0 rejected=true
+CASE arm=D2 rep=1 id=eval-unanswerable-06 kind=unanswerable r1=0.00 r4=0.00 evidence=0.00 reject
+FOOTER wall=4.093s generated_queries=0 cache=docs/rq-006-query-cache.json
