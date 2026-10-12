@@ -7,7 +7,13 @@ import (
 )
 
 // TestParsePageCitations covers the legacy and page citation forms, including
-// rejected page segments.
+// trailing segments that are not a page. Under the shared-parser contract a
+// trailing segment is treated as a page only when it matches "p.<positive int>";
+// any other trailing segment (including "p.0", negative, or non-numeric pages)
+// stays part of the section rather than being dropped or split out as a page.
+//
+// This baseline is updated (RAG-023C) from the A4 characterization test to
+// assert the corrected behavior.
 func TestParsePageCitations(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -30,14 +36,14 @@ func TestParsePageCitations(t *testing.T) {
 			want:   []Citation{{Source: "a.md", Section: "Fees", Page: 12}},
 		},
 		{
-			name:   "p.0 is not a citation",
+			name:   "p.0 is not a page and stays in the section",
 			answer: "see [a.md - Fees - p.0]",
-			want:   nil,
+			want:   []Citation{{Source: "a.md", Section: "Fees - p.0"}},
 		},
 		{
-			name:   "non p.N third segment is not a citation",
+			name:   "non p.N third segment is not a page and stays in the section",
 			answer: "see [a.md - Fees - page 3]",
-			want:   nil,
+			want:   []Citation{{Source: "a.md", Section: "Fees - page 3"}},
 		},
 	}
 

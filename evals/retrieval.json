@@ -8,12 +8,12 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["10-day grace period"]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["grace period lasts fifteen days"]
       }
@@ -26,7 +26,7 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Late Fees",
         "evidence": [
           "A late fee may be assessed after the grace period has expired"
@@ -42,12 +42,12 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Payments",
         "evidence": ["applied first to outstanding interest, then to principal"]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Payment Processing",
         "evidence": [
           "applied first to outstanding interest and then to principal"
@@ -63,12 +63,12 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["10-day grace period"]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["grace period lasts fifteen days"]
       }
@@ -79,7 +79,7 @@
     "expected_facts": ["LP-4827 is the payment code for online payments"],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Payment Codes",
         "evidence": ["transaction code LP-4827"]
       }
@@ -93,19 +93,19 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["the loan becomes delinquent"]
       },
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Late Fees",
         "evidence": [
           "A late fee may be assessed after the grace period has expired"
         ]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["the account becomes delinquent"]
       }
@@ -119,12 +119,12 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["the loan enters a 10-day grace period"]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["the account enters a grace period"]
       }
@@ -139,12 +139,12 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["10-day grace period"]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["grace period lasts fifteen days"]
       }
@@ -157,12 +157,12 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["without the loan being marked delinquent"]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": [
           "without the account immediately being classified as delinquent"
@@ -177,12 +177,12 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Collections",
         "evidence": ["referred to collections"]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["eligible for collection activity"]
       }
@@ -195,14 +195,14 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Collections",
         "evidence": [
           "receive notices or opportunities to establish a payment arrangement"
         ]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["additional notices may be sent to the borrower"]
       }
@@ -215,12 +215,12 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Collections",
         "evidence": ["opportunities to establish a payment arrangement"]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": [
           "offered an opportunity to establish a payment arrangement"
@@ -235,7 +235,7 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Partial Payments",
         "evidence": [
           "does not necessarily satisfy the required monthly payment"
@@ -250,7 +250,7 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Partial Payments",
         "evidence": [
           "may be applied to outstanding interest and principal according to the loan agreement"
@@ -265,7 +265,7 @@
     ],
     "expected": [
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Payment Processing",
         "evidence": [
           "Each payment includes an amount, payment date, payment method, and unique payment identifier"
@@ -278,7 +278,7 @@
     "expected_facts": ["duplicate payments are detected using the payment ID"],
     "expected": [
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Payment Processing",
         "evidence": [
           "Duplicate payments should be detected using the payment identifier"
@@ -293,7 +293,7 @@
     ],
     "expected": [
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Payment Processing",
         "evidence": [
           "should not automatically be applied to the same obligation twice"
@@ -308,7 +308,7 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Payments",
         "evidence": [
           "due on the scheduled due date listed in the borrower agreement"
@@ -321,12 +321,12 @@
     "expected_facts": ["interest is applied before principal"],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Payments",
         "evidence": ["applied first to outstanding interest, then to principal"]
       },
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Payment Processing",
         "evidence": [
           "applied first to outstanding interest and then to principal"
@@ -341,7 +341,7 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Payment Codes",
         "evidence": [
           "include LP-4827 when contacting support about an online payment"
@@ -354,7 +354,7 @@
     "expected_facts": ["a grace period extension may be requested"],
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Grace Period Requests",
         "evidence": ["request an extended grace period"]
       }
@@ -368,7 +368,7 @@
     ],
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Fee Waivers",
         "evidence": ["may be waived"]
       }
@@ -382,7 +382,7 @@
     ],
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Partial Payment Handling",
         "evidence": ["held and applied once the full scheduled amount"]
       }
@@ -396,7 +396,7 @@
     ],
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Payoff Requests",
         "evidence": ["request a payoff quote"]
       }
@@ -410,7 +410,7 @@
     ],
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Statement Delivery",
         "evidence": ["choose paper or electronic delivery"]
       }
@@ -424,7 +424,7 @@
     ],
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Dispute Resolution",
         "evidence": ["believes a payment was misapplied"]
       }
@@ -450,14 +450,14 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Partial Payments",
         "evidence": [
           "Partial payments may be applied to outstanding interest and principal according to the loan agreement"
         ]
       },
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Partial Payment Handling",
         "evidence": [
           "held and applied once the full scheduled amount is received"
@@ -473,7 +473,7 @@
     ],
     "expected": [
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Payment Processing",
         "evidence": [
           "Duplicate payments should be detected using the payment identifier"
@@ -490,14 +490,14 @@
     ],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Late Fees",
         "evidence": [
           "A late fee may be assessed after the grace period has expired"
         ]
       },
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Fee Waivers",
         "evidence": ["must be submitted before the fee is assessed"]
       }
@@ -511,7 +511,7 @@
     ],
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Payoff Requests",
         "evidence": ["valid for ten days", "interest continues to accrue"]
       }
@@ -525,7 +525,7 @@
     ],
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Dispute Resolution",
         "evidence": [
           "responds within thirty days",
@@ -549,7 +549,7 @@
     ],
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Escrow Administration",
         "evidence": [
           "repay the shortage in equal monthly installments over at least twelve months"
@@ -564,7 +564,7 @@
     ],
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Insurance Requirements",
         "evidence": [
           "obtain force-placed insurance and charge the borrower for its cost"
@@ -579,7 +579,7 @@
     ],
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Property Taxes",
         "evidence": [
           "advance the amount necessary to cure the delinquency to protect the lien"
@@ -594,7 +594,7 @@
     ],
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Construction Draw Administration",
         "evidence": [
           "released only when the servicer confirms the work is complete"
@@ -609,7 +609,7 @@
     ],
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Collateral and Lien Documentation",
         "evidence": ["within the six months before its expiration"]
       }
@@ -622,7 +622,7 @@
     ],
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Servicing Transfer Procedures",
         "evidence": [
           "notice of transfer that identifies the transferee",

@@ -5,7 +5,7 @@
     "question": "How are loan payments handled?",
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Payments",
         "evidence": [
           "Loan payments are due on the scheduled due date listed in the borrower agreement."
@@ -19,7 +19,7 @@
     "question": "When is a late fee charged?",
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Late Fees",
         "evidence": [
           "A late fee may be assessed after the grace period has expired."
@@ -33,7 +33,7 @@
     "question": "Can I make a partial payment?",
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Partial Payments",
         "evidence": [
           "A partial payment does not necessarily satisfy the required monthly payment."
@@ -47,7 +47,7 @@
     "question": "When does a loan go to collections?",
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Collections",
         "evidence": [
           "A delinquent loan may eventually be referred to collections if required payments remain unpaid."
@@ -61,7 +61,7 @@
     "question": "What do the payment codes mean?",
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Payment Codes",
         "evidence": [
           "Payments submitted through the online portal use transaction code LP-4827."
@@ -75,7 +75,7 @@
     "question": "How do I request a grace period?",
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Grace Period Requests",
         "evidence": [
           "A borrower who cannot meet an upcoming due date may request an extended grace period."
@@ -89,7 +89,7 @@
     "question": "How do I request a payoff statement?",
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Payoff Requests",
         "evidence": [
           "A borrower may request a payoff quote, which states the amount required to satisfy the loan on a given date."
@@ -103,7 +103,7 @@
     "question": "How do I dispute a charge?",
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Dispute Resolution",
         "evidence": [
           "A borrower who believes a payment was misapplied may open a dispute."
@@ -117,7 +117,7 @@
     "question": "What insurance is required?",
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Insurance Requirements",
         "evidence": [
           "The borrower must maintain hazard insurance on the property in an amount at least equal to the lesser of the outstanding principal balance or the maximum amount available under the loan agreement."
@@ -131,7 +131,7 @@
     "question": "Who handles property taxes?",
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Property Taxes",
         "evidence": [
           "The servicer monitors property tax obligations through a tax service that reports the status of each taxing authority."
@@ -145,7 +145,7 @@
     "question": "Thời hạn gia hạn là bao lâu?",
     "expected": [
       {
-        "source": "chinh-sach-khoan-vay.md",
+        "source": "examples/vi/chinh-sach-khoan-vay.md",
         "section": "Thời hạn gia hạn",
         "evidence": [
           "Nếu người vay bỏ lỡ một kỳ thanh toán, khoản vay bước vào thời hạn gia hạn 10 ngày."
@@ -159,7 +159,7 @@
     "question": "Thanh toán được áp dụng như thế nào?",
     "expected": [
       {
-        "source": "chinh-sach-khoan-vay.md",
+        "source": "examples/vi/chinh-sach-khoan-vay.md",
         "section": "Xử lý thanh toán",
         "evidence": [
           "Thanh toán được áp dụng trước hết cho lãi đã tích lũy, sau đó cho phần gốc của"
@@ -173,7 +173,7 @@
     "question": "Tôi có thể liên hệ bằng cách nào?",
     "expected": [
       {
-        "source": "dich-vu-thanh-vien.md",
+        "source": "examples/vi/dich-vu-thanh-vien.md",
         "section": "Kênh liên hệ",
         "evidence": [
           "Thành viên có thể liên hệ với chúng tôi qua điện thoại, thư điện tử, hoặc cổng"
@@ -187,7 +187,7 @@
     "question": "Yêu cầu tất toán mất bao lâu?",
     "expected": [
       {
-        "source": "dich-vu-thanh-vien.md",
+        "source": "examples/vi/dich-vu-thanh-vien.md",
         "section": "Yêu cầu tất toán",
         "evidence": [
           "Yêu cầu tất toán khoản vay được xử lý trong vòng năm ngày làm việc kể từ khi nhận"
@@ -201,7 +201,7 @@
     "question": "Khi chậm trả thì được thông báo thế nào?",
     "expected": [
       {
-        "source": "quy-trinh-thu-hoi.md",
+        "source": "examples/vi/quy-trinh-thu-hoi.md",
         "section": "Thông báo chậm trả",
         "evidence": [
           "Sau khi khoản vay trở thành chậm trả, hệ thống gửi thông báo đầu tiên trong vòng"
@@ -215,7 +215,7 @@
     "question": "Tôi có thể lập kế hoạch thanh toán không?",
     "expected": [
       {
-        "source": "quy-trinh-thu-hoi.md",
+        "source": "examples/vi/quy-trinh-thu-hoi.md",
         "section": "Kế hoạch thanh toán",
         "evidence": [
           "Người vay có thể đề nghị một kế hoạch thanh toán trong vòng ba mươi ngày kể từ"
@@ -229,7 +229,7 @@
     "question": "Khi nào hồ sơ bị chuyển cho bộ phận thu hồi?",
     "expected": [
       {
-        "source": "quy-trinh-thu-hoi.md",
+        "source": "examples/vi/quy-trinh-thu-hoi.md",
         "section": "Chuyển hồ sơ thu hồi",
         "evidence": [
           "Nếu các khoản thanh toán vẫn chưa được thanh toán trong chín mươi ngày, hồ sơ có"
@@ -243,7 +243,7 @@
     "question": "Tôi có phải mua bảo hiểm tài sản không?",
     "expected": [
       {
-        "source": "bao-hiem-tai-san.md",
+        "source": "examples/vi/bao-hiem-tai-san.md",
         "section": "Yêu cầu bảo hiểm",
         "evidence": [
           "Người vay phải duy trì bảo hiểm tài sản trong suốt thời hạn của khoản vay."
@@ -257,7 +257,7 @@
     "question": "Chứng nhận bảo hiểm có hiệu lực bao lâu?",
     "expected": [
       {
-        "source": "bao-hiem-tai-san.md",
+        "source": "examples/vi/bao-hiem-tai-san.md",
         "section": "Thời hạn hiệu lực",
         "evidence": [
           "Chứng nhận bảo hiểm có hiệu lực trong mười hai tháng kể từ ngày cấp."
@@ -271,7 +271,7 @@
     "question": "Yêu cầu bồi thường được xử lý trong bao lâu?",
     "expected": [
       {
-        "source": "bao-hiem-tai-san.md",
+        "source": "examples/vi/bao-hiem-tai-san.md",
         "section": "Bồi thường",
         "evidence": [
           "Yêu cầu bồi thường được xử lý trong vòng mười lăm ngày làm việc sau khi nhận đủ"
@@ -285,7 +285,7 @@
     "question": "When is a debt written off?",
     "expected": [
       {
-        "source": "quy-trinh-thu-hoi.md",
+        "source": "examples/vi/quy-trinh-thu-hoi.md",
         "section": "Xóa nợ",
         "evidence": [
           "Việc xóa nợ chỉ được xem xét sau khi quản lý phê duyệt và ghi nhận vào hồ sơ."
@@ -299,7 +299,7 @@
     "question": "When is a late fee applied?",
     "expected": [
       {
-        "source": "chinh-sach-khoan-vay.md",
+        "source": "examples/vi/chinh-sach-khoan-vay.md",
         "section": "Phí trả chậm",
         "evidence": [
           "Phí trả chậm được áp dụng khi khoản thanh toán không được nhận trước ngày đến hạn."
@@ -313,7 +313,7 @@
     "question": "Can fees be waived?",
     "expected": [
       {
-        "source": "dich-vu-thanh-vien.md",
+        "source": "examples/vi/dich-vu-thanh-vien.md",
         "section": "Miễn giảm phí",
         "evidence": [
           "Yêu cầu miễn giảm phí được xem xét theo từng trường hợp và cần phê duyệt của quản"
@@ -327,7 +327,7 @@
     "question": "How is a delinquency noticed?",
     "expected": [
       {
-        "source": "quy-trinh-thu-hoi.md",
+        "source": "examples/vi/quy-trinh-thu-hoi.md",
         "section": "Thông báo chậm trả",
         "evidence": [
           "Sau khi khoản vay trở thành chậm trả, hệ thống gửi thông báo đầu tiên trong vòng"
@@ -341,7 +341,7 @@
     "question": "How long does a claim take?",
     "expected": [
       {
-        "source": "bao-hiem-tai-san.md",
+        "source": "examples/vi/bao-hiem-tai-san.md",
         "section": "Bồi thường",
         "evidence": [
           "Yêu cầu bồi thường được xử lý trong vòng mười lăm ngày làm việc sau khi nhận đủ"
@@ -355,7 +355,7 @@
     "question": "Làm sao để thay đổi cách nhận sao kê?",
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Statement Delivery",
         "evidence": [
           "Account statements are issued monthly."
@@ -369,7 +369,7 @@
     "question": "Tôi có thể sắp xếp kế hoạch thanh toán không?",
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Payment Arrangements",
         "evidence": [
           "A borrower whose account has become delinquent may agree to a payment arrangement that spreads the past-due amount across future scheduled payments."
@@ -383,7 +383,7 @@
     "question": "Điều gì xảy ra khi hồ sơ được chuyển giao?",
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Servicing Transfer Procedures",
         "evidence": [
           "When servicing rights are transferred from one servicer to another, the transferor and the transferee coordinate the transfer of records, funds, and borrower communications."
@@ -397,7 +397,7 @@
     "question": "Khoản vay lớn xử lý thanh toán ra sao?",
     "expected": [
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Payment Processing",
         "evidence": [
           "Payments received from borrowers are recorded by the servicing system."
@@ -411,7 +411,7 @@
     "question": "Hồ sơ thế chấp được quản lý thế nào?",
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Collateral and Lien Documentation",
         "evidence": [
           "The servicer maintains the documentation that establishes and protects the lender's interest in the collateral, including the security instrument, any recorded amendments, and financing statements where personal property secures the obligation."
@@ -425,7 +425,7 @@
     "question": "What is the grace period under the standard loan policy?",
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Missed Payments",
         "evidence": [
           "If a borrower misses a payment, the loan enters a 10-day grace period."
@@ -439,7 +439,7 @@
     "question": "Làm sao để được miễn giảm phí?",
     "expected": [
       {
-        "source": "dich-vu-thanh-vien.md",
+        "source": "examples/vi/dich-vu-thanh-vien.md",
         "section": "Miễn giảm phí",
         "evidence": [
           "Yêu cầu miễn giảm phí được xem xét theo từng trường hợp và cần phê duyệt của quản"
@@ -453,7 +453,7 @@
     "question": "How do I set up a payment plan?",
     "expected": [
       {
-        "source": "quy-trinh-thu-hoi.md",
+        "source": "examples/vi/quy-trinh-thu-hoi.md",
         "section": "Kế hoạch thanh toán",
         "evidence": [
           "Người vay có thể đề nghị một kế hoạch thanh toán trong vòng ba mươi ngày kể từ"

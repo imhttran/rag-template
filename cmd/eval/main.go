@@ -104,6 +104,12 @@ type evaluator struct {
 	finalK            int
 	rerankTimeout     time.Duration
 	ks                []int
+
+	// language is cfg.Language forwarded into retrieval.PipelineOptions so
+	// keyword retrieval uses the configured CORPUS_LANGUAGE full-text search
+	// configuration. Empty keeps the baseline 'english' config, matching
+	// cmd/rag's behavior.
+	language string
 }
 
 func main() {
@@ -146,6 +152,7 @@ func run(ctx context.Context) error {
 		finalK:            cfg.FinalK,
 		rerankTimeout:     cfg.RerankTimeout,
 		ks:                retrievalKs(cfg.TopK),
+		language:          cfg.Language,
 	}
 
 	if cfg.AnswerabilityGate ||
@@ -345,13 +352,17 @@ type queryVector struct {
 	vector []float64
 }
 
-// pipelineOptions builds the retrieval options every baseline uses.
+// pipelineOptions builds the retrieval options every baseline uses. Language is
+// forwarded from cfg.Language so keyword retrieval uses the configured
+// CORPUS_LANGUAGE full-text search configuration, matching cmd/rag. Empty keeps
+// the baseline 'english' config so default runs are unchanged.
 func (e evaluator) pipelineOptions() retrieval.PipelineOptions {
 	return retrieval.PipelineOptions{
 		CandidateK:    e.candidateK,
 		FinalK:        e.finalK,
 		ExpandLimit:   e.expandLimit,
 		MinSimilarity: e.minSimilarity,
+		Language:      e.language,
 	}
 }
 
@@ -1134,6 +1145,17 @@ func evidenceRecall(
 	return float64(found) / float64(total)
 }
 
+// extractCitedClaims builds one citedClaim per citation in answer, delegating
+// bracket scanning and source/section/page parsing to the shared parser in
+// internal/citations (so cmd/rag, cmd/eval, and every other consumer share one
+// parser). For each citation span it pairs the claim text preceding the bracket
+// with the parsed source/section. The claim text is the segment between the
+// previous citation bracket's end and this bracket's start; within that segment
+// the text after the last "- " separator is used and the result is trimmed of a
+// trailing ".", so a bullet list line pairs each bullet with its own citation.
+// A bracket with no " - " separator is not a citation and yields no claim, and
+// citations with empty claim text are skipped, preserving the previous output
+// semantics.
 func extractCitedClaims(answer string) []citedClaim {
 	var claims []citedClaim
 
@@ -1143,50 +1165,44 @@ func extractCitedClaims(answer string) []citedClaim {
 			continue
 		}
 
-		remaining := line
+		cursor := 0
 
-		for {
-			start := strings.Index(remaining, "[")
-			if start == -1 {
-				break
-			}
+		for _, span := range citations.ParseSpans(line) {
+			claim := claimText(line[cursor:span.Start])
 
-			end := strings.Index(remaining[start:], "]")
-			if end == -1 {
-				break
-			}
+			cursor = span.End
 
-			end += start
-
-			citation := remaining[start+1 : end]
-			citation = citations.NormalizeCitation(citation)
-
-			source, section, found := strings.Cut(citation, " - ")
-			if !found {
-				remaining = remaining[end+1:]
+			if claim == "" {
 				continue
 			}
 
-			claim := strings.TrimSpace(remaining[:start])
-			claim = strings.TrimSpace(strings.TrimPrefix(claim, "-"))
-			claim = strings.TrimSpace(strings.TrimSuffix(claim, "."))
-
-			if claim != "" {
-				claims = append(claims, citedClaim{
-					Claim:   claim,
-					Source:  strings.TrimSpace(source),
-					Section: strings.TrimSpace(section),
-				})
-			}
-
-			// Everything after this citation may contain another
-			// claim/citation pair.
-			remaining = strings.TrimSpace(remaining[end+1:])
-			remaining = strings.TrimLeft(remaining, ". ")
+			claims = append(claims, citedClaim{
+				Claim:   claim,
+				Source:  span.Citation.Source,
+				Section: span.Citation.Section,
+			})
 		}
 	}
 
 	return claims
+}
+
+// claimText reduces a citation's preceding text to the claim it states. It trims
+// surrounding whitespace, then keeps the text after the last "- " separator (so
+// a bullet marker or a joining "and - " does not become part of the claim) and
+// finally trims a trailing ".". The result is empty when the segment carries no
+// claim text.
+func claimText(segment string) string {
+	segment = strings.TrimSpace(segment)
+
+	if index := strings.LastIndex(segment, "- "); index != -1 {
+		segment = segment[index+len("- "):]
+	}
+
+	segment = strings.TrimSpace(segment)
+	segment = strings.TrimSpace(strings.TrimSuffix(segment, "."))
+
+	return segment
 }
 
 // checkCitationEntailment returns how many cited claims were judged and how many

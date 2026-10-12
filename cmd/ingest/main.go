@@ -72,9 +72,13 @@ func run(ctx context.Context, path string) error {
 		cfg.EmbedRetries,
 	)
 
-	// source keeps a file's directory context so a/policy.md and b/policy.md are
-	// distinct sources instead of colliding as "policy.md".
-	source := sourceName(path)
+	// source is the canonical repository-relative identity, with symlinks
+	// resolved, so a/policy.md and b/policy.md stay distinct and a symlinked
+	// input stores its resolved target.
+	source, err := sourceName(path)
+	if err != nil {
+		return err
+	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -128,15 +132,73 @@ func loadChunks(path string, cfg config.Config) ([]chunking.Chunk, error) {
 	), nil
 }
 
-// sourceName returns the identity stored in the source column. A relative path
-// keeps a file's directory context (a/policy.md is distinct from b/policy.md)
-// while staying stable across working directories for absolute inputs.
-func sourceName(path string) string {
-	if cleaned := filepath.Clean(path); !filepath.IsAbs(cleaned) {
-		return cleaned
+// sourceName returns the canonical identity stored in the source column: the
+// input path resolved against symlinks and made relative to the nearest
+// repository root (an ancestor containing a .git directory). It never falls
+// back to the base name, so a/policy.md and b/policy.md stay distinct and an
+// absolute or symlinked input yields the same identity as its canonical
+// relative form. When no repository root is found the resolved absolute path is
+// used, so the identity is always directory-qualified and never a bare base
+// name.
+func sourceName(path string) (string, error) {
+	// Resolve symlinks first so a symlinked input stores the resolved target.
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		// A path that cannot be resolved (for example a name that does not
+		// exist yet) falls back to its absolute form so identity stays stable.
+		resolved, err = filepath.Abs(path)
+		if err != nil {
+			return "", fmt.Errorf("resolve %s: %w", path, err)
+		}
 	}
 
-	return filepath.Base(path)
+	resolved, err = filepath.Abs(resolved)
+	if err != nil {
+		return "", fmt.Errorf("resolve %s: %w", path, err)
+	}
+
+	root, ok := repositoryRoot(resolved)
+	if !ok {
+		// No repository root: keep the resolved absolute path so the identity
+		// still carries its full directory context and never collapses to a
+		// bare base name.
+		return filepath.ToSlash(resolved), nil
+	}
+
+	rel, err := filepath.Rel(root, resolved)
+	if err != nil {
+		// Fall back to the absolute path only when the resolved path is not
+		// under the root; the base name is never used.
+		return filepath.ToSlash(resolved), nil
+	}
+
+	return filepath.ToSlash(rel), nil
+}
+
+// repositoryRoot walks up from the resolved path looking for a directory that
+// contains a .git entry. It reports ok=false when no such ancestor exists, so
+// callers can fall back to the absolute path instead of collapsing to a base
+// name.
+func repositoryRoot(resolved string) (string, bool) {
+	// Start from the resolved path's directory when it names a file, and from
+	// the path itself when it names a directory.
+	current := resolved
+	if info, err := os.Stat(resolved); err == nil && !info.IsDir() {
+		current = filepath.Dir(resolved)
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(current, ".git")); err == nil {
+			return current, true
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", false
+		}
+
+		current = parent
+	}
 }
 
 // contentFingerprint hashes the file's bytes together with the chunker config,

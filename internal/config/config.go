@@ -341,8 +341,10 @@ func (c Config) ObservabilityJSON() bool {
 
 // chunkerConfigVersion identifies the serialization format of ChunkerConfig.
 // Bump it when the chunking algorithm changes in a way that invalidates stored
-// chunkings, so previously ingested documents are re-ingested.
-const chunkerConfigVersion = "v1"
+// chunkings, so previously ingested documents are re-ingested. It was bumped to
+// v2 when chunk indexing became document-global: existing rows carry
+// section-local indexes and must be re-chunked under the corrected numbering.
+const chunkerConfigVersion = "v2"
 
 // ChunkerConfig returns a stable, canonical representation of the chunker
 // settings derived from ChunkSize and ChunkOverlap. Two Configs with the same

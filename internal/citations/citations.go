@@ -6,6 +6,11 @@
 // text and the retrieved documents and names no model. It accepts an optional
 // page segment ([source - section - p.N]); a page citation is valid only when a
 // retrieved document matches the source and section and carries that page.
+//
+// The trailing segment of a bracket is treated as a page only when it matches
+// "p.<positive int>". A section that itself contains " - " (for example
+// "Late Payments - Grace Period") is therefore preserved whole rather than
+// being mistaken for a section/page split.
 package citations
 
 import (
@@ -21,6 +26,17 @@ type Citation struct {
 	Source  string
 	Section string
 	Page    int
+}
+
+// Span is a parsed citation together with the byte range of its brackets within
+// the parsed text. Start is the index of the opening '[' and End is the index
+// just past the closing ']'. Callers that need the surrounding claim text (for
+// example cmd/eval) can slice the original text with the span instead of
+// re-implementing a bracket scanner.
+type Span struct {
+	Citation Citation
+	Start    int
+	End      int
 }
 
 // NormalizeCitation normalizes the dashes a model may emit (-, en dash, em dash)
@@ -41,61 +57,89 @@ func NormalizeSource(source string) string {
 
 // Parse extracts every [source - section] or [source - section - p.N] citation
 // from answer, in order. A bracket that is unclosed, that has no " - "
-// separator, or whose third segment is not "p<digits>" is not a citation and is
-// skipped, matching the eval parser.
+// separator, or whose trailing segment is neither part of the section nor
+// "p<digits>" is not a citation and is skipped.
 func Parse(answer string) []Citation {
-	var citations []Citation
+	spans := ParseSpans(answer)
 
-	remaining := answer
-
-	for {
-		_, rest, found := strings.Cut(remaining, "[")
-		if !found {
-			break
-		}
-
-		citation, rest, found := strings.Cut(rest, "]")
-		citation = NormalizeCitation(citation)
-		if !found {
-			break
-		}
-
-		remaining = rest
-
-		if parsed, ok := parseCitation(citation); ok {
-			citations = append(citations, parsed)
-		}
+	citations := make([]Citation, 0, len(spans))
+	for _, span := range spans {
+		citations = append(citations, span.Citation)
 	}
 
 	return citations
 }
 
+// ParseSpans extracts every citation from answer, in order, together with the
+// byte range of its brackets. It is the single bracket scanner in the
+// repository: Parse and every consumer (cmd/eval) build on it, so citation
+// parsing cannot drift between callers.
+func ParseSpans(answer string) []Span {
+	var spans []Span
+
+	remaining := answer
+	offset := 0
+
+	for {
+		open := strings.Index(remaining, "[")
+		if open == -1 {
+			break
+		}
+
+		start := offset + open
+
+		closeRel := strings.Index(remaining[open:], "]")
+		if closeRel == -1 {
+			break
+		}
+
+		closeIndex := open + closeRel
+
+		citation := NormalizeCitation(remaining[open+1 : closeIndex])
+
+		if parsed, ok := parseCitation(citation); ok {
+			spans = append(spans, Span{
+				Citation: parsed,
+				Start:    start,
+				End:      offset + closeIndex + 1,
+			})
+		}
+
+		offset += closeIndex + 1
+		remaining = remaining[closeIndex+1:]
+	}
+
+	return spans
+}
+
 // parseCitation parses the inside of a citation bracket. It accepts
-// "source - section" and "source - section - p.N"; anything else is not a
-// citation.
+// "source - section" and "source - section - p.N". A trailing segment is a page
+// only when it matches "p.<positive int>"; otherwise it stays part of the
+// section, so a section title containing " - " is preserved whole. A bracket
+// with no " - " separator is not a citation.
 func parseCitation(citation string) (Citation, bool) {
 	source, rest, found := strings.Cut(citation, " - ")
 	if !found {
 		return Citation{}, false
 	}
 
-	section, pageSegment, hasPage := strings.Cut(rest, " - ")
-
 	parsed := Citation{
-		Source:  strings.TrimSpace(source),
-		Section: strings.TrimSpace(section),
+		Source: strings.TrimSpace(source),
 	}
 
-	if !hasPage {
-		return parsed, true
+	// A page is claimed only when the trailing " - " segment is "p.N". When it
+	// is not (or there is no trailing segment), keep the whole remainder as the
+	// section so a section title containing " - " is not split.
+	if section, pageSegment, hasSegment := strings.Cut(rest, " - "); hasSegment {
+		if page, ok := parsePageSegment(pageSegment); ok {
+			parsed.Section = strings.TrimSpace(section)
+			parsed.Page = page
+
+			return parsed, true
+		}
 	}
 
-	page, ok := parsePageSegment(pageSegment)
-	if !ok {
-		return Citation{}, false
-	}
-
-	parsed.Page = page
+	parsed.Section = strings.TrimSpace(rest)
 
 	return parsed, true
 }
@@ -165,62 +209,37 @@ func Validity(answer string, documents []retrieval.Document) (valid int, total i
 // and words are not fused. It never removes anything but the invalid citation
 // and that separating space.
 func Strip(answer string, documents []retrieval.Document) (string, int) {
+	spans := ParseSpans(answer)
+
+	if len(spans) == 0 {
+		return answer, 0
+	}
+
 	var (
 		builder  strings.Builder
 		stripped int
+		cursor   int
 	)
 
-	remaining := answer
-
-	for {
-		open := strings.Index(remaining, "[")
-		if open == -1 {
-			builder.WriteString(remaining)
-
-			break
-		}
-
-		closeIndex := strings.Index(remaining[open:], "]")
-		if closeIndex == -1 {
-			builder.WriteString(remaining)
-
-			break
-		}
-
-		closeIndex += open
-
-		citation := NormalizeCitation(remaining[open+1 : closeIndex])
-
-		parsed, ok := parseCitation(citation)
-		if !ok {
-			// Not a citation: keep it verbatim.
-			builder.WriteString(remaining[:closeIndex+1])
-			remaining = remaining[closeIndex+1:]
-
+	for _, span := range spans {
+		if Valid(span.Citation, documents) {
 			continue
 		}
 
-		if Valid(parsed, documents) {
-			builder.WriteString(remaining[:closeIndex+1])
-		} else {
-			// Drop the invalid citation but keep the surrounding text. If the
-			// removal would fuse two word characters across the gap (no
-			// whitespace on either side), insert one space so words do not
-			// merge.
-			prefix := remaining[:open]
-			suffix := remaining[closeIndex+1:]
+		prefix := answer[cursor:span.Start]
+		suffix := answer[span.End:]
 
-			builder.WriteString(prefix)
+		builder.WriteString(prefix)
 
-			if needsSeparator(prefix, suffix) {
-				builder.WriteString(" ")
-			}
-
-			stripped++
+		if needsSeparator(prefix, suffix) {
+			builder.WriteString(" ")
 		}
 
-		remaining = remaining[closeIndex+1:]
+		cursor = span.End
+		stripped++
 	}
+
+	builder.WriteString(answer[cursor:])
 
 	return builder.String(), stripped
 }

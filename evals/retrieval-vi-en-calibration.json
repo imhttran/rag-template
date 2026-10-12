@@ -5,7 +5,7 @@
     "question": "What is an escrow cushion?",
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Escrow Administration",
         "evidence": [
           "The permitted cushion is generally one-sixth of the total annual escrow disbursements"
@@ -19,7 +19,7 @@
     "question": "What is retainage?",
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Construction Draw Administration",
         "evidence": [
           "Retainage is the portion of each draw withheld until the associated work is inspected and accepted."
@@ -33,7 +33,7 @@
     "question": "Under what condition may a late fee be waived?",
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Fee Waivers",
         "evidence": [
           "A waiver request must be submitted before the fee is assessed"
@@ -47,7 +47,7 @@
     "question": "How are duplicate payments detected?",
     "expected": [
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Payment Processing",
         "evidence": [
           "Duplicate payments should be detected using the payment identifier."
@@ -61,7 +61,7 @@
     "question": "What happens to a partial payment before the full scheduled amount arrives?",
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Partial Payment Handling",
         "evidence": [
           "A partial payment is held and applied once the full scheduled amount is received."
@@ -75,7 +75,7 @@
     "question": "Mức phí trả chậm được quy định ở đâu?",
     "expected": [
       {
-        "source": "chinh-sach-khoan-vay.md",
+        "source": "examples/vi/chinh-sach-khoan-vay.md",
         "section": "Phí trả chậm",
         "evidence": [
           "Mức phí được ghi trong thỏa thuận khoản vay."
@@ -89,7 +89,7 @@
     "question": "Thành viên có thể liên hệ vào lúc nào?",
     "expected": [
       {
-        "source": "dich-vu-thanh-vien.md",
+        "source": "examples/vi/dich-vu-thanh-vien.md",
         "section": "Kênh liên hệ",
         "evidence": [
           "vào giờ làm việc."
@@ -103,7 +103,7 @@
     "question": "Thông báo chậm trả đầu tiên được gửi trong bao lâu?",
     "expected": [
       {
-        "source": "quy-trinh-thu-hoi.md",
+        "source": "examples/vi/quy-trinh-thu-hoi.md",
         "section": "Thông báo chậm trả",
         "evidence": [
           "ba ngày làm việc."
@@ -117,7 +117,7 @@
     "question": "Chứng nhận bảo hiểm có thời hạn bao lâu?",
     "expected": [
       {
-        "source": "bao-hiem-tai-san.md",
+        "source": "examples/vi/bao-hiem-tai-san.md",
         "section": "Thời hạn hiệu lực",
         "evidence": [
           "mười hai tháng kể từ ngày cấp."
@@ -131,7 +131,7 @@
     "question": "When may a debt be written off?",
     "expected": [
       {
-        "source": "quy-trinh-thu-hoi.md",
+        "source": "examples/vi/quy-trinh-thu-hoi.md",
         "section": "Xóa nợ",
         "evidence": [
           "Việc xóa nợ chỉ được xem xét sau khi quản lý phê duyệt"
@@ -145,7 +145,7 @@
     "question": "How long is a property insurance claim processed?",
     "expected": [
       {
-        "source": "bao-hiem-tai-san.md",
+        "source": "examples/vi/bao-hiem-tai-san.md",
         "section": "Bồi thường",
         "evidence": [
           "mười lăm ngày làm việc"
@@ -159,7 +159,7 @@
     "question": "Làm sao để liên hệ hỗ trợ?",
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Contact Channels",
         "evidence": [
           "Support is available by phone and through the online portal."
@@ -173,7 +173,7 @@
     "question": "Khi nào thay đổi cách nhận sao kê có hiệu lực?",
     "expected": [
       {
-        "source": "member-services-guide.md",
+        "source": "examples/member-services-guide.md",
         "section": "Statement Delivery",
         "evidence": [
           "a change to the delivery method takes effect with the next billing cycle."
@@ -187,7 +187,7 @@
     "question": "Thặng dư tài khoản ký quỹ là gì?",
     "expected": [
       {
-        "source": "commercial-servicing-manual.md",
+        "source": "examples/commercial-servicing-manual.md",
         "section": "Escrow Administration",
         "evidence": [
           "A surplus exists when the projected balance exceeds the target."
@@ -201,7 +201,7 @@
     "question": "Thời hạn gia hạn của khoản vay lớn là bao lâu?",
     "expected": [
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": [
           "The grace period lasts fifteen days."

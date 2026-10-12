@@ -234,3 +234,89 @@ exposed live in [`experiments-eval-sweep.md`](../experiments-eval-sweep.md).
   roughly 10× faster and was used for the re-baseline.
 - Rewrite output is nondeterministic: one configuration measured R@1 0.70 and
   then 0.74 on two runs, so small differences between rows are noise.
+
+## Post-fix reconciliation (RAG-023D)
+
+This section **reconciles** the rows above against the correctness fixes landed
+in RAG-023B (F1/F2 source identity, F5 batched ingestion, F6 document-global
+chunk index) and RAG-023C (F3 JSON answer, F4 language parity, F7/F8 shared
+citation parser). **No historical number in this document is rewritten or
+edited**: every table above is preserved verbatim as the pre-fix record, and
+this section is the pre-fix vs post-fix reconciliation. Where a post-fix
+number is quoted below it is paired with its pre-fix value and explained by a
+specific fixed defect (or explicitly attributed to documented measurement
+noise).
+
+### Why the pre-fix numbers are not directly comparable
+
+Before F1/F2, ingest stored only the base name of each source (an absolute path
+such as `/…/examples/loan-policy.md` was reduced to `loan-policy.md`), and the
+`evals/*.json` datasets and `evals/corpus-vi-en.json` manifest carried those bare
+base names as the identity label. Two different files with the same base name
+collapsed onto one identity, and a retrieval hit could only be scored against a
+label that did not name its directory. RAG-023B changes the stored identity to a
+canonical **repository-relative, directory-qualified** path (symlinks resolved,
+never a bare base name) and aligns every dataset `source` field and every
+manifest key to it (for example `loan-policy.md` → `examples/loan-policy.md`).
+The post-fix numbers below therefore come from a **different, correct** identity
+than the historical rows; that identity change is the single largest reason the
+recall/evidence/rejection values move.
+
+### Pre-fix vs post-fix (held-out `evals/retrieval-vi-en-expanded.json`, floor 0.70)
+
+| metric | pre-fix (RAG-021 row above) | post-fix (RAG-023D re-run) | attribution |
+| ------ | --------------------------- | -------------------------- | ----------- |
+| R@1 | 0.42 | see `experiments-eval-sweep.md` RAG-023D run | F1/F2 identity alignment (scores now match the retrieved `examples/…` source); F6 document-global chunk index changes which chunk ranks first |
+| R@4 | 0.52 | see RAG-023D run | F1/F2 identity alignment; F5 batched insert does not change ranking, F6 chunk index reorders ties within a section |
+| P@4 | 0.22 | see RAG-023D run | F1/F2: section-level precision is scored against the corrected directory-qualified source, so previously-colliding base names no longer merge |
+| evidence (bef → aft) | 0.42 → 0.48 | see RAG-023D run | F6 document-global chunk index and F1/F2 identity; evidence recall is computed on the corrected source/section pair |
+| rejection | 1.00 | see RAG-023D run | unchanged floor `0.70`; rejection is a function of the floor and the corrected identity, and the joint selection rule is unchanged |
+
+Numbers labelled "see `experiments-eval-sweep.md` RAG-023D run" are recorded
+with their per-repeat values, floor selection, and dataset/manifest hashes in
+[`experiments-eval-sweep.md`](../experiments-eval-sweep.md), alongside the
+pre-fix RAG-021 rows that are left intact.
+
+### Movements in the non-sweep axes
+
+- **Chunk size / evidence recall (`Re-baseline under the shipped defaults`).**
+  The historical rows were measured with per-section chunk numbering. F6 makes
+the index document-global, so the same section's chunks are now numbered in
+document order. This does not change *which sections* are retrieved, so the
+section-based R/P columns are unaffected, but it can change which chunk within a
+section is returned first and therefore the evidence-recall before/after split.
+  Treat a small evidence-recall movement as F6, and the single-run noise noted
+  in "Still open" as the residual.
+- **Generation-judge metrics (fact recall, groundedness, citation validity,
+  citation entailment).** F7/F8 replace the per-consumer citation parser with one
+  shared parser in `internal/citations` and treat a trailing segment as a page
+  only when it matches `p.N`. Pre-fix, a section title containing `" - "` was
+dropped (F7) and a `Page N - p.N` tail was mis-read (F8), so citation validity
+  and entailment were scored against a parser that silently discarded some
+  citations. Post-fix those citations are parsed, so citation validity/entailment
+  denominators can change; the change is attributable to F7/F8, not to a change
+  in model behavior.
+- **JSON-mode answer and language parity (F3/F4).** These are output/parity
+  fixes, not retrieval changes: F3 makes `OBSERVABILITY_FORMAT=json` show the
+  answer, and F4 makes `cmd/eval` forward `CORPUS_LANGUAGE` the same way `cmd/rag`
+  does. Neither moves the recall/precision rows above, but F4 makes the eval's
+  keyword retrieval match the production path under `CORPUS_LANGUAGE=vi`, which
+  is what the post-fix sweep measures.
+
+### Still open — resolution (explanation only, prior rows unchanged)
+
+- **The chunk-default question.** The historical conclusion ("`100/20` looks at
+  least as good under the shipped defaults") still stands as a *measurement*
+  concern, but part of the apparent gap was the F6 chunk-ordering difference:
+  chunk numbering was per-section before the fix and is document-global after it.
+  Re-decide the default only from post-fix, multi-repeat measurements; the
+  pre-fix single-run rows above are retained as provenance.
+- **The comparability warning.** It is unchanged in force and now also covers the
+  identity change: pre-fix (bare base-name identity) and post-fix
+  (directory-qualified identity) rows are **not** directly comparable, because
+  they score against different identity labels. Only rows sharing both the
+  identity convention and the chat-model/rewrite combination are comparable.
+
+All historical tables and numbers in this document are preserved and only
+reconciled here; the sweep-side numbers and hashes for the post-fix run are in
+[`experiments-eval-sweep.md`](../experiments-eval-sweep.md).

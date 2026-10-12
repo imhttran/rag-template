@@ -34,7 +34,8 @@ import (
 // out is where the human-readable stage output is written. It defaults to
 // stdout so the default workflow is byte-for-byte unchanged. When JSON
 // observability is selected, run points it at io.Discard so the structured
-// record on stdout stays machine-parseable.
+// record on stdout stays machine-parseable; the answer itself is delivered
+// through the reporter's record instead of this stream.
 var out io.Writer = os.Stdout
 
 func main() {
@@ -62,7 +63,9 @@ func main() {
 
 func run(ctx context.Context, cfg config.Config, question string) error {
 	// In JSON mode the human-readable stream is suppressed so stdout carries
-	// only the structured record; the default (human) mode is unchanged.
+	// only the structured record; the default (human) mode is unchanged. The
+	// answer is not lost: it is recorded on the reporter's structured record
+	// (see the reporter.Answer calls below), so JSON mode still shows it.
 	if cfg.ObservabilityJSON() {
 		out = io.Discard
 	} else {
@@ -87,7 +90,7 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	// One reporter per invocation. Its run ID correlates every record emitted
 	// for this run. The human reporter adds no lines to the stream above, so the
 	// default output is unchanged; the JSON reporter emits one structured record
-	// at the end.
+	// at the end carrying the answer.
 	reporter := observability.New(cfg.ObservabilityJSON(), os.Stdout)
 	defer reporter.Finish()
 
@@ -221,9 +224,15 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	reporter.Stage(observability.StageAnswerability, time.Since(answerabilityStart))
 
 	if !answerable {
+		// The insufficient-information outcome is the answer for this run; record
+		// it so JSON mode reports it too, and keep the human stream unchanged.
+		const insufficient = "I do not have enough information."
+
+		reporter.Answer(insufficient, false)
+
 		println()
 		println("Answer:")
-		println("I do not have enough information.")
+		println(insufficient)
 
 		return nil
 	}
@@ -248,6 +257,11 @@ func run(ctx context.Context, cfg config.Config, question string) error {
 	}
 
 	reporter.Stage(observability.StageAnswer, time.Since(answerStart))
+
+	// Record the answer on the structured record so JSON mode (which discards the
+	// human stream above) still shows it. The human reporter records it without
+	// writing anything, so the default output is unchanged.
+	reporter.Answer(answer, true)
 
 	// Report the citation validation/repair outcome only when validation ran, so
 	// the default (validation disabled) output is unchanged. The report goes

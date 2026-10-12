@@ -4,7 +4,7 @@
     "expected_facts": ["loan-policy.md has a 10-day grace period"],
     "expected": [
       {
-        "source": "loan-policy.md",
+        "source": "examples/loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["10-day grace period"]
       }
@@ -15,7 +15,7 @@
     "expected_facts": ["chinh-sach-khoan-vay.md gia hạn 10 ngày"],
     "expected": [
       {
-        "source": "chinh-sach-khoan-vay.md",
+        "source": "examples/vi/chinh-sach-khoan-vay.md",
         "section": "Thời hạn gia hạn",
         "evidence": ["10 ngày"]
       }
@@ -26,7 +26,7 @@
     "expected_facts": ["chinh-sach-khoan-vay.md áp dụng phí trả chậm"],
     "expected": [
       {
-        "source": "chinh-sach-khoan-vay.md",
+        "source": "examples/vi/chinh-sach-khoan-vay.md",
         "section": "Phí trả chậm",
         "evidence": ["Phí trả chậm"]
       }
@@ -37,7 +37,7 @@
     "expected_facts": ["large-loan-policy.md gia hạn mười lăm ngày"],
     "expected": [
       {
-        "source": "large-loan-policy.md",
+        "source": "examples/large-loan-policy.md",
         "section": "Missed Payments",
         "evidence": ["fifteen days"]
       }
@@ -48,7 +48,7 @@
     "expected_facts": ["dich-vu-thanh-vien.md xử lý trong năm ngày làm việc"],
     "expected": [
       {
-        "source": "dich-vu-thanh-vien.md",
+        "source": "examples/vi/dich-vu-thanh-vien.md",
         "section": "Yêu cầu tất toán",
         "evidence": ["năm ngày làm việc"]
       }

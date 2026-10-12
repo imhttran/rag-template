@@ -8,7 +8,8 @@
 //     stage methods write nothing to stdout, so the default workflow is
 //     byte-for-byte unchanged.
 //   - JSONReporter emits one structured log/slog record (JSON handler) keyed by
-//     the run ID, carrying all stage timings, counts, and context usage.
+//     the run ID, carrying all stage timings, counts, context usage, and the
+//     answer text.
 //
 // The reporter has no external APM dependency; JSON mode uses the standard
 // library log/slog (Go 1.21+).
@@ -54,12 +55,17 @@ type Usage struct {
 // Record is the correlated observability record for one invocation. All fields
 // are keyed by the shared RunID so a single run can be reconstructed from its
 // JSON output. Stages holds each stage's wall-clock duration in milliseconds
-// (the unit the stage_ms JSON tag names).
+// (the unit the stage_ms JSON tag names). Answer carries the final answer text
+// so the machine-readable record contains the answer the human stream would
+// have shown; Answered reports whether an answer was produced (false for the
+// insufficient-information outcome).
 type Record struct {
-	RunID  string             `json:"run_id"`
-	Stages map[string]float64 `json:"stage_ms"`
-	Counts Counts             `json:"counts"`
-	Usage  Usage              `json:"usage"`
+	RunID    string             `json:"run_id"`
+	Stages   map[string]float64 `json:"stage_ms"`
+	Counts   Counts             `json:"counts"`
+	Usage    Usage              `json:"usage"`
+	Answer   string             `json:"answer"`
+	Answered bool               `json:"answered"`
 }
 
 // Reporter receives per-run observability events. The human implementation
@@ -81,6 +87,11 @@ type Reporter interface {
 	// Usage records the context/token estimate for the documents sent.
 	Usage(u Usage)
 
+	// Answer records the final answer text (and whether one was produced) so
+	// JSON mode carries the answer the human stream would have shown. It writes
+	// nothing to the human stream.
+	Answer(answer string, answered bool)
+
 	// Finish flushes any buffered record. It is safe to call once at the end
 	// of a run.
 	Finish()
@@ -100,8 +111,8 @@ func NewRunID() string {
 }
 
 // HumanReporter is the default reporter. It adds no lines to the existing
-// human-readable stream: Stage, Counts, and Usage are recorded (so tests can
-// assert on them) but nothing is written to stdout. This keeps the default
+// human-readable stream: Stage, Counts, Usage, and Answer are recorded (so tests
+// can assert on them) but nothing is written to stdout. This keeps the default
 // workflow byte-for-byte identical to the pre-RAG-014 output.
 type HumanReporter struct {
 	runID string
@@ -132,6 +143,14 @@ func (r *HumanReporter) Counts(c Counts) { r.record.Counts = c }
 
 // Usage records the context estimate. It writes nothing to stdout.
 func (r *HumanReporter) Usage(u Usage) { r.record.Usage = u }
+
+// Answer records the answer text. It writes nothing to stdout: the human stream
+// already carries the answer, so recording it here keeps the default output
+// unchanged.
+func (r *HumanReporter) Answer(answer string, answered bool) {
+	r.record.Answer = answer
+	r.record.Answered = answered
+}
 
 // Finish is a no-op for the human reporter: nothing was buffered for stdout.
 func (r *HumanReporter) Finish() {}
@@ -175,10 +194,16 @@ func (r *JSONReporter) Counts(c Counts) { r.record.Counts = c }
 // Usage records the context estimate.
 func (r *JSONReporter) Usage(u Usage) { r.record.Usage = u }
 
+// Answer records the answer text so the structured record carries it.
+func (r *JSONReporter) Answer(answer string, answered bool) {
+	r.record.Answer = answer
+	r.record.Answered = answered
+}
+
 // Finish emits the buffered record as a single slog JSON line keyed by the run
 // ID. The stage timings (in milliseconds) are flattened into individual numeric
-// attributes as well as the counts and usage fields, so a single shared run ID
-// correlates every field.
+// attributes as well as the counts, usage, and answer fields, so a single
+// shared run ID correlates every field.
 func (r *JSONReporter) Finish() {
 	r.record.RunID = r.runID
 
@@ -188,6 +213,8 @@ func (r *JSONReporter) Finish() {
 		slog.Int("filtered", r.record.Counts.Filtered),
 		slog.Int("context_bytes", r.record.Usage.ContextBytes),
 		slog.Int("chunks", r.record.Usage.Chunks),
+		slog.Bool("answered", r.record.Answered),
+		slog.String("answer", r.record.Answer),
 	}
 
 	for name, millis := range r.record.Stages {
