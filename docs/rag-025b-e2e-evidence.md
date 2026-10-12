@@ -21,8 +21,11 @@ section): it is non-gating and excluded from the standard suite.
 ## Disposable database identity and safety guard
 
 - **Harness variable:** `RAG_TEST_DATABASE_URL`
-- **Default value:** `postgres://rag:rag@127.0.0.1:5434/rag_test?sslmode=disable`
-  (the `docker-compose` PostgreSQL 16 + pgvector instance on port 5434).
+- **Example disposable test database:** `postgres://rag:rag@127.0.0.1:5434/rag_test?sslmode=disable`
+  — a throwaway name on the `docker-compose` PostgreSQL 16 + pgvector instance (port 5434).
+  This is **not** the application default: `DATABASE_URL` defaults to
+  `postgres://rag:rag@127.0.0.1:5434/rag?sslmode=disable` (`internal/config/config.go`,
+  `DefaultDatabaseURL`).
 - **Database name used for integration:** `rag_test` — a throwaway name, **not**
   `rag_db`.
 - **`rag_db` guard:** `requireIntegrationDB` in `internal/rag/e2e_db_test.go`
