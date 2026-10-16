@@ -96,6 +96,10 @@ func run(ctx context.Context, path string) error {
 	// so a content edit or a CHUNK_SIZE/CHUNK_OVERLAP change both invalidate it.
 	chunkerConfig := cfg.ChunkerConfig()
 	provenance := ingestion.Provenance{
+		// Optional corpus identity (RAG-SOP-004 POC). Empty keeps the previous
+		// behavior (NULL corpus). Read from the environment so no flag/parser change
+		// is required and existing invocations are unchanged.
+		Corpus:        os.Getenv("RAG_CORPUS"),
 		ContentHash:   contentFingerprint(data, chunkerConfig),
 		EmbedModel:    cfg.EmbedModel,
 		ChunkerConfig: chunkerConfig,
