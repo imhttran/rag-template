@@ -69,13 +69,13 @@ func TestChunkInsertBatchesExactlyOneFullBatch(t *testing.T) {
 		t.Fatalf("statement = %q, want it to start with the insert", statement)
 	}
 
-	if !strings.Contains(statement, "$1, $2, $3, $4, $5::vector, $6, $7, $8, $9, $10, $11, $12") {
+	if !strings.Contains(statement, "$1, $2, $3, $4, $5::vector, $6, $7, $8, $9, $10, $11, $12, $13") {
 		t.Fatalf("statement missing the first row placeholders: %q", statement)
 	}
 
 	last := chunksPerBatch * paramsPerChunk
-	if !strings.Contains(statement, "($"+itoa(last-11)) {
-		t.Fatalf("statement missing the final row starting at $%d", last-11)
+	if !strings.Contains(statement, "($"+itoa(last-12)) {
+		t.Fatalf("statement missing the final row starting at $%d", last-12)
 	}
 
 	if strings.Contains(statement, "$0") {
@@ -122,7 +122,7 @@ func TestChunkInsertBatchesOneOverFullBatch(t *testing.T) {
 			t.Fatalf("batch %d args = %d, want %d", index, got, want)
 		}
 
-		if !strings.Contains(batch.sql, "$1, $2, $3, $4, $5::vector, $6, $7, $8, $9, $10, $11, $12") {
+		if !strings.Contains(batch.sql, "$1, $2, $3, $4, $5::vector, $6, $7, $8, $9, $10, $11, $12, $13") {
 			t.Fatalf("batch %d does not start at $1: %q", index, batch.sql)
 		}
 	}
