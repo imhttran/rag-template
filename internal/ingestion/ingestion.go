@@ -38,13 +38,13 @@ const (
 	// paramsPerChunk is how many bind parameters one inserted chunk row
 	// contributes (source, section, chunk_index, content, embedding,
 	// content_hash, embed_model, embedding_dim, chunker_config, ingested_at,
-	// language, page).
-	paramsPerChunk = 12
+	// language, page, corpus).
+	paramsPerChunk = 13
 
 	// chunksPerBatch is the maximum number of chunk rows written by a single
 	// INSERT statement. It is derived from the parameter budget so the batch
-	// size shrinks automatically if paramsPerChunk ever grows: with 12
-	// parameters per row this is floor(65535/12) = 5461, and 5461*12 = 65532
+	// size shrinks automatically if paramsPerChunk ever grows: with 13
+	// parameters per row this is floor(65535/13) = 5041, and 5041*13 = 65533
 	// bind parameters stays strictly below the limit.
 	chunksPerBatch = maxBindParams / paramsPerChunk
 )
@@ -72,6 +72,12 @@ type Provenance struct {
 	// "de"). An empty value is stored as NULL (unset); retrieval treats unset
 	// as the baseline configuration, so no default changes.
 	Language string
+
+	// Corpus is the trusted corpus identity this chunk belongs to (RAG-SOP-002).
+	// It is required for scoped retrieval: a NULL/empty corpus never matches a
+	// corpus filter, so an unscoped (legacy) row is excluded from scoped
+	// retrieval until an explicit backfill assigns a corpus.
+	Corpus string
 
 	// IngestedAt is when the chunks were written. It is set by the caller so a
 	// batch shares one timestamp; a zero value is replaced with the current
@@ -181,7 +187,7 @@ func chunkInsertBatches(
 		builder.WriteString(
 			`INSERT INTO documents (source, section, chunk_index, content, ` +
 				`embedding, content_hash, embed_model, embedding_dim, ` +
-				`chunker_config, ingested_at, language, page) VALUES `,
+				`chunker_config, ingested_at, language, page, corpus) VALUES `,
 		)
 
 		args := make([]any, 0, rowCount*paramsPerChunk)
@@ -197,7 +203,7 @@ func chunkInsertBatches(
 
 			fmt.Fprintf(
 				&builder,
-				"($%d, $%d, $%d, $%d, $%d::vector, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+				"($%d, $%d, $%d, $%d, $%d::vector, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
 				base+1,
 				base+2,
 				base+3,
@@ -210,6 +216,7 @@ func chunkInsertBatches(
 				base+10,
 				base+11,
 				base+12,
+				base+13,
 			)
 
 			args = append(
@@ -226,6 +233,7 @@ func chunkInsertBatches(
 				provenance.IngestedAt,
 				nullableString(provenance.Language),
 				nullableInt(item.chunk.Page),
+				nullableString(provenance.Corpus),
 			)
 		}
 

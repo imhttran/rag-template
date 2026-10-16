@@ -87,10 +87,12 @@ func NormalizeFTSConfig(language string) string {
 // information (pre-existing rows read NULL and coalesce to 0).
 type Document struct {
 	ID           int64
+	Corpus       string
 	Source       string
 	Section      string
 	ChunkIndex   int
 	Content      string
+	ContentHash  string
 	Page         int
 	Similarity   float64
 	KeywordScore float64
@@ -143,10 +145,12 @@ func (r *Retriever) SearchFiltered(
 		`
 		SELECT
 		    id,
+		    COALESCE(corpus, '') AS corpus,
 		    COALESCE(source, ''),
 		    COALESCE(section, ''),
 		    chunk_index,
 		    content,
+		    COALESCE(content_hash, '') AS content_hash,
 		    COALESCE(page, 0),
 		    1 - (embedding <=> $1::vector) AS similarity
 		FROM documents
@@ -163,10 +167,12 @@ func (r *Retriever) SearchFiltered(
 	return scanDocuments(rows, func(doc *Document) []any {
 		return []any{
 			&doc.ID,
+			&doc.Corpus,
 			&doc.Source,
 			&doc.Section,
 			&doc.ChunkIndex,
 			&doc.Content,
+			&doc.ContentHash,
 			&doc.Page,
 			&doc.Similarity,
 		}
@@ -304,10 +310,12 @@ func (r *Retriever) KeywordSearchFiltered(
 		`
 		SELECT
 		    id,
+		    COALESCE(corpus, '') AS corpus,
 		    COALESCE(source, ''),
 		    COALESCE(section, ''),
 		    chunk_index,
 		    content,
+		    COALESCE(content_hash, '') AS content_hash,
 		    COALESCE(page, 0),
 		    ts_rank(
 		        to_tsvector(
@@ -330,10 +338,12 @@ func (r *Retriever) KeywordSearchFiltered(
 	return scanDocuments(rows, func(doc *Document) []any {
 		return []any{
 			&doc.ID,
+			&doc.Corpus,
 			&doc.Source,
 			&doc.Section,
 			&doc.ChunkIndex,
 			&doc.Content,
+			&doc.ContentHash,
 			&doc.Page,
 			&doc.KeywordScore,
 		}
@@ -438,18 +448,22 @@ func (r *Retriever) SectionChunksFiltered(
 		`
 		SELECT
 			id,
+			COALESCE(corpus, '') AS corpus,
 			COALESCE(source, '') AS source,
 			COALESCE(section, '') AS section,
 			chunk_index,
 			content,
+			COALESCE(content_hash, '') AS content_hash,
 			COALESCE(page, 0) AS page
 		FROM (
 			SELECT
 				id,
+				corpus,
 				source,
 				section,
 				chunk_index,
 				content,
+				content_hash,
 				page,
 				ROW_NUMBER() OVER (
 					PARTITION BY source, section
@@ -471,10 +485,12 @@ func (r *Retriever) SectionChunksFiltered(
 	return scanDocuments(rows, func(doc *Document) []any {
 		return []any{
 			&doc.ID,
+			&doc.Corpus,
 			&doc.Source,
 			&doc.Section,
 			&doc.ChunkIndex,
 			&doc.Content,
+			&doc.ContentHash,
 			&doc.Page,
 		}
 	})

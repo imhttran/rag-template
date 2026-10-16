@@ -20,6 +20,12 @@ import (
 // unset by ingestion; the filter matches the literal column value, so callers
 // who want to include unset rows should not set Language.
 type Filter struct {
+	// Corpus matches documents whose corpus column equals this value exactly.
+	// It is the isolation unit: only rows explicitly assigned to the requested
+	// corpus match. A NULL or empty stored corpus never matches, so legacy
+	// (pre-migration) rows are excluded from scoped retrieval.
+	Corpus string
+
 	// SourcePrefix matches documents whose source begins with this prefix.
 	SourcePrefix string
 
@@ -36,7 +42,8 @@ type Filter struct {
 
 // IsZero reports whether the filter carries no criteria.
 func (f Filter) IsZero() bool {
-	return f.SourcePrefix == "" &&
+	return f.Corpus == "" &&
+		f.SourcePrefix == "" &&
 		f.Language == "" &&
 		f.IngestedFrom == nil &&
 		f.IngestedTo == nil
@@ -58,9 +65,15 @@ func filterFragment(f Filter, startIndex int) (string, []any) {
 		return "", nil
 	}
 
-	clauses := make([]string, 0, 4)
-	args := make([]any, 0, 4)
+	clauses := make([]string, 0, 5)
+	args := make([]any, 0, 5)
 	next := startIndex
+
+	if f.Corpus != "" {
+		clauses = append(clauses, fmt.Sprintf("corpus = $%d", next))
+		args = append(args, f.Corpus)
+		next++
+	}
 
 	if f.SourcePrefix != "" {
 		clauses = append(clauses, fmt.Sprintf("source LIKE $%d", next))
